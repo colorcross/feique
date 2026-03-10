@@ -10,7 +10,8 @@ Chinese is still the primary documentation language for this project. This page 
 4. [Security and operations](security.md)
 5. [FAQ](faq.md)
 6. [Community and support](community.md)
-7. [Website](website.md)
+7. [Feishu roadmap](feishu-roadmap.md)
+8. [Website](website.md)
 
 ## What each document is for
 
@@ -24,6 +25,8 @@ Chinese is still the primary documentation language for this project. This page 
   - sessions, project binding, chat allow-lists, `proxy_on`
 - [community.md](community.md)
   - discussions, issues, and support expectations
+- [feishu-roadmap.md](feishu-roadmap.md)
+  - planned Docs / knowledge-base / multimedia capabilities
 - [website.md](website.md)
   - GitHub Pages and website asset structure
 

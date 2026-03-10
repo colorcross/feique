@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.1.2 - 2026-03-11
+
+### Highlights
+
+- 官网继续收敛为更克制的高端极简风格，优化中文大标题的字体、节奏和层次。
+- 新增英文官网落地页，并和中文官网共用同一套视觉系统。
+- 增加 npm 发布准备，包括公共发布配置、npm 安装方式和相关文档更新。
+- 新增飞书交互路线图，明确文档 / 知识库 / 多媒体沟通的下一阶段范围。
+
+### Included
+
+- 官网：
+  - `website/index.html`
+  - `website/en.html`
+  - `website/styles.css`
+- 文档：
+  - `README.md`
+  - `README.en.md`
+  - `docs/getting-started.md`
+  - `docs/README.md`
+  - `docs/README.en.md`
+  - `docs/faq.md`
+  - `docs/feishu-roadmap.md`
+- 发布准备：
+  - `package.json`
+  - `src/cli.ts`
+
+### Verification
+
+- `pnpm build`
+- `npm pack --dry-run`
+- GitHub Pages 中英文页面可访问
+
 ## v0.1.1 - 2026-03-10
 
 ### Highlights

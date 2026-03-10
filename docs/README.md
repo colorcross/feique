@@ -15,7 +15,8 @@
 4. [架构设计](architecture.md)
 5. [FAQ](faq.md)
 6. [社区与支持](community.md)
-7. [官网部署说明](website.md)
+7. [飞书交互路线图](feishu-roadmap.md)
+8. [官网部署说明](website.md)
 
 ## 文档地图
 
@@ -35,6 +36,11 @@
   - 会话模型
   - 运行态保护
   - Observability
+- [飞书交互路线图](feishu-roadmap.md)
+  - 文档与知识库
+  - 多媒体沟通
+  - 审批与工作流
+  - 阶段里程碑
 
 ### 部署与运维
 

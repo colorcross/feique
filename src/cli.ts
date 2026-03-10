@@ -35,7 +35,7 @@ const program = new Command();
 program
   .name('codex-feishu')
   .description('Feishu bridge for Codex CLI with session routing and project-scoped config.')
-  .version('0.1.0');
+  .version('0.1.2');
 
 program
   .command('init')

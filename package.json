@@ -1,6 +1,6 @@
 {
   "name": "codex-feishu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Feishu bridge for Codex CLI with session routing, project-scoped config, and production-ready operations.",
   "homepage": "https://colorcross.github.io/codex-feishu/",
   "type": "module",
@@ -26,6 +26,7 @@
     "demo:up": "bash scripts/dev-stack.sh up",
     "dev": "tsx src/cli.ts",
     "install:global": "bash scripts/install.sh",
+    "prepublishOnly": "npm run build && npm run test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -45,6 +46,9 @@
   },
   "bugs": {
     "url": "https://github.com/colorcross/codex-feishu/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT",
   "dependencies": {

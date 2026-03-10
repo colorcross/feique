@@ -110,3 +110,30 @@ pnpm demo:down
 
 - 确保没把真实密钥、状态文件、打包产物提交进去
 - 把 `App Secret` 视为敏感信息，必要时立即轮换
+
+## 11. 这里的项目 / session 和 Codex App 里的项目 / 线程是同一个东西吗？
+
+不建议把它们当成同一个抽象。
+
+- 这个项目里的“项目”是桥接器配置里的 `projects.<alias>.root`
+- 这个项目里的“session”是本地桥接层维护的 Codex CLI 会话句柄和历史映射
+- Codex App / Codex Cloud 里还存在单独的“过去的项目”和“cloud threads”概念
+
+根据 OpenAI 官方文档：
+
+- Codex App 登录 ChatGPT 账号时，可能带有 `cloud threads` 能力；如果只用 API key 登录，部分能力可能不可用
+- Codex App、CLI、IDE Extension 之间会显示“过去的项目”
+- Codex CLI 本地会把会话转录保存到 `history.jsonl`，`codex resume` / `codex exec resume` 也是按本地会话继续
+
+这意味着：
+
+- “过去的项目”看起来是跨 App / CLI / IDE 可见的工作区历史
+- 但本桥接器实际依赖的是 CLI 本地 session / resume 机制，不直接操作 Codex App 的 cloud thread
+
+截至目前，我没有在官方公开文档里找到一个面向 Codex App 项目 / 线程的公开 CRUD API，所以不建议把它设计成“直接管理 Codex App 线程”的系统。
+
+参考：
+
+- Codex App getting started：<https://developers.openai.com/codex/app/#getting-started>
+- Codex CLI reference：<https://developers.openai.com/codex/cli/reference/>
+- Codex config reference：<https://developers.openai.com/codex/config-reference/#configtoml>

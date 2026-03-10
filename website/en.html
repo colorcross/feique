@@ -27,7 +27,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
@@ -55,7 +55,10 @@
         <section class="hero-grid">
           <div class="hero-copy fade-up delay-1">
             <p class="eyebrow">Session-aware bridge for disciplined engineering workflows</p>
-            <h1>Turn Feishu into Codex's working entry point.</h1>
+            <h1 class="display-stack">
+              <span class="display-line">Turn Feishu into</span>
+              <span class="display-line display-accent">Codex's working entry point.</span>
+            </h1>
             <p class="hero-body">
               Codex Feishu sends Feishu messages into resumable Codex sessions. Projects stay routable, replies stay traceable, and runtime state stays operable. It is not a disposable bot script. It is an engineering bridge built to stay up.
             </p>
@@ -75,7 +78,8 @@
               <div class="window-dots" aria-hidden="true">
                 <span></span><span></span><span></span>
               </div>
-              <pre><code>$ bash scripts/install.sh
+              <pre><code>$ npm install -g codex-feishu
+$ codex-feishu init --mode global
 $ export FEISHU_APP_ID=cli_xxx
 $ export FEISHU_APP_SECRET=***
 $ codex-feishu doctor --remote
@@ -119,7 +123,10 @@ State: healthy</code></pre>
         <section class="section intro-block fade-up">
           <div class="section-head">
             <span class="micro-label">Why this exists</span>
-            <h2>Feishu handles communication, Codex handles execution, and the bridge keeps context and control intact.</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">Feishu handles communication. Codex handles execution.</span>
+              <span class="display-line display-shift">The bridge keeps context and control intact.</span>
+            </h2>
           </div>
           <div class="principle-grid">
             <article>
@@ -140,7 +147,10 @@ State: healthy</code></pre>
         <section class="section architecture-section fade-up">
           <div class="section-head compact">
             <span class="micro-label">System shape</span>
-            <h2>A thin bridge, but with the right control points in the right places.</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">A thin bridge.</span>
+              <span class="display-line display-shift">The critical control points still have to be exact.</span>
+            </h2>
           </div>
           <div class="architecture-layout">
             <div class="architecture-copy">
@@ -207,7 +217,10 @@ State: healthy</code></pre>
         <section class="section split-layout fade-up">
           <div class="section-head compact">
             <span class="micro-label">Deployment posture</span>
-            <h2>Two deployment shapes, each solving a different operational problem.</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">Two deployment shapes.</span>
+              <span class="display-line display-shift">Each solves a different operational problem.</span>
+            </h2>
           </div>
           <div class="mode-columns">
             <article class="mode-panel featured">
@@ -240,7 +253,10 @@ State: healthy</code></pre>
         <section class="section operations-grid fade-up">
           <div class="section-head compact">
             <span class="micro-label">Day-2 operations</span>
-            <h2>The real value is not the first successful run. It is the weeks after that.</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">The first successful run is not the value.</span>
+              <span class="display-line display-shift">The weeks after that are.</span>
+            </h2>
           </div>
           <div class="ops-layout">
             <article class="ops-panel command-panel">
@@ -276,7 +292,10 @@ codex-feishu audit tail --limit 20</code></pre>
         <section class="section resources-section fade-up">
           <div class="section-head compact">
             <span class="micro-label">Documentation</span>
-            <h2>The homepage establishes judgment. The docs make it deployable.</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">The homepage establishes judgment.</span>
+              <span class="display-line display-shift">The docs make it deployable.</span>
+            </h2>
           </div>
           <div class="resource-grid">
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">
@@ -299,9 +318,9 @@ codex-feishu audit tail --limit 20</code></pre>
               <strong>FAQ</strong>
               <span>Sessions, allow-lists, reply behavior, and proxy setup</span>
             </a>
-            <a href="https://github.com/colorcross/codex-feishu/releases">
-              <strong>Release Notes</strong>
-              <span>Versions and packaged artifacts</span>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">
+              <strong>Feishu roadmap</strong>
+              <span>Docs, knowledge-base, multimedia, and approval workflows next</span>
             </a>
           </div>
         </section>
@@ -309,11 +328,14 @@ codex-feishu audit tail --limit 20</code></pre>
         <section class="final-call fade-up">
           <div>
             <span class="micro-label">Start from the repository</span>
-            <h2>Run it first. Then decide which projects and team workflows deserve the bridge.</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">Run it first.</span>
+              <span class="display-line display-shift">Then decide which projects and team workflows deserve the bridge.</span>
+            </h2>
           </div>
           <div class="final-actions">
             <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">Open GitHub</a>
-            <a class="button button-secondary" href="./index.html">Switch to Chinese</a>
+            <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">Roadmap</a>
           </div>
         </section>
       </main>

@@ -20,6 +20,7 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 - 仓库：<https://github.com/colorcross/codex-feishu>
 - 官网：<https://colorcross.github.io/codex-feishu/>
 - 英文页：<https://colorcross.github.io/codex-feishu/en.html>
+- npm：`npm install -g codex-feishu`
 - Releases：<https://github.com/colorcross/codex-feishu/releases>
 - Issues：<https://github.com/colorcross/codex-feishu/issues>
 - Discussions：<https://github.com/colorcross/codex-feishu/discussions>
@@ -61,7 +62,16 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 - 已安装并可执行的 `codex`
 - 一个已启用机器人能力的飞书自建应用
 
-### 2. 一键安装
+### 2. 安装
+
+优先使用 npm 全局安装：
+
+```bash
+npm install -g codex-feishu
+codex-feishu init --mode global
+```
+
+如果你是从源码仓库本地联调，也可以继续用：
 
 ```bash
 cd /path/to/codex-feishu
@@ -206,6 +216,7 @@ website/    官网静态站点，可直接用于 GitHub Pages
 - [部署说明](docs/deployment.md)
 - [安全与运维](docs/security.md)
 - [FAQ](docs/faq.md)
+- [飞书交互路线图](docs/feishu-roadmap.md)
 - [社区与支持](docs/community.md)
 - [官网部署说明](docs/website.md)
 - [变更记录](CHANGELOG.md)

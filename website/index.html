@@ -27,7 +27,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
@@ -55,7 +55,10 @@
         <section class="hero-grid">
           <div class="hero-copy fade-up delay-1">
             <p class="eyebrow">Session-aware bridge for disciplined engineering workflows</p>
-            <h1>把飞书变成 Codex 的工作入口。</h1>
+            <h1 class="display-stack">
+              <span class="display-line">把飞书变成</span>
+              <span class="display-line display-accent">Codex 的工作入口。</span>
+            </h1>
             <p class="hero-body">
               Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路由，回复可追踪，运行可运维。它不是一次性 bot，而是一层能长期运行的工程桥接器。
             </p>
@@ -75,7 +78,8 @@
               <div class="window-dots" aria-hidden="true">
                 <span></span><span></span><span></span>
               </div>
-              <pre><code>$ bash scripts/install.sh
+              <pre><code>$ npm install -g codex-feishu
+$ codex-feishu init --mode global
 $ export FEISHU_APP_ID=cli_xxx
 $ export FEISHU_APP_SECRET=***
 $ codex-feishu doctor --remote
@@ -119,7 +123,10 @@ State: healthy</code></pre>
         <section class="section intro-block fade-up">
           <div class="section-head">
             <span class="micro-label">Why this exists</span>
-            <h2>飞书负责沟通，Codex 负责执行，桥接器负责把上下文和控制权保住。</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">飞书负责沟通，Codex 负责执行。</span>
+              <span class="display-line display-shift">桥接器负责把上下文和控制权保住。</span>
+            </h2>
           </div>
           <div class="principle-grid">
             <article>
@@ -140,7 +147,10 @@ State: healthy</code></pre>
         <section class="section architecture-section fade-up">
           <div class="section-head compact">
             <span class="micro-label">System shape</span>
-            <h2>桥接层不需要很厚，但必须把真正关键的控制点放对位置。</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">桥接层不需要很厚。</span>
+              <span class="display-line display-shift">但关键控制点必须放对位置。</span>
+            </h2>
           </div>
           <div class="architecture-layout">
             <div class="architecture-copy">
@@ -206,7 +216,10 @@ State: healthy</code></pre>
         <section class="section split-layout fade-up">
           <div class="section-head compact">
             <span class="micro-label">Deployment posture</span>
-            <h2>两种接入姿态，分别服务本机效率和团队共享。</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">两种接入姿态。</span>
+              <span class="display-line display-shift">分别服务本机效率和团队共享。</span>
+            </h2>
           </div>
           <div class="mode-columns">
             <article class="mode-panel featured">
@@ -239,7 +252,10 @@ State: healthy</code></pre>
         <section class="section operations-grid fade-up">
           <div class="section-head compact">
             <span class="micro-label">Day-2 operations</span>
-            <h2>真正的价值，不是第一次跑起来，而是之后每一天都能被管理。</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">真正的价值不是第一次跑起来。</span>
+              <span class="display-line display-shift">而是之后每一天都能被管理。</span>
+            </h2>
           </div>
           <div class="ops-layout">
             <article class="ops-panel command-panel">
@@ -275,7 +291,10 @@ codex-feishu audit tail --limit 20</code></pre>
         <section class="section resources-section fade-up">
           <div class="section-head compact">
             <span class="micro-label">Documentation</span>
-            <h2>首页负责建立判断，文档负责把它落地。</h2>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">首页负责建立判断。</span>
+              <span class="display-line display-shift">文档负责把它落地。</span>
+            </h2>
           </div>
           <div class="resource-grid">
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">
@@ -298,21 +317,24 @@ codex-feishu audit tail --limit 20</code></pre>
               <strong>FAQ</strong>
               <span>多 session、白名单、reply 行为与 proxy_on</span>
             </a>
-            <a href="https://github.com/colorcross/codex-feishu/releases">
-              <strong>Release Notes</strong>
-              <span>查看版本和打包产物</span>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">
+              <strong>交互路线图</strong>
+              <span>文档、知识库、多媒体与审批链的下一阶段</span>
             </a>
           </div>
         </section>
 
         <section class="final-call fade-up">
           <div>
-            <span class="micro-label">Start from the repository</span>
-            <h2>先把它跑起来，再决定它应该接到哪些项目和团队流程里。</h2>
+            <span class="micro-label">从仓库开始</span>
+            <h2 class="display-stack display-stack-section">
+              <span class="display-line">先把它跑起来。</span>
+              <span class="display-line display-shift">再决定它该接到哪些项目和团队流程里。</span>
+            </h2>
           </div>
           <div class="final-actions">
-            <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">Open GitHub</a>
-            <a class="button button-secondary" href="./en.html">English page</a>
+            <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">查看 GitHub</a>
+            <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">交互路线图</a>
           </div>
         </section>
       </main>

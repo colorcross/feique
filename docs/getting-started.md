@@ -17,6 +17,15 @@
 
 ### 1. 安装
 
+优先使用 npm 全局安装：
+
+```bash
+npm install -g codex-feishu
+codex-feishu init --mode global
+```
+
+如果你是从源码目录直接调试，也可以：
+
 ```bash
 cd /path/to/codex-feishu
 bash scripts/install.sh

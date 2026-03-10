@@ -16,6 +16,7 @@ Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects
 - Website: <https://colorcross.github.io/codex-feishu/>
 - Chinese landing page: <https://colorcross.github.io/codex-feishu/>
 - English landing page: <https://colorcross.github.io/codex-feishu/en.html>
+- npm: `npm install -g codex-feishu`
 - Releases: <https://github.com/colorcross/codex-feishu/releases>
 - Issues: <https://github.com/colorcross/codex-feishu/issues>
 - Discussions: <https://github.com/colorcross/codex-feishu/discussions>
@@ -31,7 +32,8 @@ Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects
 ## Quick start
 
 ```bash
-bash scripts/install.sh
+npm install -g codex-feishu
+codex-feishu init --mode global
 export FEISHU_APP_ID='cli_xxx'
 export FEISHU_APP_SECRET='xxx'
 codex-feishu doctor --remote
@@ -53,6 +55,7 @@ Common Feishu commands:
 
 - [English docs index](docs/README.en.md)
 - [Chinese docs index](docs/README.md)
+- [Feishu roadmap](docs/feishu-roadmap.md)
 - [Changelog](CHANGELOG.md)
 
 ## Community
