@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Codex Feishu</title>
     <meta
       name="description"
-      content="把飞书变成 Codex 的工作入口。Codex Feishu 连接飞书与 Codex CLI，让项目路由、会话续接和运行运维落到同一条链路里。"
+      content="Turn Feishu into a disciplined entry point for Codex CLI. Codex Feishu keeps project routing, resumable sessions, and operational control on the same path."
     />
     <meta property="og:title" content="Codex Feishu" />
     <meta
@@ -14,13 +14,13 @@
       content="Turn Feishu into a disciplined entry point for Codex CLI with project routing, resumable sessions, native reply, and operational control."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://colorcross.github.io/codex-feishu/" />
+    <meta property="og:url" content="https://colorcross.github.io/codex-feishu/en.html" />
     <meta property="og:image" content="https://colorcross.github.io/codex-feishu/social-preview.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Codex Feishu" />
     <meta
       name="twitter:description"
-      content="A session-aware bridge between Feishu and Codex CLI, built for project routing, resumable chats, and production-grade operations."
+      content="A session-aware bridge between Feishu and Codex CLI, built for project routing, resumable chats, native reply, and production-grade operations."
     />
     <meta name="twitter:image" content="https://colorcross.github.io/codex-feishu/social-preview.png" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -43,7 +43,7 @@
           <a class="brand-mark" href="https://github.com/colorcross/codex-feishu">Codex Feishu</a>
         </div>
         <nav class="site-nav" aria-label="Primary">
-          <a href="./en.html">EN</a>
+          <a href="./index.html">中文</a>
           <a href="https://github.com/colorcross/codex-feishu">GitHub</a>
           <a href="https://github.com/colorcross/codex-feishu/tree/main/docs">Docs</a>
           <a href="https://github.com/colorcross/codex-feishu/discussions">Discussions</a>
@@ -55,18 +55,18 @@
         <section class="hero-grid">
           <div class="hero-copy fade-up delay-1">
             <p class="eyebrow">Session-aware bridge for disciplined engineering workflows</p>
-            <h1>把飞书变成 Codex 的工作入口。</h1>
+            <h1>Turn Feishu into Codex's working entry point.</h1>
             <p class="hero-body">
-              Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路由，回复可追踪，运行可运维。它不是一次性 bot，而是一层能长期运行的工程桥接器。
+              Codex Feishu sends Feishu messages into resumable Codex sessions. Projects stay routable, replies stay traceable, and runtime state stays operable. It is not a disposable bot script. It is an engineering bridge built to stay up.
             </p>
             <div class="hero-actions">
-              <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">查看仓库</a>
-              <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">快速开始</a>
+              <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">Open GitHub</a>
+              <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/README.en.md">Read README</a>
             </div>
             <div class="hero-notes">
-              <span>双模式接入</span>
-              <span>多项目路由</span>
-              <span>可恢复运行态</span>
+              <span>Dual transport</span>
+              <span>Project routing</span>
+              <span>Recoverable runtime</span>
             </div>
           </div>
 
@@ -90,9 +90,9 @@ State: healthy</code></pre>
             <div class="aside-card aside-card-proof">
               <span class="micro-label">What this keeps stable</span>
               <ul>
-                <li>同一个聊天入口，可以路由到多个仓库目录</li>
-                <li>同一个项目，可以持续续接同一条 Codex 会话</li>
-                <li>运行状态、审计、指标与取消能力保留在本地控制面</li>
+                <li>One chat entry point can route to multiple repository roots.</li>
+                <li>One project can keep resuming the same Codex session.</li>
+                <li>Audit logs, metrics, and cancellation stay on the local control plane.</li>
               </ul>
             </div>
           </aside>
@@ -102,37 +102,37 @@ State: healthy</code></pre>
           <article>
             <span class="micro-label">Transport</span>
             <strong>long-connection + webhook</strong>
-            <p>本机优先，也可以作为共享服务部署。</p>
+            <p>Local-first by default, shared-service ready when needed.</p>
           </article>
           <article>
             <span class="micro-label">Routing</span>
-            <strong>Selection / Session / Queue 分离</strong>
-            <p>避免聊天窗口状态碰撞，保证项目切换可解释。</p>
+            <strong>Selection / Session / Queue separation</strong>
+            <p>Chat state stays explainable instead of collapsing into collisions.</p>
           </article>
           <article>
             <span class="micro-label">Operations</span>
             <strong>Cancel / Timeout / Recovery</strong>
-            <p>不是只会转发消息，还能管理运行生命周期。</p>
+            <p>Not only message forwarding, but actual runtime control.</p>
           </article>
         </section>
 
         <section class="section intro-block fade-up">
           <div class="section-head">
             <span class="micro-label">Why this exists</span>
-            <h2>飞书负责沟通，Codex 负责执行，桥接器负责把上下文和控制权保住。</h2>
+            <h2>Feishu handles communication, Codex handles execution, and the bridge keeps context and control intact.</h2>
           </div>
           <div class="principle-grid">
             <article>
               <h3>Route by project</h3>
-              <p>用 `/project &lt;alias&gt;` 明确当前仓库，而不是让每条消息都重新解释上下文。</p>
+              <p>Use `/project &lt;alias&gt;` to make the active repository explicit instead of re-explaining context in every message.</p>
             </article>
             <article>
               <h3>Resume by session</h3>
-              <p>新会话走 `codex exec`，续会话走 `codex exec resume`，让多轮任务真正延续。</p>
+              <p>New work starts with `codex exec`; continued work resumes with `codex exec resume`.</p>
             </article>
             <article>
               <h3>Operate with confidence</h3>
-              <p>幂等去重、原生 reply、审计日志、指标和运行态保护，保证它能长期工作而不是偶尔成功。</p>
+              <p>Idempotency, native replies, audit logs, metrics, and runtime guards keep the bridge trustworthy over time.</p>
             </article>
           </div>
         </section>
@@ -140,50 +140,50 @@ State: healthy</code></pre>
         <section class="section architecture-section fade-up">
           <div class="section-head compact">
             <span class="micro-label">System shape</span>
-            <h2>桥接层不需要很厚，但必须把真正关键的控制点放对位置。</h2>
+            <h2>A thin bridge, but with the right control points in the right places.</h2>
           </div>
           <div class="architecture-layout">
             <div class="architecture-copy">
               <p>
-                真正的价值不是“飞书能和 Codex 说话”，而是每条消息在触达仓库之前，都会经过项目路由、会话状态、幂等控制和运行策略这几层处理。
+                The value is not only that Feishu can talk to Codex. The value is that every message goes through routing, session state, and runtime policy before it touches a working repository.
               </p>
               <ul class="architecture-list">
-                <li>飞书负责接收消息并定义聊天边界。</li>
-                <li>Bridge Service 负责解析项目、会话、权限和去重。</li>
-                <li>Codex 在明确的项目根目录内执行，带着预期的 shell、sandbox 和 pre-exec。</li>
-                <li>回复结束后，审计、指标和运行状态仍然留在本地控制面里。</li>
+                <li>Feishu receives the message and provides the chat boundary.</li>
+                <li>The bridge resolves project, session, idempotency, and permissions.</li>
+                <li>Codex executes inside a project root with the expected shell, sandbox, and pre-exec setup.</li>
+                <li>Audit, metrics, and runtime state stay visible after the reply is sent.</li>
               </ul>
             </div>
             <div class="diagram-frame" aria-label="Architecture diagram">
               <svg viewBox="0 0 760 420" role="img" aria-labelledby="diagram-title diagram-desc">
-                <title id="diagram-title">Codex Feishu 架构图</title>
-                <desc id="diagram-desc">消息从飞书进入桥接服务，再进入 Codex 执行和本地项目目录，下方连接审计和指标。</desc>
+                <title id="diagram-title">Codex Feishu architecture</title>
+                <desc id="diagram-desc">Messages flow from Feishu into the bridge service, then into Codex runtime and local repositories, with audit and metrics connected underneath.</desc>
                 <defs>
-                  <linearGradient id="node-fill-zh" x1="0" y1="0" x2="1" y2="1">
+                  <linearGradient id="node-fill" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0%" stop-color="#fcfaf5" />
                     <stop offset="100%" stop-color="#f1e8da" />
                   </linearGradient>
                 </defs>
-                <rect x="34" y="70" width="168" height="94" rx="22" fill="url(#node-fill-zh)" stroke="#cfc2af" />
+                <rect x="34" y="70" width="168" height="94" rx="22" fill="url(#node-fill)" stroke="#cfc2af" />
                 <text x="58" y="106" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">ENTRY</text>
-                <text x="58" y="136" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">飞书</text>
-                <text x="58" y="160" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">私聊 / 群聊 / @mention</text>
+                <text x="58" y="136" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Feishu</text>
+                <text x="58" y="160" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">Private chats / groups / mentions</text>
 
-                <rect x="274" y="42" width="212" height="150" rx="24" fill="url(#node-fill-zh)" stroke="#cfc2af" />
+                <rect x="274" y="42" width="212" height="150" rx="24" fill="url(#node-fill)" stroke="#cfc2af" />
                 <text x="300" y="78" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">CONTROL PLANE</text>
                 <text x="300" y="112" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Bridge Service</text>
-                <text x="300" y="140" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">项目路由</text>
-                <text x="300" y="164" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">会话选择</text>
-                <text x="300" y="188" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">幂等与权限控制</text>
+                <text x="300" y="140" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">project routing</text>
+                <text x="300" y="164" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">session selection</text>
+                <text x="300" y="188" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">idempotency and permissions</text>
 
                 <rect x="556" y="70" width="170" height="94" rx="22" fill="#171513" stroke="#312a23" />
                 <text x="582" y="106" font-size="16" fill="#d3c8ba" font-family="IBM Plex Mono, monospace">EXECUTION</text>
                 <text x="582" y="136" font-size="28" fill="#f3ede3" font-family="IBM Plex Sans, sans-serif" font-weight="600">Codex</text>
                 <text x="582" y="160" font-size="17" fill="#d3c8ba" font-family="IBM Plex Sans, sans-serif">exec / resume / shell</text>
 
-                <rect x="520" y="252" width="206" height="96" rx="22" fill="url(#node-fill-zh)" stroke="#cfc2af" />
+                <rect x="520" y="252" width="206" height="96" rx="22" fill="url(#node-fill)" stroke="#cfc2af" />
                 <text x="546" y="288" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">WORKSPACE</text>
-                <text x="546" y="318" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">项目目录</text>
+                <text x="546" y="318" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Project Roots</text>
                 <text x="546" y="342" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">repo A / repo B / repo C</text>
 
                 <rect x="218" y="274" width="220" height="74" rx="22" fill="#f8f2e8" stroke="#cfc2af" />
@@ -194,6 +194,7 @@ State: healthy</code></pre>
                 <path d="M486 117H556" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
                 <path d="M612 164V252" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
                 <path d="M380 192V274" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
+                <path d="M486 117C526 117 540 117 556 117" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" fill="none" />
                 <circle cx="274" cy="117" r="4.5" fill="#8e5d31" />
                 <circle cx="556" cy="117" r="4.5" fill="#8e5d31" />
                 <circle cx="612" cy="252" r="4.5" fill="#8e5d31" />
@@ -206,7 +207,7 @@ State: healthy</code></pre>
         <section class="section split-layout fade-up">
           <div class="section-head compact">
             <span class="micro-label">Deployment posture</span>
-            <h2>两种接入姿态，分别服务本机效率和团队共享。</h2>
+            <h2>Two deployment shapes, each solving a different operational problem.</h2>
           </div>
           <div class="mode-columns">
             <article class="mode-panel featured">
@@ -214,11 +215,11 @@ State: healthy</code></pre>
                 <span class="mode-tag">Local-first</span>
                 <h3>long-connection</h3>
               </header>
-              <p>不依赖公网回调地址，最适合个人开发、内网环境和快速联调。你在飞书里发消息，桥接器在本机直接收、直接路由、直接执行。</p>
+              <p>No public callback URL required. Best for individual development, internal networks, and fast iteration.</p>
               <ul>
-                <li>接入快</li>
-                <li>部署简单</li>
-                <li>适合长期个人工作流</li>
+                <li>Fast onboarding</li>
+                <li>Minimal deployment overhead</li>
+                <li>Strong fit for personal daily workflow</li>
               </ul>
             </article>
             <article class="mode-panel">
@@ -226,11 +227,11 @@ State: healthy</code></pre>
                 <span class="mode-tag">Shared service</span>
                 <h3>webhook</h3>
               </header>
-              <p>适合团队共享服务、卡片回调、反向代理和标准生产接入。把飞书消息入口接到一个稳定、可观测、可运维的服务上。</p>
+              <p>Best for shared services, card callbacks, reverse proxies, and standard production exposure.</p>
               <ul>
-                <li>支持卡片回调</li>
-                <li>便于 HTTPS 与代理接入</li>
-                <li>适合正式服务化部署</li>
+                <li>Card callback support</li>
+                <li>Reverse proxy and HTTPS friendly</li>
+                <li>Suitable for formal service deployment</li>
               </ul>
             </article>
           </div>
@@ -239,7 +240,7 @@ State: healthy</code></pre>
         <section class="section operations-grid fade-up">
           <div class="section-head compact">
             <span class="micro-label">Day-2 operations</span>
-            <h2>真正的价值，不是第一次跑起来，而是之后每一天都能被管理。</h2>
+            <h2>The real value is not the first successful run. It is the weeks after that.</h2>
           </div>
           <div class="ops-layout">
             <article class="ops-panel command-panel">
@@ -257,15 +258,15 @@ codex-feishu audit tail --limit 20</code></pre>
               <div class="ops-list">
                 <div>
                   <strong>Runtime discipline</strong>
-                  <p>支持取消、超时、stale run 恢复和实例锁，避免一条消息把长期运行环境拖进不可控状态。</p>
+                  <p>Cancel, timeout, stale run recovery, and instance locking stop one message from corrupting long-lived runtime state.</p>
                 </div>
                 <div>
                   <strong>Message discipline</strong>
-                  <p>过滤机器人自激回环，保留消息幂等去重，并优先使用飞书原生 reply 维持对话上下文。</p>
+                  <p>Bot self-loop filtering, idempotency, and native Feishu replies keep conversation state readable.</p>
                 </div>
                 <div>
                   <strong>Observability</strong>
-                  <p>审计日志、本地 run state、Prometheus 指标和 Grafana / Alertmanager 示例一起提供。</p>
+                  <p>Audit logs, run state, Prometheus metrics, and Grafana / Alertmanager examples ship together.</p>
                 </div>
               </div>
             </article>
@@ -275,32 +276,32 @@ codex-feishu audit tail --limit 20</code></pre>
         <section class="section resources-section fade-up">
           <div class="section-head compact">
             <span class="micro-label">Documentation</span>
-            <h2>首页负责建立判断，文档负责把它落地。</h2>
+            <h2>The homepage establishes judgment. The docs make it deployable.</h2>
           </div>
           <div class="resource-grid">
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">
-              <strong>快速开始</strong>
-              <span>10 分钟起一个可用实例</span>
+              <strong>Getting started</strong>
+              <span>Launch a usable instance in minutes</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/architecture.md">
-              <strong>架构设计</strong>
-              <span>理解 transport、session 和 runtime guardrails</span>
+              <strong>Architecture</strong>
+              <span>Understand transport, session state, and runtime guardrails</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/deployment.md">
-              <strong>部署说明</strong>
-              <span>本机模式、共享模式、服务化与探针</span>
+              <strong>Deployment</strong>
+              <span>Local-first mode, shared mode, services, and probes</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/security.md">
-              <strong>安全与运维</strong>
-              <span>凭证、目录边界、群聊风险与指标建议</span>
+              <strong>Security and ops</strong>
+              <span>Credentials, project boundaries, group-chat risk, and metrics</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/faq.md">
               <strong>FAQ</strong>
-              <span>多 session、白名单、reply 行为与 proxy_on</span>
+              <span>Sessions, allow-lists, reply behavior, and proxy setup</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/releases">
               <strong>Release Notes</strong>
-              <span>查看版本和打包产物</span>
+              <span>Versions and packaged artifacts</span>
             </a>
           </div>
         </section>
@@ -308,11 +309,11 @@ codex-feishu audit tail --limit 20</code></pre>
         <section class="final-call fade-up">
           <div>
             <span class="micro-label">Start from the repository</span>
-            <h2>先把它跑起来，再决定它应该接到哪些项目和团队流程里。</h2>
+            <h2>Run it first. Then decide which projects and team workflows deserve the bridge.</h2>
           </div>
           <div class="final-actions">
             <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">Open GitHub</a>
-            <a class="button button-secondary" href="./en.html">English page</a>
+            <a class="button button-secondary" href="./index.html">Switch to Chinese</a>
           </div>
         </section>
       </main>

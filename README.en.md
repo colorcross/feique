@@ -6,12 +6,16 @@ English | [简体中文](README.md)
 [![License](https://img.shields.io/github/license/colorcross/codex-feishu)](https://github.com/colorcross/codex-feishu/blob/main/LICENSE)
 [![Pages](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml/badge.svg)](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml)
 
-Codex Feishu connects Feishu to Codex CLI so you can continue Codex sessions, route messages to specific projects, and operate the bridge with production-oriented controls.
+Turn Feishu into Codex's working entry point.
+
+Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects routable, replies traceable, and runtime state operable. It is not a disposable bot script. It is an engineering bridge meant to stay up.
 
 ## Links
 
 - Repository: <https://github.com/colorcross/codex-feishu>
 - Website: <https://colorcross.github.io/codex-feishu/>
+- Chinese landing page: <https://colorcross.github.io/codex-feishu/>
+- English landing page: <https://colorcross.github.io/codex-feishu/en.html>
 - Releases: <https://github.com/colorcross/codex-feishu/releases>
 - Issues: <https://github.com/colorcross/codex-feishu/issues>
 - Discussions: <https://github.com/colorcross/codex-feishu/discussions>

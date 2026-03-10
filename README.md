@@ -11,12 +11,15 @@
 
 把飞书消息桥接到 Codex CLI，让你可以在飞书私聊或群聊里直接驱动本机或远端仓库里的 Codex 会话，同时保留项目路由、会话续接、运行审计和运维能力。
 
-这个项目不是一段 prompt，也不是一次性 bot 脚本。它是一个可部署、可排障、可扩展的正式桥接器。
+把飞书变成 Codex 的工作入口。
+
+Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路由，回复可追踪，运行可运维。它不是一段 prompt，也不是一次性 bot 脚本，而是一层能长期运行的工程桥接器。
 
 ## 链接
 
 - 仓库：<https://github.com/colorcross/codex-feishu>
 - 官网：<https://colorcross.github.io/codex-feishu/>
+- 英文页：<https://colorcross.github.io/codex-feishu/en.html>
 - Releases：<https://github.com/colorcross/codex-feishu/releases>
 - Issues：<https://github.com/colorcross/codex-feishu/issues>
 - Discussions：<https://github.com/colorcross/codex-feishu/discussions>
