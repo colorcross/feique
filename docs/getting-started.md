@@ -18,7 +18,7 @@
 ### 1. 安装
 
 ```bash
-cd /path/to/codex-feishu-bridge
+cd /path/to/codex-feishu
 bash scripts/install.sh
 ```
 

@@ -48,7 +48,7 @@ export function normalizeIncomingText(input: string): string {
 
 export function buildHelpText(): string {
   return [
-    'Codex Feishu Bridge',
+    'Codex Feishu',
     '',
     '/help 查看帮助',
     '/projects 列出可用项目',

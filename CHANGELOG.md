@@ -35,7 +35,7 @@
 
 ### Highlights
 
-- 发布 `Codex Feishu Bridge` 首个可部署版本，支持飞书 `long-connection` 和 `webhook` 两种接入模式。
+- 发布 `Codex Feishu` 首个可部署版本，支持飞书 `long-connection` 和 `webhook` 两种接入模式。
 - 建立项目路由、会话续接、多会话历史和飞书命令控制链路，可在飞书侧按项目驱动 Codex CLI。
 - 提供面向生产的运行能力，包括实例锁、启动预检、后台运行、运行超时、取消、stale/orphaned run 恢复和运行态管理命令。
 - 增加消息幂等去重、审计日志、Prometheus 指标、Alertmanager/Grafana 示例，满足基础观测和排障需求。

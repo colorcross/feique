@@ -1,4 +1,6 @@
-# Codex Feishu Bridge
+# Codex Feishu
+
+[English](README.en.md) | 简体中文
 
 [![GitHub tag](https://img.shields.io/github/v/tag/colorcross/codex-feishu?sort=semver)](https://github.com/colorcross/codex-feishu/tags)
 [![License](https://img.shields.io/github/license/colorcross/codex-feishu)](https://github.com/colorcross/codex-feishu/blob/main/LICENSE)
@@ -59,7 +61,7 @@
 ### 2. 一键安装
 
 ```bash
-cd /path/to/codex-feishu-bridge
+cd /path/to/codex-feishu
 bash scripts/install.sh
 ```
 

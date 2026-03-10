@@ -43,7 +43,7 @@ describe('doctor', () => {
     const config: BridgeConfig = {
       version: 1,
       service: {
-        name: 'codex-feishu-bridge',
+        name: 'codex-feishu',
         default_project: 'missing-project',
         reply_mode: 'card',
         emit_progress_updates: true,

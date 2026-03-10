@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a reproducible defect in Codex Feishu Bridge
+description: Report a reproducible defect in Codex Feishu
 labels:
   - bug
 body:

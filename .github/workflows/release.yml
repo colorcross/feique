@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. v0.1.2'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Pack release artifact
+        run: npm pack
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          python3 - <<'PY' "${{ steps.tag.outputs.tag }}" "$GITHUB_OUTPUT"
+          from pathlib import Path
+          import re
+          import sys
+
+          tag = sys.argv[1]
+          out = Path(sys.argv[2])
+          text = Path('CHANGELOG.md').read_text(encoding='utf-8')
+          pattern = re.compile(rf'^## {re.escape(tag)}(?:\\s+-\\s+.*)?$', re.M)
+          match = pattern.search(text)
+          if not match:
+              out.open('a', encoding='utf-8').write('found=false\\n')
+              raise SystemExit(0)
+          start = match.end()
+          next_match = re.search(r'^##\\s+', text[start:], re.M)
+          end = start + next_match.start() if next_match else len(text)
+          notes = text[start:end].strip()
+          notes_path = Path('release-notes.md')
+          notes_path.write_text(notes + '\\n', encoding='utf-8')
+          with out.open('a', encoding='utf-8') as fh:
+              fh.write('found=true\\n')
+              fh.write(f'path={notes_path}\\n')
+          PY
+
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag='${{ steps.tag.outputs.tag }}'
+          asset=$(ls -1 *.tgz | head -n 1)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber
+            exit 0
+          fi
+          if [ '${{ steps.notes.outputs.found }}' = 'true' ]; then
+            gh release create "$tag" "$asset" --title "$tag" --notes-file '${{ steps.notes.outputs.path }}'
+          else
+            gh release create "$tag" "$asset" --title "$tag" --generate-notes
+          fi
