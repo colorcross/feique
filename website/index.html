@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex Feishu Bridge</title>
+    <meta
+      name="description"
+      content="在飞书里驱动 Codex CLI，会话可续接、项目可路由、运维可观测。适合本机开发和团队共享部署。"
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="eyebrow">OPEN SOURCE · FEISHU × CODEX CLI</span>
+          <a class="brand" href="https://github.com/colorcross/codex-feishu">Codex Feishu Bridge</a>
+        </div>
+        <nav class="topnav">
+          <a href="https://github.com/colorcross/codex-feishu">GitHub</a>
+          <a href="https://github.com/colorcross/codex-feishu/blob/main/README.md">README</a>
+          <a href="https://github.com/colorcross/codex-feishu/tree/main/docs">文档</a>
+          <a href="https://github.com/colorcross/codex-feishu/releases">Release</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="hero-kicker">让飞书成为 Codex 的会话入口，而不是提示词垃圾桶。</p>
+            <h1>在飞书里继续你的 Codex session，切项目，控运行，查状态。</h1>
+            <p class="hero-text">
+              这不是一个只会转发消息的 bot。它是面向真实工程环境的桥接层：支持项目路由、session 续接、原生回复、幂等去重、审计日志、指标导出和后台运维命令。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">查看仓库</a>
+              <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">10 分钟上手</a>
+            </div>
+            <ul class="signal-list">
+              <li>本机优先：`long-connection` 直接接飞书消息</li>
+              <li>生产可扩展：`webhook` 支持卡片回调</li>
+              <li>项目可隔离：同一入口路由多个仓库</li>
+            </ul>
+          </div>
+
+          <aside class="hero-panel">
+            <div class="terminal-card">
+              <div class="terminal-head">
+                <span></span><span></span><span></span>
+              </div>
+              <pre><code>$ bash scripts/install.sh
+$ export FEISHU_APP_ID=cli_xxx
+$ export FEISHU_APP_SECRET=***
+$ codex-feishu doctor --remote
+$ codex-feishu serve --detach
+
+Feishu: connected
+Transport: long-connection
+Project: default
+Reply mode: native message reply
+Metrics: ready</code></pre>
+            </div>
+          </aside>
+        </section>
+
+        <section class="stats-grid">
+          <article>
+            <span class="stat-label">Transport</span>
+            <strong>2 modes</strong>
+            <p>`long-connection` for local-first, `webhook` for shared deployment.</p>
+          </article>
+          <article>
+            <span class="stat-label">Session model</span>
+            <strong>Project-aware</strong>
+            <p>Selection key, session key, queue key are separated to avoid chat-state collisions.</p>
+          </article>
+          <article>
+            <span class="stat-label">Runtime</span>
+            <strong>Recoverable</strong>
+            <p>Supports cancel, timeout, stale/orphaned run recovery and pid-backed management.</p>
+          </article>
+        </section>
+
+        <section class="section-block accent-block">
+          <div class="section-copy">
+            <span class="section-tag">WHY THIS EXISTS</span>
+            <h2>飞书负责沟通，Codex 负责执行，桥接器负责把上下文和控制权保住。</h2>
+          </div>
+          <div class="three-up">
+            <article>
+              <h3>Message In</h3>
+              <p>飞书消息进入桥接器，先做去重、白名单过滤、群聊 `@mention` 判断和命令解析。</p>
+            </article>
+            <article>
+              <h3>Route + Resume</h3>
+              <p>根据当前聊天窗口选中的项目，自动映射到正确的 Codex session，决定新开还是续接。</p>
+            </article>
+            <article>
+              <h3>Reply + Observe</h3>
+              <p>用飞书原生 reply 回消息，同时写审计、更新运行态、暴露指标，保证排障和运维可控。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-block">
+          <div class="section-copy compact">
+            <span class="section-tag">MODES</span>
+            <h2>两种接入方式，各自解决不同问题。</h2>
+          </div>
+          <div class="mode-grid">
+            <article class="mode-card">
+              <div class="mode-head">
+                <span class="mode-pill">Local-first</span>
+                <h3>long-connection</h3>
+              </div>
+              <ul>
+                <li>无需公网回调</li>
+                <li>最适合个人开发和内网环境</li>
+                <li>启动快，验证链路短</li>
+              </ul>
+            </article>
+            <article class="mode-card">
+              <div class="mode-head">
+                <span class="mode-pill">Production</span>
+                <h3>webhook</h3>
+              </div>
+              <ul>
+                <li>支持卡片回调和公共部署</li>
+                <li>便于接反向代理、监控和 HTTPS</li>
+                <li>适合团队共享服务</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-block command-stage">
+          <div class="section-copy compact">
+            <span class="section-tag">DAY-2 OPERATIONS</span>
+            <h2>不是只能启动，还能管理、排障和收敛入口。</h2>
+          </div>
+          <div class="command-grid">
+            <article>
+              <h3>Install</h3>
+              <pre><code>bash scripts/install.sh
+codex-feishu bind repo-a /abs/path</code></pre>
+            </article>
+            <article>
+              <h3>Run</h3>
+              <pre><code>codex-feishu doctor --remote
+codex-feishu serve --detach</code></pre>
+            </article>
+            <article>
+              <h3>Operate</h3>
+              <pre><code>codex-feishu serve status
+codex-feishu serve logs --lines 100
+codex-feishu serve stop --force</code></pre>
+            </article>
+            <article>
+              <h3>Observe</h3>
+              <pre><code>codex-feishu audit tail --limit 20
+curl http://127.0.0.1:9464/metrics</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-block docs-block">
+          <div class="section-copy compact">
+            <span class="section-tag">DOCUMENTATION</span>
+            <h2>README 给第一次打开仓库的人，docs 给真正部署的人。</h2>
+          </div>
+          <div class="docs-grid">
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">
+              <strong>快速开始</strong>
+              <span>10 分钟启动一个可用实例</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/architecture.md">
+              <strong>架构设计</strong>
+              <span>理解 transport、session 和 runtime guardrails</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/deployment.md">
+              <strong>部署说明</strong>
+              <span>本机模式、共享模式、探针和服务化</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/security.md">
+              <strong>安全与运维</strong>
+              <span>凭证、目录边界、群聊风险和指标建议</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/faq.md">
+              <strong>FAQ</strong>
+              <span>多 session、白名单、reply 行为和 proxy_on</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/CHANGELOG.md">
+              <strong>Release Notes</strong>
+              <span>当前版本为 v0.1.0</span>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>Codex Feishu Bridge · session-aware bridge for Feishu and Codex CLI.</p>
+        <div>
+          <a href="https://github.com/colorcross/codex-feishu/blob/main/CONTRIBUTING.md">Contributing</a>
+          <a href="https://github.com/colorcross/codex-feishu/blob/main/SECURITY.md">Security</a>
+          <a href="https://github.com/colorcross/codex-feishu/blob/main/LICENSE">MIT</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

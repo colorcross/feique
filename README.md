@@ -1,179 +1,115 @@
 # Codex Feishu Bridge
 
-将飞书消息桥接到 Codex CLI，支持：
+[![GitHub tag](https://img.shields.io/github/v/tag/colorcross/codex-feishu?sort=semver)](https://github.com/colorcross/codex-feishu/tags)
+[![License](https://img.shields.io/github/license/colorcross/codex-feishu)](https://github.com/colorcross/codex-feishu/blob/main/LICENSE)
+[![Pages](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml/badge.svg)](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml)
+[![Node >=20.10](https://img.shields.io/badge/node-%3E%3D20.10-0f172a)](https://nodejs.org/)
+[![Feishu](https://img.shields.io/badge/feishu-supported-0ea5e9)](https://open.feishu.cn/)
+[![Codex CLI](https://img.shields.io/badge/codex_cli-session--aware-c2410c)](https://developers.openai.com/codex/)
 
-- 全局安装与项目级配置
-- 飞书长连接模式与 Webhook 模式
-- Codex 会话续接与项目路由
-- 会话状态持久化与多会话历史切换
-- 消息幂等去重与 run_id 审计链路
-- 启动预检、优雅停机、实例锁
-- 运行超时、取消、stale/orphaned run 恢复
-- 飞书发送失败重试
-- 飞书远端诊断与手工发信
-- Prometheus 指标导出
-- 后台服务管理命令 `serve status|stop|logs|ps`
-- 可选的 Codex skill 安装
+把飞书消息桥接到 Codex CLI，让你可以在飞书私聊或群聊里直接驱动本机或远端仓库里的 Codex 会话，同时保留项目路由、会话续接、运行审计和运维能力。
 
-## 设计目标
+这个项目不是一段 prompt，也不是一次性 bot 脚本。它是一个可部署、可排障、可扩展的正式桥接器。
 
-- `Prod` 交付标准：不是一次性脚本，而是可部署、可配置、可排障的正式项目。
-- 本地优先：用飞书长连接模式支持无公网本机接入。
-- 生产可扩展：切到 Webhook 后支持交互卡片回调。
-- 项目隔离：同一个飞书入口可以路由到多个仓库、不同 Codex profile、不同 sandbox。
+## 链接
+
+- 仓库：<https://github.com/colorcross/codex-feishu>
+- 官网：<https://colorcross.github.io/codex-feishu/>
+- Releases：<https://github.com/colorcross/codex-feishu/releases>
+- Issues：<https://github.com/colorcross/codex-feishu/issues>
+
+## 为什么存在
+
+飞书是沟通入口，Codex CLI 是执行引擎。两者之间天然缺一层稳定的会话路由和运维控制。本项目补的就是这层：
+
+- 飞书收消息，Codex 真正做事
+- 一个飞书入口，可以路由到多个项目目录
+- 一个项目，可以保留多轮 Codex session 历史
+- 运行状态、审计日志、幂等去重、指标导出都在本地可控
+
+## 核心能力
+
+- `long-connection` 和 `webhook` 双模式接入飞书
+- 项目级路由：`/project <alias>` 切换当前仓库
+- Codex 会话续接：新会话走 `codex exec`，续会话走 `codex exec resume`
+- 飞书命令控制：`/status`、`/new`、`/cancel`、`/session list|use|new|drop`
+- 多会话历史和当前激活 session 持久化
+- 消息幂等去重，避免飞书重投或自激回环
+- 原生飞书消息回复 UI，优先 reply 触发消息
+- 启动预检、实例锁、后台运行、优雅停机
+- 审计日志、Prometheus 指标、Grafana/Alertmanager 示例
+- 一键全局安装脚本，默认生成 `~/.codex-feishu/config.toml`
 
 ## 运行模式
 
-### 1. `long-connection`
-
-适合本机直接跑服务：
-
-- 不需要公网回调 URL
-- 收消息成本最低
-- 适合个人开发和内网环境
-- 限制：官方 SDK 文档说明长连接只支持 event subscription，不支持 callback subscription，所以卡片按钮不能作为主交互方式
-
-### 2. `webhook`
-
-适合正式生产部署：
-
-- 支持飞书事件订阅
-- 支持交互卡片回调
-- 适合团队共用的桥接服务
-- 需要公网可访问的回调地址
+| 模式 | 适合场景 | 优点 | 限制 |
+| --- | --- | --- | --- |
+| `long-connection` | 本机开发、个人使用、无公网环境 | 不需要公网回调地址，接入快 | 卡片交互不是主路径 |
+| `webhook` | 团队共享服务、生产部署 | 事件和卡片回调完整，便于扩展 | 需要公网 HTTPS 地址 |
 
 ## 快速开始
 
-先复制环境变量模板：
+### 1. 环境要求
+
+- Node.js `>= 20.10`
+- 已安装并可执行的 `codex`
+- 一个已启用机器人能力的飞书自建应用
+
+### 2. 一键安装
 
 ```bash
-cp .env.example .env
-```
-
-
-### 1. 安装
-
-```bash
-pnpm install
-pnpm build
-```
-
-全局安装时：
-
-```bash
-npm i -g .
-```
-
-一键安装并生成全局配置时：
-
-```bash
+cd /path/to/codex-feishu-bridge
 bash scripts/install.sh
 ```
 
-说明：
+这会完成三件事：
 
-- 会全局安装 `codex-feishu`
-- 会生成 `~/.codex-feishu/config.toml`
-- 会把当前仓库绑定为默认项目
-- 之后大多数命令都可以直接执行，不需要再带 `--config`
+- 全局安装 `codex-feishu`
+- 生成 `~/.codex-feishu/config.toml`
+- 把当前仓库绑定为默认项目
 
-### 2. 初始化配置
-
-全局模式：
+如果要绑定别的仓库：
 
 ```bash
-codex-feishu init --mode global
+bash scripts/install.sh --project-root /abs/path/to/repo --alias repo-a
 ```
 
-项目模式：
+### 3. 配置环境变量
 
 ```bash
-cd /path/to/repo
-codex-feishu init --mode project
+export FEISHU_APP_ID='cli_xxx'
+export FEISHU_APP_SECRET='xxx'
 ```
 
-### 3. 配置飞书环境变量
+如果你在启动 Codex 前要先开代理，可以在配置里加：
 
-```bash
-export FEISHU_APP_ID=cli_xxx
-export FEISHU_APP_SECRET=xxx
-export FEISHU_ENCRYPT_KEY=xxx
-export FEISHU_VERIFICATION_TOKEN=xxx
+```toml
+[codex]
+shell = "/bin/zsh"
+pre_exec = "proxy_on"
 ```
 
-### 4. 绑定项目
-
-```bash
-codex-feishu bind repo-a /abs/path/to/repo-a --config ~/.codex-feishu/config.toml
-codex-feishu bind repo-b /abs/path/to/repo-b --config ~/.codex-feishu/config.toml
-```
-
-### 5. 运行检查
+### 4. 启动服务
 
 ```bash
 codex-feishu doctor
-codex-feishu doctor --json
-codex-feishu doctor --remote
-codex-feishu feishu inspect
+codex-feishu serve --detach
 ```
 
-### 6. 启动服务
+### 5. 在飞书里直接对话
 
-```bash
-codex-feishu serve
-```
+常用命令：
 
-说明：
+- `/help`
+- `/projects`
+- `/project <alias>`
+- `/status`
+- `/new`
+- `/cancel`
+- `/session list`
+- `/session use <thread_id>`
 
-- `serve` 默认会先执行启动预检，发现阻塞错误会直接退出
-- 如需后台运行并立即返回 shell，可用 `codex-feishu serve --detach`
-- 如需临时跳过预检，可用 `codex-feishu serve --skip-doctor`
-- 后台运行后可用 `codex-feishu serve status|logs|ps|stop` 管理进程
-- 同一个状态目录默认只允许一个服务实例持有锁，避免重复消费和重复回复
-- 如配置了 `service.metrics_port`，会额外启动管理端口并暴露 `/metrics`
-
-### 7. 生成用户级服务文件
-
-查看模板：
-
-```bash
-codex-feishu service print --config ~/.codex-feishu/config.toml
-```
-
-写入用户级服务定义：
-
-```bash
-codex-feishu service install --config ~/.codex-feishu/config.toml
-```
-
-然后按输出提示执行：
-
-- macOS: `launchctl bootstrap ...`
-- Linux: `systemctl --user enable --now ...`
-
-## 飞书侧交互命令
-
-- `/help` 查看帮助
-- `/projects` 列出可用项目
-- `/project <alias>` 切换当前项目
-- `/status` 查看当前项目会话
-- `/new` 为当前项目切到新会话
-- `/cancel` 取消当前项目正在运行的任务
-- `/session list` 查看当前项目保存过的会话历史
-- `/session use <thread_id>` 切到指定历史会话
-- `/session new` 让下一条消息新开会话
-- `/session drop [thread_id]` 删除指定或当前会话
-- 直接发文本：进入当前项目的 Codex 会话
-- `codex-feishu audit tail --limit 20` 查看最近审计事件
-
-## 配置文件
-
-默认路径：
-
-- 全局：`~/.codex-feishu/config.toml`
-- 项目：`.codex-feishu/config.toml`
-
-示例：
+## 一个最小配置示例
 
 ```toml
 version = 1
@@ -181,212 +117,130 @@ version = 1
 [service]
 default_project = "default"
 reply_mode = "text"
-emit_progress_updates = false
-idempotency_ttl_seconds = 86400
-session_history_limit = 20
-log_tail_lines = 100
 reply_quote_user_message = true
 metrics_host = "127.0.0.1"
-# metrics_port = 9464
 
 [codex]
 bin = "codex"
-# shell = "/bin/zsh"
-# pre_exec = "proxy_on"
 default_sandbox = "workspace-write"
+skip_git_repo_check = true
 run_timeout_ms = 600000
-bridge_instructions = "Reply concisely for Feishu."
 
 [storage]
 dir = "~/.codex-feishu/state"
 
 [security]
-allowed_project_roots = []
+allowed_project_roots = ["/Users/dh/workspace"]
 require_group_mentions = true
 
 [feishu]
 app_id = "env:FEISHU_APP_ID"
 app_secret = "env:FEISHU_APP_SECRET"
-# dry_run = true
 transport = "long-connection"
-port = 3333
+allowed_chat_ids = []
+allowed_group_ids = []
 
 [projects.default]
-root = "/abs/path/to/repo"
+root = "/Users/dh/workspace/repo-a"
 session_scope = "chat"
 mention_required = true
-profile = "default"
 ```
 
-补充说明：
+## 飞书端交互模型
 
-- `service.reply_quote_user_message = true`
-  - 优先使用飞书原生 `message reply` 回复触发消息
-  - 只有在拿不到原始 `message_id` 时，才退回文本前缀引用
-- `feishu.allowed_chat_ids`
-  - 私聊 `chat_id` 白名单，空数组表示不限制
-- `feishu.allowed_group_ids`
-  - 群聊 `chat_id` 白名单，空数组表示不限制
-- `security.require_group_mentions = true`
-  - 群聊默认必须 `@机器人` 才会触发
+### 项目路由
 
-## Codex Skill
+- `selection key` 负责记住当前聊天窗口选中了哪个项目
+- `session key` 负责记住当前项目对应的 Codex 会话
+- `queue key = session key + project alias`，保证同一项目串行，不同项目可并行
 
-项目内置了一个可选 skill，安装后可以在本地 Codex 会话中统一飞书桥接上下文：
+### 群聊触发规则
+
+默认更保守：
+
+- 群聊默认必须 `@机器人` 才会触发
+- 你也可以通过配置放开
+- `allowed_group_ids` 可以限制只有白名单群可用
+
+### 回复行为
+
+当 `service.reply_quote_user_message = true` 时：
+
+- 优先用飞书原生 reply 回复触发消息
+- 如果拿不到 `message_id`，才退回文本前缀引用
+
+## 常用运维命令
 
 ```bash
-codex-feishu codex install-skill
+codex-feishu serve status
+codex-feishu serve logs --lines 100
+codex-feishu serve ps
+codex-feishu serve stop --force
+codex-feishu audit tail --limit 20
+codex-feishu doctor --remote
+codex-feishu feishu inspect
 ```
 
-该命令会：
+## 仓库结构
 
-- 复制 `skills/codex-feishu-session`
-- 安装到 `~/.codex/skills/<name>`
-- 更新 `~/.codex/config.toml` 中的 `skills.config`
+```text
+src/        核心实现
+scripts/    安装和本地开发脚本
+docs/       使用文档与架构说明
+examples/   配置、监控、观测栈示例
+skills/     可选 Codex skill
+website/    官网静态站点，可直接用于 GitHub Pages
+```
 
-## 开发命令
+## 文档导航
+
+- [文档首页](docs/README.md)
+- [快速开始](docs/getting-started.md)
+- [架构设计](docs/architecture.md)
+- [部署说明](docs/deployment.md)
+- [安全与运维](docs/security.md)
+- [FAQ](docs/faq.md)
+- [官网部署说明](docs/website.md)
+- [变更记录](CHANGELOG.md)
+- [贡献指南](CONTRIBUTING.md)
+- [安全披露](SECURITY.md)
+
+## 官网
+
+静态官网源码在：
+
+- [website/index.html](website/index.html)
+
+GitHub Pages 目标地址：
+
+- <https://colorcross.github.io/codex-feishu/>
+
+如果你已经把代码推到 GitHub，Pages workflow 会在 `main` 分支更新后自动发布 `website/` 目录。
+
+## 开发与验证
 
 ```bash
-pnpm dev -- --help
+pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
+```
+
+本地 webhook 回放：
+
+```bash
 pnpm demo:up
 pnpm demo:smoke
 pnpm demo:down
 ```
 
-## 文档
+## 发布
 
-- [架构设计](./docs/architecture.md)
-- [部署说明](./docs/deployment.md)
-- [安全与运维](./docs/security.md)
+当前版本：`v0.1.0`
 
-## 运维命令
+- [CHANGELOG.md](CHANGELOG.md)
+- 本地 tag：`v0.1.0`
 
-- `codex-feishu service print` 打印用户级服务模板
-- `codex-feishu service install` 写入服务文件
-- `codex-feishu service uninstall` 删除服务文件
-- `codex-feishu doctor` 运行配置与运行前检查
-- `codex-feishu doctor --json` 以机器可读 JSON 输出检查结果
-- `codex-feishu doctor --remote` 增加飞书租户侧可用性检查
-- `codex-feishu serve status` 查看 bridge 主进程和活跃运行数
-- `codex-feishu serve logs --lines 100` 查看最新日志
-- `codex-feishu serve ps` 查看活跃 Codex 运行
-- `codex-feishu serve stop --force` 停掉后台 bridge
-- `codex-feishu feishu inspect` 检查 token / app / bot / IM 可用性
-- `codex-feishu feishu send-test --receive-id-type <type> --receive-id <id>` 发送真实测试消息
-- `codex-feishu audit tail --limit 20` 查看最近审计事件
-- `examples/prometheus.yml` 和 `examples/alerts.yml` 可直接作为 Prometheus 抓取与告警起点
-- `examples/docker-compose.observability.yml` 可一键拉起 Prometheus + Alertmanager + Grafana
+## License
 
-## 本地 Webhook 回放
-
-适合在没有真实飞书流量时验证 webhook 链路：
-
-```bash
-codex-feishu serve --config ~/.codex-feishu/config.toml
-```
-
-另一个终端回放文本消息：
-
-```bash
-codex-feishu webhook replay-message \
-  --url http://127.0.0.1:3333/webhook/event \
-  --chat-id oc_demo \
-  --actor-id ou_demo \
-  --text "帮我看一下这个项目的当前状态"
-```
-
-回放卡片动作：
-
-```bash
-codex-feishu webhook replay-card \
-  --url http://127.0.0.1:3333/webhook/card \
-  --chat-id oc_demo \
-  --actor-id ou_demo \
-  --open-message-id om_demo \
-  --action status \
-  --project-alias default \
-  --conversation-key tenant-local/oc_demo/ou_demo
-```
-
-也可以直接跑一条完整烟测：
-
-```bash
-codex-feishu webhook smoke --base-url http://127.0.0.1:3333
-```
-
-## 本地 Demo Stack
-
-项目内置了一套开发脚本，会：
-
-- 自动生成临时 webhook 配置
-- 启动本地 bridge
-- 可选拉起 Prometheus + Alertmanager + Grafana
-- 执行 smoke 验证
-
-命令：
-
-```bash
-pnpm demo:up
-pnpm demo:status
-pnpm demo:smoke
-pnpm demo:down
-```
-
-默认运行目录：
-
-- 配置与状态：`.tmp/dev-stack/`
-- bridge 日志：`.tmp/dev-stack/bridge.log`
-- dev stack 会自动启用 `feishu.dry_run = true`，因此回复只写日志和指标，不会真的发往飞书
-
-如果只想启动 bridge，不拉 observability：
-
-```bash
-bash scripts/dev-stack.sh up --no-observability
-```
-
-## 健康检查
-
-Webhook 模式下内置：
-
-- `GET /healthz`
-- `GET /readyz`
-
-返回：
-
-```json
-{"ok":true,"transport":"webhook"}
-```
-
-若配置了 `service.metrics_port`，管理端口还会暴露：
-
-- `GET /metrics`
-
-## 运行保障
-
-- 飞书文本发送遇到 `429`、`5xx`、常见网络抖动时会自动退避重试
-- `serve` 收到 `SIGINT` / `SIGTERM` 时会优雅关闭 Webhook server 或飞书长连接
-- 启动与停止都会写入审计日志，便于排障
-- 可选管理端口支持 Prometheus 文本格式指标导出
-- 提供 `examples/prometheus.yml` 与 `examples/alerts.yml` 作为监控落地模板
-
-## 当前实现边界
-
-已完成：
-
-- 配置加载与全局/项目层合并
-- 项目路由与会话持久化
-- `codex exec` / `codex exec resume` 编排
-- 飞书长连接接入
-- 飞书 Webhook + 卡片回调接入
-- CLI：`init` `serve` `doctor` `bind` `sessions` `codex install-skill`
-- 启动预检、实例锁、优雅停机、发送重试
-- 远端飞书诊断、Prometheus 指标导出
-
-待继续增强：
-
-- 更细粒度的流式进度卡片更新
-- 更完整的飞书消息类型支持
-- 告警接入示例与运行手册
+MIT. See [LICENSE](LICENSE).

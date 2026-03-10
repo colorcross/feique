@@ -2,6 +2,7 @@
   "name": "codex-feishu-bridge",
   "version": "0.1.0",
   "description": "Feishu bridge for Codex CLI with session routing, project-scoped config, and production-ready operations.",
+  "homepage": "https://github.com/colorcross/codex-feishu",
   "type": "module",
   "bin": {
     "codex-feishu": "dist/cli.js"
@@ -38,6 +39,13 @@
     "agent"
   ],
   "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/colorcross/codex-feishu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/colorcross/codex-feishu/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
