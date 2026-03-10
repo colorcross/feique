@@ -24,6 +24,13 @@ npm install -g codex-feishu
 codex-feishu init --mode global
 ```
 
+如果 npm 包还没完成最终发布，可以先用 GitHub Release 产物：
+
+```bash
+npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.2/codex-feishu-0.1.2.tgz
+codex-feishu init --mode global
+```
+
 如果你是从源码目录直接调试，也可以：
 
 ```bash

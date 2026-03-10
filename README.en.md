@@ -42,6 +42,13 @@ codex-feishu doctor --remote
 codex-feishu serve --detach
 ```
 
+If the npm package is not live yet, install directly from the GitHub Release artifact:
+
+```bash
+npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.2/codex-feishu-0.1.2.tgz
+codex-feishu init --mode global
+```
+
 Common Feishu commands:
 
 - `/help`
