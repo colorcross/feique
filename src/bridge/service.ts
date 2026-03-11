@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { BridgeConfig, ProjectConfig, SessionScope } from '../config/schema.js';
 import { buildHelpText, normalizeIncomingText, parseBridgeCommand, type MemoryCommandFilters, type MemoryScopeTarget } from './commands.js';
@@ -32,6 +33,7 @@ interface ActiveRunHandle {
 
 export class CodexFeishuService {
   private readonly queue = new TaskQueue();
+  private readonly projectRootQueue = new TaskQueue();
   private readonly activeRuns = new Map<string, ActiveRunHandle>();
   private maintenanceTimer?: NodeJS.Timeout;
 
@@ -200,7 +202,7 @@ export class CodexFeishuService {
         }
         await this.sessionStore.selectProject(selectionKey, projectContext.projectAlias);
 
-        await this.queue.run(projectContext.queueKey, async () => {
+        await this.enqueueProjectExecution(projectContext, async () => {
           await this.executePrompt({
             chatId: context.chat_id,
             actorId: context.actor_id,
@@ -297,10 +299,17 @@ export class CodexFeishuService {
           includeActions: false,
         });
       }
-      void this.queue.run(queueKey, async () => {
-        await this.executePrompt({
-          chatId,
-          actorId: context.actor_id,
+      void this.enqueueProjectExecution(
+        {
+          projectAlias,
+          project,
+          sessionKey,
+          queueKey,
+        },
+        async () => {
+          await this.executePrompt({
+            chatId,
+            actorId: context.actor_id,
           tenantKey: context.tenant_key,
           projectAlias,
           project,
@@ -316,11 +325,12 @@ export class CodexFeishuService {
             mentions: [],
             raw: context.raw,
           },
-          prompt: previousPrompt,
-          sessionKey,
-          queueKey,
-        });
-      });
+            prompt: previousPrompt,
+            sessionKey,
+            queueKey,
+          });
+        },
+      );
       return buildStatusCard({
         title: '已提交重试',
         summary: '桥接器正在重新执行上一轮，结果会通过消息回传。',
@@ -1960,6 +1970,20 @@ export class CodexFeishuService {
     return terminateProcess(persisted.pid, 'SIGTERM');
   }
 
+  private async enqueueProjectExecution(
+    projectContext: {
+      projectAlias: string;
+      project: ProjectConfig;
+      sessionKey: string;
+      queueKey: string;
+    },
+    task: () => Promise<void>,
+  ): Promise<void> {
+    await this.queue.run(projectContext.queueKey, async () => {
+      await this.projectRootQueue.run(buildProjectRootQueueKey(projectContext.project.root), task);
+    });
+  }
+
   private async enforceSessionHistoryLimit(conversationKey: string, projectAlias: string): Promise<void> {
     const sessions = await this.sessionStore.listProjectSessions(conversationKey, projectAlias);
     const overflow = sessions.slice(this.config.service.session_history_limit);
@@ -1997,6 +2021,10 @@ export class CodexFeishuService {
 
 export function buildQueueKey(conversationKey: string, projectAlias: string): string {
   return `${conversationKey}::project::${projectAlias}`;
+}
+
+export function buildProjectRootQueueKey(projectRoot: string): string {
+  return `root::${path.resolve(projectRoot)}`;
 }
 
 function buildMessageDedupeKey(context: IncomingMessageContext): string {

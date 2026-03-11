@@ -275,6 +275,37 @@ describe('bridge service', () => {
     expect(runCodexTurnMock).toHaveBeenCalledTimes(2);
   });
 
+  it('serializes runs across different chats when they target the same project root', async () => {
+    const setup = await createService({
+      projects: {
+        default: { root: '/tmp/shared-repo', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
+      },
+    });
+
+    const resolvers: Array<(value: unknown) => void> = [];
+    runCodexTurnMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+
+    const first = setup.service.handleIncomingMessage(buildMessage('run shared a', { chat_id: 'chat-a', message_id: 'm-shared-a' }));
+    await waitFor(() => expect(runCodexTurnMock).toHaveBeenCalledTimes(1));
+
+    const second = setup.service.handleIncomingMessage(buildMessage('run shared b', { chat_id: 'chat-b', message_id: 'm-shared-b' }));
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(runCodexTurnMock).toHaveBeenCalledTimes(1);
+
+    resolvers.shift()?.({ sessionId: 'thread-shared-a', finalMessage: 'done-a', stderr: '', exitCode: 0, capabilities: { version: 'v', exec: {}, resume: {} } });
+    await waitFor(() => expect(runCodexTurnMock).toHaveBeenCalledTimes(2));
+    resolvers.shift()?.({ sessionId: 'thread-shared-b', finalMessage: 'done-b', stderr: '', exitCode: 0, capabilities: { version: 'v', exec: {}, resume: {} } });
+
+    await Promise.all([first, second]);
+    expect(runCodexTurnMock.mock.calls[0]?.[0]?.workdir).toBe('/tmp/shared-repo');
+    expect(runCodexTurnMock.mock.calls[1]?.[0]?.workdir).toBe('/tmp/shared-repo');
+  });
+
   it('shares project binding by chat_id in groups and lets /project update the binding', async () => {
     const setup = await createService({
       projects: {

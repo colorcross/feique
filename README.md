@@ -242,7 +242,8 @@ wiki_space_ids = ["space_xxx"]
 
 - `selection key` 负责按 `chat_id` 记住当前聊天窗口选中了哪个项目
 - `session key` 负责记住当前项目对应的 Codex 会话
-- `queue key = session key + project alias`，保证同一项目串行，不同项目可并行
+- `queue key = session key + project alias`，保证同一聊天上下文内同一项目串行
+- 桥接层还会按 `project.root` 做全局串行，避免不同群/私聊同时操作同一仓库
 
 说明：
 

@@ -147,6 +147,10 @@ Runner 还支持：
 - 同一飞书聊天窗口下，不同项目可以并行
 - 同一项目内仍保持串行，避免 thread 串写
 
+4. `project root lock`
+- 按 `project.root` 全局串行
+- 即使不同群、不同私聊、不同 alias 指向同一仓库，也不会并发执行 Codex run
+
 ## 选择长连接 + Webhook 双模式的原因
 
 官方 SDK README 明确：
