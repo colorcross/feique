@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.1.9 - 2026-03-11
+
+### Highlights
+
+- 仓库最低 Node 版本要求升级到 Node 24，本地与 CI 口径保持一致。
+- GitHub Actions 工作流里的官方 actions 主版本同步升级到 Node 24 对应版本，进一步消除 Node 20 弃用告警来源。
+
+### Included
+
+- Node/runtime：
+  - `package.json`
+  - `.github/workflows/release.yml`
+  - `.github/workflows/pages.yml`
+  - `.github/workflows/issue-triage.yml`
+  - `.github/workflows/pr-labeler.yml`
+- 文档：
+  - `README.md`
+  - `README.en.md`
+  - `docs/getting-started.md`
+
 ## v0.1.8 - 2026-03-11
 
 ### Highlights
