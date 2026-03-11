@@ -38,6 +38,18 @@
 
 如果当前聊天还没切过项目，就回退到 `service.default_project`。
 
+如果你希望 `/project <alias>` 后自动尝试续上该项目最近的本地 Codex 会话，可启用：
+
+```toml
+[service]
+project_switch_auto_adopt_latest = true
+```
+
+启用后：
+
+- 如果当前聊天里这个项目已经有 active session，优先保留当前聊天自己的会话
+- 如果当前聊天里还没有，会尝试从本机 `~/.codex/sessions` 里接管该项目最近的本地会话
+
 ## 4. 群聊为什么默认必须 `@机器人`？
 
 因为这是更安全的默认值。

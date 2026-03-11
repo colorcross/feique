@@ -13,6 +13,7 @@ export function buildInitialConfig(mode: InitMode, cwd: string): string {
 
 [service]
 default_project = "default"
+project_switch_auto_adopt_latest = false
 reply_mode = "text"
 emit_progress_updates = false
 progress_update_interval_ms = 4000

@@ -45,6 +45,7 @@ describe('doctor', () => {
       service: {
         name: 'codex-feishu',
         default_project: 'missing-project',
+        project_switch_auto_adopt_latest: false,
         reply_mode: 'card',
         emit_progress_updates: true,
         progress_update_interval_ms: 4000,

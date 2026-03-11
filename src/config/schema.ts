@@ -25,6 +25,7 @@ export const bridgeConfigSchema = z.object({
     .object({
       name: z.string().default('codex-feishu'),
       default_project: z.string().optional(),
+      project_switch_auto_adopt_latest: z.boolean().default(false),
       reply_mode: replyModeSchema.default('text'),
       emit_progress_updates: z.boolean().default(false),
       progress_update_interval_ms: z.number().int().positive().default(4000),
@@ -54,6 +55,7 @@ export const bridgeConfigSchema = z.object({
     })
     .default({
       name: 'codex-feishu',
+      project_switch_auto_adopt_latest: false,
       reply_mode: 'text',
       emit_progress_updates: false,
       progress_update_interval_ms: 4000,

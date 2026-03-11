@@ -181,6 +181,7 @@ version = 1
 
 [service]
 default_project = "default"
+project_switch_auto_adopt_latest = false
 reply_mode = "text"
 reply_quote_user_message = true
 metrics_host = "127.0.0.1"
@@ -248,6 +249,7 @@ wiki_space_ids = ["space_xxx"]
 - 同一个飞书群会共享一个项目绑定
 - 在群里执行 `/project <alias>` 会直接更新这个群后续消息的默认项目
 - 不同 `chat_id` 会各自记住自己的项目绑定
+- 如果开启 `service.project_switch_auto_adopt_latest = true`，切项目时会尝试自动接管该项目最近的本地 Codex 会话；若当前聊天里这个项目已有 active session，则优先保留当前聊天的会话
 
 ### 群聊触发规则
 

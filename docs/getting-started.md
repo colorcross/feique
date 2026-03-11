@@ -125,6 +125,13 @@ codex-feishu bind repo-b /abs/path/to/repo-b
 - 群里切一次，后续这个群会继续用该项目
 - 在群里再次执行 `/project <alias>` 会更新整群的默认项目
 
+如果你希望切项目时自动接上该项目最近的本地 Codex 会话，可打开：
+
+```toml
+[service]
+project_switch_auto_adopt_latest = true
+```
+
 ## 群聊建议
 
 默认建议：

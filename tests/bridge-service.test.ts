@@ -167,6 +167,59 @@ describe('bridge service', () => {
     expect(lastReply).toContain('match: exact-root');
   });
 
+  it('auto adopts the latest local Codex session on project switch when enabled', async () => {
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-codex-home-'));
+    tempDirs.push(codexHome);
+    process.env.CODEX_HOME = codexHome;
+
+    await writeCodexSessionMeta(codexHome, 'thread-repo-b-latest', '/tmp/repo-b', '2026-03-11T03:37:22.628Z');
+    const setup = await createService({
+      projects: {
+        'repo-a': { root: '/tmp/repo-a', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
+        'repo-b': { root: '/tmp/repo-b', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
+      },
+      service: { default_project: 'repo-a', project_switch_auto_adopt_latest: true },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('/project repo-b', { message_id: 'm-project-auto-adopt' }));
+
+    const sessionKey = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat' });
+    const conversation = await setup.sessionStore.getConversation(sessionKey);
+    expect(conversation?.projects['repo-b']?.thread_id).toBe('thread-repo-b-latest');
+    const lastReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
+    expect(lastReply).toContain('已自动接管本地 Codex 会话: thread-repo-b-latest');
+  });
+
+  it('does not override the current chat project session when auto adopt is enabled', async () => {
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-codex-home-'));
+    tempDirs.push(codexHome);
+    process.env.CODEX_HOME = codexHome;
+
+    await writeCodexSessionMeta(codexHome, 'thread-global-latest', '/tmp/repo-b', '2026-03-11T03:37:22.628Z');
+    const setup = await createService({
+      projects: {
+        'repo-a': { root: '/tmp/repo-a', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
+        'repo-b': { root: '/tmp/repo-b', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
+      },
+      service: { default_project: 'repo-a', project_switch_auto_adopt_latest: true },
+    });
+    const sessionKey = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat' });
+    await setup.sessionStore.ensureConversation(sessionKey, {
+      chat_id: 'chat',
+      actor_id: 'user',
+      tenant_key: 'tenant',
+      scope: 'chat',
+    });
+    await setup.sessionStore.upsertProjectSession(sessionKey, 'repo-b', { thread_id: 'thread-chat-existing' });
+
+    await setup.service.handleIncomingMessage(buildMessage('/project repo-b', { message_id: 'm-project-auto-adopt-existing' }));
+
+    const conversation = await setup.sessionStore.getConversation(sessionKey);
+    expect(conversation?.projects['repo-b']?.thread_id).toBe('thread-chat-existing');
+    const lastReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
+    expect(lastReply).toContain('已保留当前聊天下该项目的会话: thread-chat-existing');
+  });
+
   it('cancels an active run and records cancelled status', async () => {
     const setup = await createService();
     runCodexTurnMock.mockImplementation(
@@ -1107,6 +1160,7 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
     service: {
       name: 'test-bridge',
       default_project: 'default',
+      project_switch_auto_adopt_latest: false,
       reply_mode: 'text',
       emit_progress_updates: false,
       progress_update_interval_ms: 4000,

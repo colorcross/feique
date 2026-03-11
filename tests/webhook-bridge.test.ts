@@ -141,6 +141,7 @@ function buildWebhookConfig(): BridgeConfig {
     service: {
       name: 'test-bridge',
       default_project: 'default',
+      project_switch_auto_adopt_latest: false,
       reply_mode: 'text',
       emit_progress_updates: true,
       progress_update_interval_ms: 4000,

@@ -620,7 +620,58 @@ export class CodexFeishuService {
       actor_id: context.actor_id,
       project_alias: alias,
     });
-    await this.sendTextReply(context.chat_id, `已切换到项目: ${alias}${project.description ? `\n说明: ${project.description}` : ''}`, context.message_id, context.text);
+    const replyLines = [`已切换到项目: ${alias}${project.description ? `\n说明: ${project.description}` : ''}`];
+    if (this.config.service.project_switch_auto_adopt_latest) {
+      const projectContext = await this.resolveProjectContext(context, selectionKey);
+      const adoption = await this.tryAutoAdoptLatestSessionForProject(projectContext);
+      if (adoption.kind === 'existing') {
+        replyLines.push(`已保留当前聊天下该项目的会话: ${adoption.threadId}`);
+      } else if (adoption.kind === 'adopted') {
+        replyLines.push(`已自动接管本地 Codex 会话: ${adoption.session.threadId}`);
+        replyLines.push(`match: ${renderSessionMatch(adoption.session)}`);
+        replyLines.push(`source cwd: ${adoption.session.cwd}`);
+      } else {
+        replyLines.push('未找到可自动接管的本地 Codex 会话。下一条消息会新开会话。');
+      }
+    }
+    await this.sendTextReply(context.chat_id, replyLines.join('\n'), context.message_id, context.text);
+  }
+
+  private async tryAutoAdoptLatestSessionForProject(projectContext: {
+    projectAlias: string;
+    project: ProjectConfig;
+    sessionKey: string;
+    queueKey: string;
+  }): Promise<
+    | { kind: 'existing'; threadId: string }
+    | { kind: 'adopted'; session: IndexedCodexSession }
+    | { kind: 'missing' }
+  > {
+    const conversation = await this.sessionStore.getConversation(projectContext.sessionKey);
+    const existingThreadId = conversation?.projects[projectContext.projectAlias]?.thread_id;
+    if (existingThreadId) {
+      return { kind: 'existing', threadId: existingThreadId };
+    }
+
+    const adopted = await this.codexSessionIndex.findLatestProjectSession(projectContext.project.root);
+    if (!adopted) {
+      return { kind: 'missing' };
+    }
+
+    await this.sessionStore.upsertProjectSession(projectContext.sessionKey, projectContext.projectAlias, {
+      thread_id: adopted.threadId,
+    });
+    await this.auditLog.append({
+      type: 'session.adopted',
+      project_alias: projectContext.projectAlias,
+      conversation_key: projectContext.sessionKey,
+      thread_id: adopted.threadId,
+      source_cwd: adopted.cwd,
+      source: adopted.source,
+      match_kind: adopted.matchKind,
+      trigger: 'project-switch',
+    });
+    return { kind: 'adopted', session: adopted };
   }
 
   private async handleStatusCommand(context: IncomingMessageContext, selectionKey: string): Promise<void> {
