@@ -33,13 +33,12 @@ codex-feishu start
 
 后台运行后可直接管理：
 
-```bash
-codex-feishu status
-codex-feishu logs --lines 100
-codex-feishu ps
-codex-feishu stop --force
-codex-feishu restart
-```
+- `codex-feishu status`：查看服务状态、pid、日志路径
+- `codex-feishu logs --lines 100`：查看最近日志
+- `codex-feishu logs --follow`：实时跟随日志
+- `codex-feishu ps`：查看当前任务状态
+- `codex-feishu stop --force`：停止 bridge
+- `codex-feishu restart`：重启 bridge
 
 优点：
 
@@ -76,10 +75,15 @@ npm run demo:down
 - 将配置和状态目录挂载到持久卷
 - 把项目根目录映射为只允许访问的工作区
 - 配置 `security.allowed_project_roots`
-- 默认把 `reply_mode = "post"` 作为共享服务起点；只有需要卡片交互时再切到 `reply_mode = "card"`
+- 默认把 `reply_mode = "post"` 作为共享服务起点；只有需要卡片展示或按钮交互时再切到 `reply_mode = "card"`
 - 对不同项目使用不同的 Codex profile
 - 保持单实例运行；如果做主备切换，先释放旧实例锁再拉起新实例
 - 在共享部署中显式配置 `service.metrics_port`，接入 Prometheus 或探针系统
+
+补充：
+
+- `reply_mode = "card"` 在 long-connection 模式下也能展示卡片，但按钮回调仍需要 webhook
+- 飞书用户发消息后，会先收到一条状态提示，确认消息已接收以及当前是 `running` 还是 `queued`
 
 
 ## 用户级服务安装

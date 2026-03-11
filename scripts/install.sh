@@ -81,25 +81,31 @@ main() {
   require_command npm
   ensure_built
 
+  run_cli() {
+    if [[ "${SKIP_GLOBAL_INSTALL}" == "off" ]]; then
+      codex-feishu "$@"
+      return
+    fi
+
+    env -u NODE_OPTIONS node "${ROOT_DIR}/dist/cli.js" "$@"
+  }
+
   if [[ "${SKIP_GLOBAL_INSTALL}" == "off" ]]; then
     echo "Installing codex-feishu globally from ${ROOT_DIR}"
     npm install -g "${ROOT_DIR}"
-    CLI_CMD=(codex-feishu)
-  else
-    CLI_CMD=(node "${ROOT_DIR}/dist/cli.js")
   fi
 
   if [[ "${FORCE_CONFIG}" == "on" || ! -f "${HOME}/.codex-feishu/config.toml" ]]; then
     echo "Initializing global config at ${HOME}/.codex-feishu/config.toml"
     if [[ "${FORCE_CONFIG}" == "on" ]]; then
-      "${CLI_CMD[@]}" init --mode global --force
+      run_cli init --mode global --force
     else
-      "${CLI_CMD[@]}" init --mode global
+      run_cli init --mode global
     fi
   fi
 
   echo "Binding project ${PROJECT_ALIAS} -> ${PROJECT_ROOT}"
-  "${CLI_CMD[@]}" bind "${PROJECT_ALIAS}" "${PROJECT_ROOT}" --config "${HOME}/.codex-feishu/config.toml"
+  run_cli bind "${PROJECT_ALIAS}" "${PROJECT_ROOT}" --config "${HOME}/.codex-feishu/config.toml"
 
   cat <<EOF
 

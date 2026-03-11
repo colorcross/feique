@@ -41,7 +41,7 @@ export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> 
   if (config.service.reply_mode === 'card' && config.feishu.transport === 'long-connection') {
     findings.push({
       level: 'warn',
-      message: 'Card callbacks require webhook mode. In long-connection mode only text replies are fully interactive-safe.',
+      message: 'Card display works in long-connection mode, but card callbacks still require webhook transport.',
     });
   }
 

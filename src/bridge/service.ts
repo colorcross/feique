@@ -7,7 +7,7 @@ import type { IncomingCardActionContext, IncomingMessageContext } from './types.
 import { SessionStore, buildConversationKey, type ConversationState } from '../state/session-store.js';
 import type { Logger } from '../logging.js';
 import { FeishuClient } from '../feishu/client.js';
-import { buildStatusCard } from '../feishu/cards.js';
+import { buildMessageCard, buildStatusCard } from '../feishu/cards.js';
 import { runCodexTurn, summarizeCodexEvent } from '../codex/runner.js';
 import { TaskQueue } from './task-queue.js';
 import { AuditLog } from '../state/audit-log.js';
@@ -251,7 +251,7 @@ export class CodexFeishuService {
             chatId: context.chat_id,
             projectAlias: projectContext.projectAlias,
             title: '已加入排队',
-            body: this.buildQueuedReplyText(projectContext.projectAlias, scheduled.queued),
+            body: this.buildAcknowledgedRunReply(projectContext.projectAlias, 'queued', scheduled.queued.detail),
             runStatus: 'queued',
             replyToMessageId: context.message_id,
             originalText: context.text,
@@ -261,7 +261,7 @@ export class CodexFeishuService {
             chatId: context.chat_id,
             projectAlias: projectContext.projectAlias,
             title: 'Codex 处理中',
-            body: `项目: ${projectContext.projectAlias}\n状态: running\n\n已收到消息，正在处理。`,
+            body: this.buildAcknowledgedRunReply(projectContext.projectAlias, 'running', '已收到消息，正在处理。'),
             runStatus: 'running',
             replyToMessageId: context.message_id,
             originalText: context.text,
@@ -612,7 +612,8 @@ export class CodexFeishuService {
       });
       this.metrics?.recordCodexTurn('success', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
 
-      if (this.config.service.reply_mode === 'card' && this.config.feishu.transport === 'webhook') {
+      if (this.config.service.reply_mode === 'card') {
+        const includeActions = this.supportsInteractiveCardActions();
         await this.sendCardReply(
           input.chatId,
           buildStatusCard({
@@ -622,25 +623,31 @@ export class CodexFeishuService {
             sessionId: result.sessionId,
             runStatus: 'success',
             sessionCount: (await this.sessionStore.listProjectSessions(input.sessionKey, input.projectAlias)).length,
-            includeActions: true,
-            rerunPayload: {
-              action: 'rerun',
-              conversation_key: input.sessionKey,
-              project_alias: input.projectAlias,
-              chat_id: input.chatId,
-            },
-            newSessionPayload: {
-              action: 'new',
-              conversation_key: input.sessionKey,
-              project_alias: input.projectAlias,
-              chat_id: input.chatId,
-            },
-            statusPayload: {
-              action: 'status',
-              conversation_key: input.sessionKey,
-              project_alias: input.projectAlias,
-              chat_id: input.chatId,
-            },
+            includeActions,
+            rerunPayload: includeActions
+              ? {
+                  action: 'rerun',
+                  conversation_key: input.sessionKey,
+                  project_alias: input.projectAlias,
+                  chat_id: input.chatId,
+                }
+              : undefined,
+            newSessionPayload: includeActions
+              ? {
+                  action: 'new',
+                  conversation_key: input.sessionKey,
+                  project_alias: input.projectAlias,
+                  chat_id: input.chatId,
+                }
+              : undefined,
+            statusPayload: includeActions
+              ? {
+                  action: 'status',
+                  conversation_key: input.sessionKey,
+                  project_alias: input.projectAlias,
+                  chat_id: input.chatId,
+                }
+              : undefined,
           }),
           input.replyToMessageId,
         );
@@ -814,7 +821,7 @@ export class CodexFeishuService {
     }
 
     const activeRun = await this.runStateStore.getLatestVisibleRun(projectContext.queueKey);
-    if (this.config.service.reply_mode === 'card' && this.config.feishu.transport === 'webhook') {
+    if (this.config.service.reply_mode === 'card') {
       await this.sendCardReply(
         context.chat_id,
         this.buildStatusCardFromConversation(projectContext.projectAlias, projectContext.sessionKey, conversation, activeRun),
@@ -1951,6 +1958,7 @@ export class CodexFeishuService {
     const session = conversation.projects[projectAlias];
     const sessionCount = Object.keys(session?.sessions ?? {}).length;
     const isExecutableRun = activeRun ? isExecutionRunStatus(activeRun.status) : false;
+    const includeActions = this.supportsInteractiveCardActions();
     return buildStatusCard({
       title: '当前会话状态',
       summary: this.buildRunStatusSummary(session?.last_response_excerpt, activeRun),
@@ -1958,8 +1966,8 @@ export class CodexFeishuService {
       sessionId: session?.thread_id,
       runStatus: activeRun?.status,
       sessionCount,
-      includeActions: true,
-      rerunPayload: session?.last_prompt && !activeRun
+      includeActions,
+      rerunPayload: includeActions && session?.last_prompt && !activeRun
         ? {
             action: 'rerun',
             conversation_key: sessionKey,
@@ -1967,13 +1975,15 @@ export class CodexFeishuService {
             chat_id: conversation.chat_id,
           }
         : undefined,
-      newSessionPayload: {
-        action: 'new',
-        conversation_key: sessionKey,
-        project_alias: projectAlias,
-        chat_id: conversation.chat_id,
-      },
-      cancelPayload: isExecutableRun
+      newSessionPayload: includeActions
+        ? {
+            action: 'new',
+            conversation_key: sessionKey,
+            project_alias: projectAlias,
+            chat_id: conversation.chat_id,
+          }
+        : undefined,
+      cancelPayload: includeActions && isExecutableRun
         ? {
             action: 'cancel',
             conversation_key: sessionKey,
@@ -1981,12 +1991,14 @@ export class CodexFeishuService {
             chat_id: conversation.chat_id,
           }
         : undefined,
-      statusPayload: {
-        action: 'status',
-        conversation_key: sessionKey,
-        project_alias: projectAlias,
-        chat_id: conversation.chat_id,
-      },
+      statusPayload: includeActions
+        ? {
+            action: 'status',
+            conversation_key: sessionKey,
+            project_alias: projectAlias,
+            chat_id: conversation.chat_id,
+          }
+        : undefined,
     });
   }
 
@@ -2292,8 +2304,8 @@ export class CodexFeishuService {
     };
   }
 
-  private buildQueuedReplyText(projectAlias: string, queued: QueuedExecutionNotice): string {
-    return [`项目: ${projectAlias}`, '状态: queued', '', queued.detail].join('\n');
+  private buildAcknowledgedRunReply(projectAlias: string, status: 'queued' | 'running', detail: string): string {
+    return [`消息接收: success`, `处理状态: ${status}`, `项目: ${projectAlias}`, '', detail].join('\n');
   }
 
   private buildQueuedStatusDetail(
@@ -2407,8 +2419,18 @@ export class CodexFeishuService {
   }
 
   private async sendTextReply(chatId: string, body: string, replyToMessageId?: string, originalText?: string): Promise<void> {
+    const title = this.buildReplyTitle(this.sanitizeUserVisibleReply(body));
+    const formattedBody = this.sanitizeUserVisibleReply(this.formatQuotedReply(body, originalText));
+    if (this.config.service.reply_mode === 'card') {
+      const card = buildMessageCard({
+        title,
+        body: formattedBody,
+      });
+      await this.sendCardReply(chatId, card, replyToMessageId);
+      return;
+    }
     if (this.config.service.reply_mode === 'post') {
-      const post = buildFeishuPost(this.buildReplyTitle(body), this.formatQuotedReply(body, originalText));
+      const post = buildFeishuPost(title, formattedBody);
       if (this.config.service.reply_quote_user_message && replyToMessageId) {
         await this.feishuClient.sendPost(chatId, post, { replyToMessageId });
         return;
@@ -2417,10 +2439,10 @@ export class CodexFeishuService {
       return;
     }
     if (this.config.service.reply_quote_user_message && replyToMessageId) {
-      await this.feishuClient.sendText(chatId, body, { replyToMessageId });
+      await this.feishuClient.sendText(chatId, this.sanitizeUserVisibleReply(body), { replyToMessageId });
       return;
     }
-    await this.feishuClient.sendText(chatId, this.formatQuotedReply(body, originalText));
+    await this.feishuClient.sendText(chatId, formattedBody);
   }
 
   private async sendCardReply(chatId: string, card: Record<string, unknown>, replyToMessageId?: string): Promise<void> {
@@ -2440,12 +2462,12 @@ export class CodexFeishuService {
     replyToMessageId?: string;
     originalText?: string;
   }): Promise<void> {
-    if (this.config.service.reply_mode === 'card' && this.config.feishu.transport === 'webhook') {
+    if (this.config.service.reply_mode === 'card') {
       await this.sendCardReply(
         input.chatId,
         buildStatusCard({
           title: input.title,
-          summary: truncateForFeishuCard(input.body),
+          summary: truncateForFeishuCard(this.sanitizeUserVisibleReply(input.body)),
           projectAlias: input.projectAlias,
           runStatus: input.runStatus,
           includeActions: false,
@@ -2473,6 +2495,19 @@ export class CodexFeishuService {
       .map((line) => line.trim())
       .find(Boolean);
     return truncateExcerpt(firstLine ?? 'Codex Feishu', 40);
+  }
+
+  private sanitizeUserVisibleReply(body: string): string {
+    return body
+      .split(/\r?\n/)
+      .filter((line) => !/^(运行|当前运行|阻塞运行):/.test(line.trim()))
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  private supportsInteractiveCardActions(): boolean {
+    return this.config.feishu.transport === 'webhook';
   }
 }
 

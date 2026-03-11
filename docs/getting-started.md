@@ -179,15 +179,14 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 
 ## 常用命令
 
-```bash
-codex-feishu start
-codex-feishu status
-codex-feishu logs --lines 100
-codex-feishu ps
-codex-feishu stop --force
-codex-feishu restart
-codex-feishu audit tail --limit 20
-```
+- `codex-feishu start`：后台启动 bridge
+- `codex-feishu status`：查看服务是否在运行、pid、日志路径和 active runs
+- `codex-feishu logs --lines 100`：查看最近日志
+- `codex-feishu logs --follow`：实时观察日志追加内容
+- `codex-feishu ps`：查看当前任务列表和运行态
+- `codex-feishu stop --force`：停止服务，必要时强制终止
+- `codex-feishu restart`：重启后台服务
+- `codex-feishu audit tail --limit 20`：查看最近审计事件
 
 ## 回复模式
 
@@ -201,13 +200,19 @@ reply_mode = "text"
 可选值：
 
 - `text`：最简单的纯文本回复
-- `post`：富文本回复，适合长文本、状态摘要和命令回显
-- `card`：交互卡片；需要 `transport = "webhook"` 才能完整使用卡片回调
+- `post`：富文本回复，自动保留标题、列表、链接，适合长文本、状态摘要和命令回显
+- `card`：卡片展示；long-connection 也能显示卡片，但卡片按钮回调仍需要 `transport = "webhook"`
 
 建议：
 
 - 本机 long-connection 优先用 `post`
 - 共享 webhook 服务如果需要按钮交互，再切到 `card`
+
+补充：
+
+- 用户发送消息后，桥接器会先回一条状态提示，明确显示 `消息接收` 和 `处理状态`
+- 用户可见回复默认隐藏内部 `运行:` 标识
+- 飞书里也支持高置信度自然语言命令，例如 `查看状态`、`切换到项目 repo-a`、`接管最新会话`
 
 ## 管理员入口
 

@@ -65,7 +65,7 @@
               <span class="display-line display-accent">control plane.</span>
             </h1>
             <p class="hero-body">
-              Codex Feishu sends Feishu messages into resumable Codex CLI sessions. Project binding sticks by <code>chat_id</code>, local sessions can be adopted, shared repos are serialized safely, and queued runtime state stays visible inside Feishu.
+              Codex Feishu sends Feishu messages into resumable Codex CLI sessions. Project binding sticks by <code>chat_id</code>, local sessions can be adopted, shared repos are serialized safely, queued runtime state stays visible inside Feishu, and replies support structured rich text, cards, and natural-language command triggers.
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="https://www.npmjs.com/package/codex-feishu">Install from npm</a>
@@ -77,6 +77,7 @@
               <span>/session adopt</span>
               <span>project.root lock</span>
               <span>queued visibility</span>
+              <span>post / card replies</span>
             </div>
           </article>
 
@@ -91,7 +92,8 @@ codex-feishu init --mode global
 export FEISHU_APP_ID=cli_xxx
 export FEISHU_APP_SECRET=***
 codex-feishu doctor --remote
-codex-feishu serve --detach</code></pre>
+codex-feishu start
+codex-feishu status</code></pre>
             </article>
 
             <article class="hero-panel status-panel">
@@ -99,13 +101,13 @@ codex-feishu serve --detach</code></pre>
                 <span class="micro-label">Run State Preview</span>
                 <span class="panel-kicker">same repo, no race</span>
               </div>
-              <pre><code>Project: repo-a
-Current session: thread-2026-03
-Current run: run_queued (queued)
+              <pre><code>Message accepted: success
+Processing status: queued
+Project: repo-a
 
 This repository is currently being operated by another chat.
 Queued with 1 task ahead.
-Blocking run: run_live (running)</code></pre>
+Blocking status: running</code></pre>
             </article>
 
             <div class="signal-cluster">
@@ -118,8 +120,8 @@ Blocking run: run_live (running)</code></pre>
                 <strong>Adopt live Codex sessions directly from <code>~/.codex/sessions</code>.</strong>
               </article>
               <article class="signal-card">
-                <span class="micro-label">Runtime Guard</span>
-                <strong>Different chats targeting one repo are serialized instead of fighting over files.</strong>
+                <span class="micro-label">Reply Surface</span>
+                <strong>Rich text, cards, and status acknowledgments stay inside Feishu without exposing internal run IDs.</strong>
               </article>
             </div>
           </aside>
@@ -214,9 +216,9 @@ Blocking run: run_live (running)</code></pre>
               <p><code>/status</code>, status cards, and text replies all expose whether the run is blocked by the current project or another chat touching the same repo.</p>
             </article>
             <article class="capability-card">
-              <span class="micro-label">Extended Context</span>
-              <h3>Wiki, KB, media, and memory all feed one execution path</h3>
-              <p>Knowledge search, wiki operations, attachment metadata, thread summaries, and project memory now join the same execution surface.</p>
+              <span class="micro-label">Reply Surface</span>
+              <h3>Natural-language commands, rich text, and cards share one reply path</h3>
+              <p>Users can send high-confidence commands such as <code>查看状态</code> or <code>切换到项目 repo-a</code> and still receive formatted post or card replies in the same chat.</p>
             </article>
           </div>
         </section>
@@ -236,17 +238,18 @@ Blocking run: run_live (running)</code></pre>
 codex-feishu init --mode global
 codex-feishu doctor
 codex-feishu doctor --remote
-codex-feishu serve --detach</code></pre>
+codex-feishu start
+codex-feishu logs --follow</code></pre>
             </article>
             <article class="quick-card code-card">
               <div class="panel-head">
                 <span class="micro-label">Feishu</span>
                 <span class="panel-kicker">switch, adopt, continue</span>
               </div>
-              <pre><code>/projects
-/project repo-a
-/session adopt list
-/session adopt latest
+              <pre><code>查看项目
+切换到项目 repo-a
+接管最新会话
+查看状态
 Continue closing out this release flow</code></pre>
             </article>
             <article class="quick-card summary-card">

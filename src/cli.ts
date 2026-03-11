@@ -72,10 +72,11 @@ const serveCommand = program
   .option('--skip-doctor', 'skip startup doctor preflight', false)
   .option('--json', 'print runtime management commands as JSON', false)
   .option('--lines <number>', 'number of lines for `serve logs`')
+  .option('--follow', 'follow appended log output for `serve logs`', false)
   .option('--force', 'use SIGKILL if SIGTERM does not stop the process in time', false)
   .option('--wait-ms <number>', 'grace period for `serve stop`', '5000')
   .option('--all', 'show all runs for `serve ps`', false)
-  .action(async (operation: string | undefined, options: { config?: string; detach: boolean; skipDoctor: boolean; json: boolean; lines?: string; force: boolean; waitMs: string; all: boolean }) => {
+  .action(async (operation: string | undefined, options: { config?: string; detach: boolean; skipDoctor: boolean; json: boolean; lines?: string; follow: boolean; force: boolean; waitMs: string; all: boolean }) => {
     if (operation && operation !== 'start') {
       if (operation === 'status') {
         const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
@@ -136,6 +137,10 @@ const serveCommand = program
         const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
         const runtimePaths = getRuntimePaths(config);
         const lines = Number(options.lines ?? config.service.log_tail_lines);
+        if (options.follow) {
+          await followFile(runtimePaths.logPath, lines);
+          return;
+        }
         const content = await tailFile(runtimePaths.logPath, lines);
         process.stdout.write(content || 'No runtime log file found.\n');
         return;
@@ -339,10 +344,15 @@ program
   .description('Tail bridge logs')
   .option('--config <path>', 'config path override')
   .option('--lines <number>', 'number of lines to print')
-  .action(async (options: { config?: string; lines?: string }) => {
+  .option('--follow', 'follow appended log output', false)
+  .action(async (options: { config?: string; lines?: string; follow: boolean }) => {
     const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
     const runtimePaths = getRuntimePaths(config);
     const lines = Number(options.lines ?? config.service.log_tail_lines);
+    if (options.follow) {
+      await followFile(runtimePaths.logPath, lines);
+      return;
+    }
     const content = await tailFile(runtimePaths.logPath, lines);
     process.stdout.write(content || 'No runtime log file found.\n');
   });
@@ -876,6 +886,92 @@ async function tailFile(filePath: string, lines: number): Promise<string> {
     return sliced ? `${sliced}\n` : '';
   } catch {
     return '';
+  }
+}
+
+async function followFile(filePath: string, lines: number): Promise<void> {
+  const initial = await tailFile(filePath, lines);
+  if (initial) {
+    process.stdout.write(initial);
+  } else {
+    process.stdout.write('Waiting for runtime log output...\n');
+  }
+
+  let offset = await getFileSize(filePath);
+
+  await new Promise<void>((resolve, reject) => {
+    let closed = false;
+    let polling = false;
+
+    const stop = () => {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      clearInterval(timer);
+      process.off('SIGINT', stop);
+      process.off('SIGTERM', stop);
+      resolve();
+    };
+
+    const timer = setInterval(() => {
+      if (polling || closed) {
+        return;
+      }
+      polling = true;
+      void readAppendedContent()
+        .then(() => {
+          polling = false;
+        })
+        .catch((error) => {
+          clearInterval(timer);
+          process.off('SIGINT', stop);
+          process.off('SIGTERM', stop);
+          reject(error);
+        });
+    }, 500);
+
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
+  });
+
+  async function readAppendedContent(): Promise<void> {
+    const size = await getFileSize(filePath);
+    if (size < offset) {
+      offset = 0;
+    }
+    if (size === offset) {
+      return;
+    }
+    try {
+      const handle = await fs.open(filePath, 'r');
+      try {
+        const length = size - offset;
+        const buffer = Buffer.alloc(length);
+        await handle.read(buffer, 0, length, offset);
+        offset = size;
+        process.stdout.write(buffer.toString('utf8'));
+      } finally {
+        await handle.close();
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return;
+      }
+      throw error;
+    }
+  }
+}
+
+async function getFileSize(filePath: string): Promise<number> {
+  try {
+    const stat = await fs.stat(filePath);
+    return stat.size;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return 0;
+    }
+    throw error;
   }
 }
 

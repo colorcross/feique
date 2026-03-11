@@ -139,6 +139,21 @@ describe('bridge service', () => {
     expect(setup.sendText).not.toHaveBeenCalled();
   });
 
+  it('uses Feishu cards for generic replies when reply_mode=card', async () => {
+    const setup = await createService({
+      service: {
+        reply_mode: 'card',
+      },
+      feishu: {
+        transport: 'long-connection',
+      },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('/help', { message_id: 'm-card-help' }));
+    expect(setup.sendCard).toHaveBeenCalled();
+    expect(setup.sendText).not.toHaveBeenCalled();
+  });
+
   it('lets admin chats add a group id and project dynamically', async () => {
     const setup = await createService({
       security: {
@@ -389,7 +404,7 @@ describe('bridge service', () => {
           ([chatId, body]) =>
             chatId === 'chat' &&
             typeof body === 'string' &&
-            body.includes('状态: queued') &&
+            body.includes('处理状态: queued') &&
             body.includes('当前项目 default 已有任务在处理，已进入排队。'),
         ),
       ).toBe(true),
@@ -427,7 +442,7 @@ describe('bridge service', () => {
           ([chatId, body]) =>
             chatId === 'chat-b' &&
             typeof body === 'string' &&
-            body.includes('状态: queued') &&
+            body.includes('处理状态: queued') &&
             body.includes('当前仓库正在被其他会话操作，已进入排队。'),
         ),
       ).toBe(true),

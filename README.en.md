@@ -120,20 +120,21 @@ Common Feishu commands:
 
 Recommended reply modes:
 
-- `reply_mode = "post"` for richer message formatting without card callbacks
-- `reply_mode = "card"` with `transport = "webhook"` when you want interactive cards
+- `reply_mode = "post"` for structured rich text with headings, bullets, and links
+- `reply_mode = "card"` for card display; card callbacks still require `transport = "webhook"`
 - `reply_mode = "text"` for the simplest plain-text path
+- inbound messages now receive an immediate acknowledgment with `message accepted` and `processing status`
+- high-confidence natural language commands are supported, such as `查看状态`, `切换到项目 repo-a`, and `接管最新会话`
 
 Common runtime commands:
 
-```bash
-codex-feishu start
-codex-feishu status
-codex-feishu logs --lines 100
-codex-feishu ps
-codex-feishu stop --force
-codex-feishu restart
-```
+- `codex-feishu start`: start the bridge in the background
+- `codex-feishu status`: inspect pid, log path, and active run count
+- `codex-feishu logs --lines 100`: print the latest runtime log lines
+- `codex-feishu logs --follow`: follow appended runtime logs in real time
+- `codex-feishu ps`: inspect active run states
+- `codex-feishu stop --force`: stop the bridge and force-kill if needed
+- `codex-feishu restart`: restart the background bridge
 
 ## Documentation
 

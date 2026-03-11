@@ -96,8 +96,8 @@ codex-feishu audit tail --limit 20
 可以按交互复杂度来选：
 
 - `text`：最简单的纯文本回复
-- `post`：富文本回复，适合大多数长连接和 webhook 回复场景
-- `card`：交互卡片；需要 `transport = "webhook"`，并且更适合有按钮回调的共享服务
+- `post`：富文本回复，自动保留标题、列表、链接，适合大多数长连接和 webhook 回复场景
+- `card`：卡片展示；long-connection 也能显示卡片，但卡片按钮回调仍需要 `transport = "webhook"`
 
 如果没有明确的卡片交互需求，推荐优先用：
 
@@ -132,14 +132,15 @@ allowed_project_roots = ["/"]
 
 ## 10. 如何后台运行、停机、看日志？
 
-```bash
-codex-feishu start
-codex-feishu status
-codex-feishu logs --lines 100
-codex-feishu ps
-codex-feishu stop --force
-codex-feishu restart
-```
+- `codex-feishu start`：后台启动 bridge
+- `codex-feishu status`：查看运行状态、pid、日志路径
+- `codex-feishu logs --lines 100`：查看最近日志
+- `codex-feishu logs --follow`：实时跟随日志输出
+- `codex-feishu ps`：查看当前任务列表
+- `codex-feishu stop --force`：停止 bridge
+- `codex-feishu restart`：重启 bridge
+
+如果你是在飞书里联调，还会看到一条即时状态提示，明确显示消息是否已接收以及当前处理状态。
 
 ## 11. 管理员怎么动态开通 chat / group / project？
 

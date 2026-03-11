@@ -29,6 +29,7 @@
   - 飞书侧联调
   - 常用命令
   - `reply_mode` / 富文本 / 卡片
+  - 自然语言命令触发
   - 管理员动态接入与 `/admin` 命令
   - `/session adopt` 续接本地 Codex 会话
   - `queued` / 仓库占用提示
@@ -57,7 +58,7 @@
 - [部署说明](deployment.md)
   - 本机单用户模式
   - 团队共享模式
-  - `start|status|logs|ps|stop|restart`
+  - `start|status|logs --follow|ps|stop|restart`
   - systemd / launchd
   - Webhook / 反向代理 / 探针
 - [安全与运维](security.md)

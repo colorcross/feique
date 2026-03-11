@@ -28,7 +28,7 @@ export interface FeishuSendOptions {
 export interface FeishuPostMessage {
   zh_cn: {
     title: string;
-    content: Array<Array<{ tag: 'text'; text: string }>>;
+    content: Array<Array<{ tag: 'text'; text: string } | { tag: 'a'; text: string; href: string }>>;
   };
 }
 

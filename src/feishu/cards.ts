@@ -1,3 +1,5 @@
+import { splitMarkdownForFeishuCard } from './text.js';
+
 export function buildStatusCard(input: {
   title: string;
   summary: string;
@@ -76,6 +78,43 @@ export function buildStatusCard(input: {
         content: [metadata, '', input.summary].filter(Boolean).join('\n'),
       },
       ...actions,
+    ],
+  };
+}
+
+export function buildMessageCard(input: {
+  title: string;
+  body: string;
+  status?: string;
+  projectAlias?: string;
+  sessionId?: string;
+}): Record<string, unknown> {
+  const metadata = [
+    input.projectAlias ? `**项目**: ${input.projectAlias}` : null,
+    input.sessionId ? `**会话**: ${input.sessionId}` : null,
+    input.status ? `**状态**: ${input.status}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const sections = splitMarkdownForFeishuCard(input.body).map((chunk) => ({
+    tag: 'markdown',
+    content: chunk,
+  }));
+
+  return {
+    config: {
+      wide_screen_mode: true,
+    },
+    header: {
+      template: input.status === 'failure' ? 'red' : input.status === 'queued' ? 'orange' : 'blue',
+      title: {
+        tag: 'plain_text',
+        content: input.title,
+      },
+    },
+    elements: [
+      ...(metadata ? [{ tag: 'markdown', content: metadata }] : []),
+      ...sections,
     ],
   };
 }

@@ -147,6 +147,31 @@ describe('bridge commands', () => {
     expect(parseBridgeCommand('/fix this bug')).toEqual({ kind: 'prompt', prompt: '/fix this bug' });
   });
 
+  it('supports high-confidence natural language commands', () => {
+    expect(parseBridgeCommand('查看状态')).toEqual({ kind: 'status' });
+    expect(parseBridgeCommand('项目列表')).toEqual({ kind: 'projects' });
+    expect(parseBridgeCommand('新会话')).toEqual({ kind: 'new' });
+    expect(parseBridgeCommand('切换到项目 repo-a')).toEqual({ kind: 'project', alias: 'repo-a' });
+    expect(parseBridgeCommand('接管最新会话')).toEqual({ kind: 'session', action: 'adopt', target: 'latest' });
+    expect(parseBridgeCommand('接管会话 thread-123')).toEqual({ kind: 'session', action: 'adopt', target: 'thread-123' });
+    expect(parseBridgeCommand('添加项目 repo-b /srv/repos/repo-b')).toEqual({
+      kind: 'admin',
+      resource: 'project',
+      action: 'add',
+      alias: 'repo-b',
+      value: '/srv/repos/repo-b',
+    });
+    expect(parseBridgeCommand('修改项目 repo-b mention_required false')).toEqual({
+      kind: 'admin',
+      resource: 'project',
+      action: 'set',
+      alias: 'repo-b',
+      field: 'mention_required',
+      value: 'false',
+    });
+    expect(parseBridgeCommand('重启服务')).toEqual({ kind: 'admin', resource: 'service', action: 'restart' });
+  });
+
   it('normalizes leading mentions', () => {
     expect(normalizeIncomingText('@Codex   帮我看下这个报错')).toBe('帮我看下这个报错');
   });
@@ -184,5 +209,7 @@ describe('bridge commands', () => {
     expect(helpText).toContain('/wiki members');
     expect(helpText).toContain('/wiki grant');
     expect(helpText).toContain('/wiki revoke');
+    expect(helpText).toContain('查看状态');
+    expect(helpText).toContain('切换到项目 repo-a');
   });
 });

@@ -356,22 +356,24 @@ admin_chat_ids = ["oc_admin_chat_1"]
 
 - 优先用飞书原生 reply 回复触发消息
 - 如果拿不到 `message_id`，才退回文本前缀引用
-- `reply_mode = "post"` 时会发送富文本消息
-- `reply_mode = "card"` 且 `transport = "webhook"` 时会发送可交互状态卡片
+- 收到消息后会先回一条状态提示，明确显示 `消息接收` 和 `处理状态`
+- `reply_mode = "post"` 时会发送格式化富文本，自动保留标题、列表和链接
+- `reply_mode = "card"` 时会发送卡片展示；卡片按钮回调仍需要 `transport = "webhook"`
+- 用户可见回复会隐藏内部 `运行:` / `阻塞运行:` 之类的运行 ID 字段
+- 高置信度自然语言也能触发命令，例如 `查看状态`、`切换到项目 repo-a`、`接管最新会话`
 
 ## 常用运维命令
 
-```bash
-codex-feishu start
-codex-feishu status
-codex-feishu logs --lines 100
-codex-feishu ps
-codex-feishu stop --force
-codex-feishu restart
-codex-feishu audit tail --limit 20
-codex-feishu doctor --remote
-codex-feishu feishu inspect
-```
+- `codex-feishu start`：后台启动 bridge，并返回 pid / 日志文件路径
+- `codex-feishu status`：查看当前运行状态、pid、日志路径、active runs 数量
+- `codex-feishu logs --lines 100`：查看最近日志
+- `codex-feishu logs --follow`：实时跟随日志输出，适合排查联调问题
+- `codex-feishu ps`：查看当前运行中的任务状态
+- `codex-feishu stop --force`：停止 bridge，必要时强制结束
+- `codex-feishu restart`：后台重启 bridge
+- `codex-feishu audit tail --limit 20`：查看最近审计事件
+- `codex-feishu doctor --remote`：同时检查本地配置和飞书远端联通性
+- `codex-feishu feishu inspect`：检查飞书环境、reply mode 和 webhook/long-connection 配置
 
 ## 仓库结构
 

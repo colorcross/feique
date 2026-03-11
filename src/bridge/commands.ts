@@ -30,6 +30,10 @@ export function parseBridgeCommand(input: string): BridgeCommand {
   const trimmed = normalizeIncomingText(input);
 
   if (!trimmed.startsWith('/')) {
+    const naturalLanguageCommand = parseNaturalLanguageCommand(trimmed);
+    if (naturalLanguageCommand) {
+      return naturalLanguageCommand;
+    }
     return { kind: 'prompt', prompt: trimmed };
   }
 
@@ -142,8 +146,121 @@ export function buildHelpText(): string {
     '/admin project set <alias> <field> <value> 修改项目配置',
     '/admin service restart 保存配置并重启服务',
     '',
+    '也支持高置信度自然语言触发，例如：',
+    '查看状态 / 项目列表 / 新会话 / 取消当前任务 / 切换到项目 repo-a / 接管最新会话 / 重启服务',
+    '',
     '直接发送文本会进入当前项目的 Codex 会话。',
   ].join('\n');
+}
+
+function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
+  const normalized = input
+    .trim()
+    .replace(/[。！？!?；;]+$/u, '')
+    .replace(/\s+/g, ' ');
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (/^(帮助|查看帮助|命令帮助)$/.test(normalized)) {
+    return { kind: 'help' };
+  }
+  if (/^(查看状态|当前状态|运行状态|看状态)$/.test(normalized)) {
+    return { kind: 'status' };
+  }
+  if (/^(查看项目|项目列表|列出项目|有哪些项目)$/.test(normalized)) {
+    return { kind: 'projects' };
+  }
+  if (/^(新会话|开启新会话|重新开始会话|下一条消息新开会话)$/.test(normalized)) {
+    return { kind: 'new' };
+  }
+  if (/^(取消当前任务|停止当前任务|取消运行|停止运行|停止任务)$/.test(normalized)) {
+    return { kind: 'cancel' };
+  }
+  if (/^(查看会话|会话列表|列出会话)$/.test(normalized)) {
+    return { kind: 'session', action: 'list' };
+  }
+  if (/^(接管最新会话|接管最近会话|接管最新 Codex 会话)$/i.test(normalized)) {
+    return { kind: 'session', action: 'adopt', target: 'latest' };
+  }
+  if (/^(查看可接管会话|列出可接管会话|可接管会话列表)$/.test(normalized)) {
+    return { kind: 'session', action: 'adopt', target: 'list' };
+  }
+
+  const projectMatch = normalized.match(/^(?:切换到项目|切到项目|使用项目)\s+(\S+)$/);
+  if (projectMatch) {
+    return { kind: 'project', alias: projectMatch[1] };
+  }
+
+  const adoptSessionMatch = normalized.match(/^(?:接管会话|使用会话)\s+(\S+)$/);
+  if (adoptSessionMatch) {
+    return { kind: 'session', action: 'adopt', target: adoptSessionMatch[1] };
+  }
+
+  if (/^(管理员状态|查看管理员状态)$/.test(normalized)) {
+    return { kind: 'admin', resource: 'service', action: 'status' };
+  }
+  if (/^(重启服务|重启机器人|重启 codex-feishu 服务)$/i.test(normalized)) {
+    return { kind: 'admin', resource: 'service', action: 'restart' };
+  }
+
+  const addAdminMatch = normalized.match(/^添加管理员\s+(\S+)$/);
+  if (addAdminMatch) {
+    return { kind: 'admin', resource: 'admin', action: 'add', value: addAdminMatch[1] };
+  }
+  const removeAdminMatch = normalized.match(/^移除管理员\s+(\S+)$/);
+  if (removeAdminMatch) {
+    return { kind: 'admin', resource: 'admin', action: 'remove', value: removeAdminMatch[1] };
+  }
+
+  const addGroupMatch = normalized.match(/^(?:允许群聊|接入群聊|添加群聊)\s+(\S+)$/);
+  if (addGroupMatch) {
+    return { kind: 'admin', resource: 'group', action: 'add', value: addGroupMatch[1] };
+  }
+  const removeGroupMatch = normalized.match(/^(?:移除群聊|拒绝群聊|禁用群聊)\s+(\S+)$/);
+  if (removeGroupMatch) {
+    return { kind: 'admin', resource: 'group', action: 'remove', value: removeGroupMatch[1] };
+  }
+
+  const addChatMatch = normalized.match(/^(?:允许私聊|接入私聊|添加私聊)\s+(\S+)$/);
+  if (addChatMatch) {
+    return { kind: 'admin', resource: 'chat', action: 'add', value: addChatMatch[1] };
+  }
+  const removeChatMatch = normalized.match(/^(?:移除私聊|拒绝私聊|禁用私聊)\s+(\S+)$/);
+  if (removeChatMatch) {
+    return { kind: 'admin', resource: 'chat', action: 'remove', value: removeChatMatch[1] };
+  }
+
+  const addProjectMatch = normalized.match(/^添加项目\s+(\S+)\s+(.+)$/);
+  if (addProjectMatch) {
+    const [, alias, root] = addProjectMatch;
+    if (!alias || !root) {
+      return null;
+    }
+    return { kind: 'admin', resource: 'project', action: 'add', alias, value: root.trim() };
+  }
+  const removeProjectMatch = normalized.match(/^移除项目\s+(\S+)$/);
+  if (removeProjectMatch) {
+    return { kind: 'admin', resource: 'project', action: 'remove', alias: removeProjectMatch[1] };
+  }
+  const updateProjectMatch = normalized.match(/^(?:设置项目|修改项目)\s+(\S+)\s+(\S+)\s+(.+)$/);
+  if (updateProjectMatch) {
+    const [, alias, field, value] = updateProjectMatch;
+    if (!alias || !field || !value) {
+      return null;
+    }
+    return {
+      kind: 'admin',
+      resource: 'project',
+      action: 'set',
+      alias,
+      field,
+      value: value.trim(),
+    };
+  }
+
+  return null;
 }
 
 function parseAdminCommand(argument: string): BridgeCommand {

@@ -346,6 +346,18 @@ describe('cli flow', () => {
     expect(logs.stdout).toContain('line-3');
     expect(logs.stdout).not.toContain('line-1');
 
+    const followedLogs = await captureFollowLogs(['logs', '--config', configPath, '--lines', '2', '--follow'], {
+      cwd,
+      env: runtimeEnv,
+      append: async () => {
+        await fs.appendFile(path.join(stateDir, 'runtime-test.log'), '\nline-4\n', 'utf8');
+      },
+      until: 'line-4',
+    });
+    expect(followedLogs).toContain('line-2');
+    expect(followedLogs).toContain('line-3');
+    expect(followedLogs).toContain('line-4');
+
     const ps = runCli(['ps', '--config', configPath], { cwd, env: runtimeEnv });
     expect(ps.status).toBe(0);
     const runs = JSON.parse(ps.stdout) as Array<{ run_id: string; status: string }>;
@@ -429,6 +441,75 @@ function runCliAsync(args: string[], options: { cwd: string; env?: Record<string
     child.on('error', reject);
     child.on('close', (status) => {
       resolve({ status, stdout, stderr });
+    });
+  });
+}
+
+function captureFollowLogs(
+  args: string[],
+  options: { cwd: string; env?: Record<string, string>; append: () => Promise<void>; until: string },
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(tsxBin, [cliEntry, ...args], {
+      cwd: options.cwd,
+      env: {
+        ...process.env,
+        ...options.env,
+        NODE_ENV: 'test',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let appendTriggered = false;
+    let done = false;
+
+    const finish = (error?: Error) => {
+      if (done) {
+        return;
+      }
+      done = true;
+      clearTimeout(timeout);
+      child.stdout.removeAllListeners();
+      child.stderr.removeAllListeners();
+      child.removeAllListeners();
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(stdout);
+    };
+
+    const timeout = setTimeout(() => {
+      child.kill('SIGKILL');
+      finish(new Error(`Timed out waiting for ${options.until} in follow logs.\nstdout:\n${stdout}\nstderr:\n${stderr}`));
+    }, 5000);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString('utf8');
+      if (!appendTriggered && stdout.includes('line-3')) {
+        appendTriggered = true;
+        void options.append().catch((error) => finish(error as Error));
+      }
+      if (stdout.includes(options.until)) {
+        child.kill('SIGINT');
+      }
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString('utf8');
+    });
+    child.on('error', (error) => finish(error));
+    child.on('close', (status, signal) => {
+      if (signal && signal !== 'SIGINT') {
+        finish(new Error(`Follow logs exited with signal ${signal}.\nstdout:\n${stdout}\nstderr:\n${stderr}`));
+        return;
+      }
+      if (status !== 0 && status !== null && !stdout.includes(options.until)) {
+        finish(new Error(`Follow logs exited with status ${status}.\nstdout:\n${stdout}\nstderr:\n${stderr}`));
+        return;
+      }
+      finish();
     });
   });
 }
