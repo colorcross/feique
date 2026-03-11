@@ -64,9 +64,7 @@ interface RuntimeControl {
 }
 
 interface RunReplyTarget {
-  chatId: string;
   messageId?: string;
-  openMessageId?: string;
   mode: BridgeConfig['service']['reply_mode'];
 }
 
@@ -340,7 +338,7 @@ export class CodexFeishuService {
                 replyToMessageId: context.message_id,
                 originalText: context.text,
               });
-          await this.rememberRunReplyTarget(scheduled.runId, context.chat_id, initialReply);
+          await this.rememberRunReplyTarget(scheduled.runId, initialReply);
         } finally {
           scheduled.release();
         }
@@ -2960,11 +2958,9 @@ export class CodexFeishuService {
     return response;
   }
 
-  private async rememberRunReplyTarget(runId: string, chatId: string, response: FeishuMessageResponse): Promise<void> {
+  private async rememberRunReplyTarget(runId: string, response: FeishuMessageResponse): Promise<void> {
     this.runReplyTargets.set(runId, {
-      chatId,
       messageId: response.message_id,
-      openMessageId: response.open_message_id,
       mode: this.config.service.reply_mode,
     });
   }
@@ -3006,7 +3002,7 @@ export class CodexFeishuService {
         replyToMessageId: input.replyToMessageId,
         originalText: input.prompt,
       });
-      await this.rememberRunReplyTarget(runId, input.chatId, response);
+      await this.rememberRunReplyTarget(runId, response);
     }
   }
 
@@ -3049,7 +3045,7 @@ export class CodexFeishuService {
       replyToMessageId: input.input.replyToMessageId,
       originalText: input.input.prompt,
     });
-    await this.rememberRunReplyTarget(input.runId, input.input.chatId, response);
+    await this.rememberRunReplyTarget(input.runId, response);
   }
 
   private async updateRunLifecycleReply(input: {

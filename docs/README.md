@@ -35,6 +35,7 @@
   - `/session adopt` 续接本地 Codex 会话
   - `queued` / 仓库占用提示
   - 同一条消息回写状态
+  - MCP 接入：切项目、接管会话、自然语言控制命令
 
 ### 深入理解
 
@@ -64,7 +65,7 @@
   - `doctor --fix` / `upgrade`
   - systemd / launchd
   - Webhook / 反向代理 / 探针
-  - MCP 接入
+  - MCP 接入与 OpenClaw / 其他 MCP 客户端
 - [安全与运维](security.md)
   - 凭证处理
   - 日志脱敏

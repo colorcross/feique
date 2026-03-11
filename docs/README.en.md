@@ -17,9 +17,9 @@ Chinese is still the primary documentation language for this project. This page 
 ## What each document is for
 
 - [getting-started.md](getting-started.md)
-  - install, bootstrap, environment variables, first run, reply modes, admin commands, `/session adopt`, queued-state prompts
+  - install, bootstrap, environment variables, first run, reply modes, admin commands, `/session adopt`, queued-state prompts, and MCP control tools
 - [deployment.md](deployment.md)
-  - local-first setup, shared deployment, `start|status|logs|ps|stop|restart`, probes
+  - local-first setup, shared deployment, `start|status|logs|ps|stop|restart`, probes, and MCP clients such as OpenClaw
 - [security.md](security.md)
   - credentials, log redaction, project root guardrails, group-chat risk, metrics exposure
 - [faq.md](faq.md)

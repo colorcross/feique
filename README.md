@@ -409,6 +409,8 @@ temp_dir = "/srv/codex-feishu/tmp/repo-a"
 - `codex-feishu upgrade --check`：检查 npm 上是否有新版本
 - `codex-feishu upgrade --yes`：直接从 npm 全局升级到最新版本
 - `codex-feishu mcp`：启动 stdio MCP 服务，供 OpenClaw 等外部应用接入
+  - 暴露 `projects.list`、`project.switch`、`sessions.list`、`session.adopt`
+  - 暴露 `command.interpret`、`command.execute`，可安全解释并执行“切换到项目 repo-a”“接管最新会话”“查看详细状态”这类自然语言控制命令
 - `codex-feishu feishu inspect`：检查飞书环境、reply mode 和 webhook/long-connection 配置
 
 常用飞书排障命令：

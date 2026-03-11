@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.1.10 - 2026-03-11
+
+### Highlights
+
+- MCP 接口扩展为可切项目、接管本地 Codex 会话，并支持对自然语言控制命令做解释和确认式执行，方便 OpenClaw 等外部客户端接入。
+- 清理两处已确认无用的内部字段，避免继续暴露未使用的运行态回复元数据和无效重启参数。
+- README、部署文档、FAQ、官网和文档索引同步更新，统一说明新的 MCP 控制面能力。
+
+### Included
+
+- MCP / 会话控制：
+  - `src/mcp/server.ts`
+  - `tests/mcp-server.test.ts`
+- 废弃内部字段清理：
+  - `src/bridge/service.ts`
+- 文档与官网：
+  - `README.md`
+  - `README.en.md`
+  - `docs/README.md`
+  - `docs/README.en.md`
+  - `docs/getting-started.md`
+  - `docs/deployment.md`
+  - `docs/faq.md`
+  - `website/index.html`
+  - `website/en.html`
+
 ## v0.1.9 - 2026-03-11
 
 ### Highlights

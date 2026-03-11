@@ -26,10 +26,18 @@ afterEach(async () => {
 });
 
 describe('mcp server', () => {
-  it('serves initialize, tools/list, and status.get over stdio MCP', async () => {
+  it('serves MCP runtime tools, project switching, session adoption, and natural-language command execution', async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-mcp-'));
     tempDirs.push(cwd);
+    const codexHome = path.join(cwd, '.codex-home');
     const configPath = path.join(cwd, 'bridge.toml');
+    const repoA = path.join(cwd, 'repo-a');
+    const repoB = path.join(cwd, 'repo-b');
+    await Promise.all([
+      fs.mkdir(repoA, { recursive: true }),
+      fs.mkdir(repoB, { recursive: true }),
+      fs.mkdir(path.join(codexHome, 'sessions', '2026', '03', '11'), { recursive: true }),
+    ]);
     await fs.writeFile(
       configPath,
       [
@@ -37,6 +45,7 @@ describe('mcp server', () => {
         '',
         '[service]',
         'name = "test-bridge"',
+        'project_switch_auto_adopt_latest = true',
         '',
         '[storage]',
         `dir = "${path.join(cwd, 'state')}"`,
@@ -46,14 +55,27 @@ describe('mcp server', () => {
         'app_secret = "app-secret"',
         '',
         '[projects.default]',
-        `root = "${cwd}"`,
+        `root = "${repoA}"`,
+        'mention_required = false',
+        '',
+        '[projects.repo-b]',
+        `root = "${repoB}"`,
+        'mention_required = false',
       ].join('\n'),
       'utf8',
+    );
+    await writeCodexSession(
+      path.join(codexHome, 'sessions', '2026', '03', '11', 'repo-b.jsonl'),
+      {
+        id: 'thread-repo-b',
+        cwd: repoB,
+        timestamp: '2026-03-11T10:00:00.000Z',
+      },
     );
 
     const child = spawn(tsxBin, [cliEntry, 'mcp', '--config', configPath], {
       cwd,
-      env: { ...process.env },
+      env: { ...process.env, CODEX_HOME: codexHome },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     children.push(child);
@@ -74,11 +96,71 @@ describe('mcp server', () => {
     const tools = await client.request(2, 'tools/list', {});
     const toolNames = ((tools.result as { tools: Array<{ name: string }> }).tools ?? []).map((tool) => tool.name);
     expect(toolNames).toContain('projects.list');
+    expect(toolNames).toContain('project.switch');
+    expect(toolNames).toContain('sessions.list');
+    expect(toolNames).toContain('session.adopt');
     expect(toolNames).toContain('status.get');
+    expect(toolNames).toContain('command.interpret');
+    expect(toolNames).toContain('command.execute');
     expect(toolNames).toContain('config.history');
 
     const status = await client.request(3, 'tools/call', { name: 'status.get', arguments: {} });
     expect((status.result as { structuredContent?: { running: boolean } }).structuredContent?.running).toBe(false);
+
+    const interpret = await client.request(4, 'tools/call', {
+      name: 'command.interpret',
+      arguments: { text: '切换到项目 repo-b' },
+    });
+    expect((interpret.result as { structuredContent?: { supported: boolean; requiresConfirmation: boolean } }).structuredContent).toMatchObject({
+      supported: true,
+      requiresConfirmation: true,
+    });
+
+    const pendingSwitch = await client.request(5, 'tools/call', {
+      name: 'command.execute',
+      arguments: { chatId: 'chat-1', text: '切换到项目 repo-b' },
+    });
+    expect((pendingSwitch.result as { structuredContent?: { executed: boolean; requiresConfirmation: boolean } }).structuredContent).toMatchObject({
+      executed: false,
+      requiresConfirmation: true,
+    });
+
+    const switched = await client.request(6, 'tools/call', {
+      name: 'command.execute',
+      arguments: { chatId: 'chat-1', text: '切换到项目 repo-b', confirmed: true },
+    });
+    expect((switched.result as { structuredContent?: { executed: boolean; kind: string; projectAlias: string; autoAdoption?: { kind: string } } }).structuredContent).toMatchObject({
+      executed: true,
+      kind: 'project',
+      projectAlias: 'repo-b',
+      autoAdoption: { kind: 'adopted' },
+    });
+
+    const savedSessions = await client.request(7, 'tools/call', {
+      name: 'sessions.list',
+      arguments: { chatId: 'chat-1', projectAlias: 'repo-b' },
+    });
+    expect((savedSessions.result as { structuredContent?: { activeSessionId: string; sessions: Array<{ thread_id: string }> } }).structuredContent).toMatchObject({
+      activeSessionId: 'thread-repo-b',
+      sessions: [{ thread_id: 'thread-repo-b' }],
+    });
+
+    const adoptCandidates = await client.request(8, 'tools/call', {
+      name: 'session.adopt',
+      arguments: { chatId: 'chat-1', projectAlias: 'repo-b', target: 'list' },
+    });
+    expect((adoptCandidates.result as { structuredContent?: { candidates: Array<{ threadId: string }> } }).structuredContent?.candidates?.[0]?.threadId).toBe('thread-repo-b');
+
+    const statusDetail = await client.request(9, 'tools/call', {
+      name: 'command.execute',
+      arguments: { chatId: 'chat-1', projectAlias: 'repo-b', text: '查看详细状态' },
+    });
+    expect((statusDetail.result as { structuredContent?: { executed: boolean; kind: string; projectAlias: string; activeSessionId: string } }).structuredContent).toMatchObject({
+      executed: true,
+      kind: 'status',
+      projectAlias: 'repo-b',
+      activeSessionId: 'thread-repo-b',
+    });
   });
 });
 
@@ -154,4 +236,22 @@ class McpTestClient {
     this.buffer = this.buffer.slice(messageEnd);
     return JSON.parse(payload) as Record<string, unknown>;
   }
+}
+
+async function writeCodexSession(
+  filePath: string,
+  input: {
+    id: string;
+    cwd: string;
+    timestamp: string;
+  },
+): Promise<void> {
+  await fs.writeFile(
+    filePath,
+    `${JSON.stringify({
+      type: 'session_meta',
+      payload: input,
+    })}\n`,
+    'utf8',
+  );
 }

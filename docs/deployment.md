@@ -43,6 +43,7 @@ codex-feishu start
 - `codex-feishu doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志
 - `codex-feishu upgrade --check`：检查 npm 最新版本
 - `codex-feishu mcp`：暴露 stdio MCP 服务给 OpenClaw 等外部工具
+  - 包含项目切换、会话接管和自然语言控制命令解释 / 执行入口
 
 优点：
 

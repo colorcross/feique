@@ -149,6 +149,8 @@ allowed_project_roots = ["/"]
 - `codex-feishu doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志
 - `codex-feishu upgrade --check`：查看 npm 是否有更新
 - `codex-feishu mcp`：暴露 stdio MCP 服务给外部应用
+  - 可直接调用 `project.switch`、`session.adopt`
+  - 也可通过 `command.interpret`、`command.execute` 对自然语言控制命令做确认式执行
 
 如果你是在飞书里联调，还会看到一条即时状态提示，明确显示消息是否已接收以及当前处理状态。
 

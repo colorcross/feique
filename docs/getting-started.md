@@ -192,6 +192,8 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 - `codex-feishu upgrade --check`：检查 npm 是否有新版本
 - `codex-feishu upgrade --yes`：从 npm 全局升级到最新版本
 - `codex-feishu mcp`：启动 stdio MCP 服务，供 OpenClaw 等外部工具接入
+  - 可通过 `project.switch` / `session.adopt` 做项目切换和本地会话接管
+  - 可通过 `command.interpret` / `command.execute` 安全解释并执行自然语言控制命令
 
 常用飞书端运维命令：
 

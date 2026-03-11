@@ -144,6 +144,8 @@ Common runtime commands:
 - `codex-feishu upgrade --check`: compare the local version with the latest npm release
 - `codex-feishu upgrade --yes`: install the latest npm release globally
 - `codex-feishu mcp`: expose a stdio MCP server for external tools such as OpenClaw
+  - includes `projects.list`, `project.switch`, `sessions.list`, and `session.adopt`
+  - includes `command.interpret` and `command.execute` so external clients can safely parse and run control intents such as "switch to project repo-a", "adopt latest session", and "show detailed status"
 
 Useful Feishu-side ops commands:
 
