@@ -16,6 +16,12 @@
 - 本地 dev stack 使用 `feishu.dry_run = true` 时，不要误以为已经验证了真实飞书出站权限
 - 凭证一旦在聊天里贴出来，按泄露处理并立即轮换
 
+日志默认也会对这些敏感字段做脱敏，包括：
+
+- `app_secret`
+- `access_token` / `refresh_token` / `tenant_access_token`
+- 常见 `Authorization` header
+
 ## 运行权限
 
 建议默认：
@@ -38,6 +44,7 @@
 - 群聊项目默认启用 `mention_required = true`
 - 敏感项目使用 `session_scope = "chat-user"`
 - 用 `allowed_group_ids` 白名单收敛入口
+- 管理员动态控制入口尽量放在单独的管理员私聊，或极小范围的受信群里
 - 保持 `security.require_group_mentions = true`
 - 不要长期把 `allowed_chat_ids` / `allowed_group_ids` 留空；`doctor` 现在会明确告警
 
@@ -68,7 +75,7 @@
 - 不要让多个 bridge 进程共享同一个 `storage.dir`
 - 如果启用 `service.metrics_port`，优先绑定到内网地址并交给 Prometheus 抓取，不要直接暴露公网
 - 如果启用 `examples/docker-compose.observability.yml`，上线前修改 Grafana 默认密码
-- 后台运行时优先用 `serve status|stop|logs|ps` 管理，不要手工删 pid 文件
+- 后台运行时优先用 `status|stop|logs|ps|restart` 管理，不要手工删 pid 文件
 
 
 ## 审计日志

@@ -28,16 +28,17 @@ pre_exec = "proxy_on"
 如果不想让 bridge 占住当前终端，可直接后台启动：
 
 ```bash
-codex-feishu serve --detach
+codex-feishu start
 ```
 
 后台运行后可直接管理：
 
 ```bash
-codex-feishu serve status
-codex-feishu serve logs --lines 100
-codex-feishu serve ps
-codex-feishu serve stop --force
+codex-feishu status
+codex-feishu logs --lines 100
+codex-feishu ps
+codex-feishu stop --force
+codex-feishu restart
 ```
 
 优点：
@@ -75,6 +76,7 @@ npm run demo:down
 - 将配置和状态目录挂载到持久卷
 - 把项目根目录映射为只允许访问的工作区
 - 配置 `security.allowed_project_roots`
+- 默认把 `reply_mode = "post"` 作为共享服务起点；只有需要卡片交互时再切到 `reply_mode = "card"`
 - 对不同项目使用不同的 Codex profile
 - 保持单实例运行；如果做主备切换，先释放旧实例锁再拉起新实例
 - 在共享部署中显式配置 `service.metrics_port`，接入 Prometheus 或探针系统
@@ -149,11 +151,11 @@ docker compose -f examples/docker-compose.observability.yml up -d
 
 - Prometheus: `http://127.0.0.1:9090`
 - Alertmanager: `http://127.0.0.1:9093`
-- Grafana: `http://127.0.0.1:3000` (`admin` / `admin`)
+- Grafana: `http://127.0.0.1:3000`（登录账号与密码取决于 `examples/docker-compose.observability.yml` 里的环境变量）
 
 注意：
 
-- 首次进入 Grafana 后应立即修改默认密码
+- 如果继续使用示例 compose，首次进入 Grafana 后应立即修改默认密码
 - `examples/prometheus.yml` 默认抓取 `host.docker.internal:9464`
 - Linux 如需其他宿主机地址，可直接改 `examples/prometheus.yml`
 
@@ -211,7 +213,7 @@ codex-feishu webhook smoke --base-url http://127.0.0.1:3333
 1. `codex-feishu doctor`
    或 `codex-feishu doctor --json`
    或 `codex-feishu doctor --remote`
-2. `codex-feishu serve`
+2. `codex-feishu start`
 3. 观察日志确认桥接已开始监听或已建立长连接
 
 若必须绕过预检：

@@ -44,6 +44,8 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 - 本地 Codex 会话接管：`/session adopt latest|list|<thread_id>` 可直接接上 `~/.codex/sessions` 中最近的项目会话
 - 切项目时可选自动接管最近本地会话：`service.project_switch_auto_adopt_latest = true`
 - 同仓库根目录全局串行：不同群、不同私聊、不同 alias 命中同一个 `project.root` 时不会并发改同一仓库，后续消息会先显示 `queued`
+- 回复模式可选：`text` 纯文本、`post` 富文本、`card` 交互卡片
+- 管理员控制面：通过 `security.admin_chat_ids` 和 `/admin ...` 动态维护管理员、群聊白名单、私聊白名单和项目配置
 - 飞书命令控制：`/status`、`/new`、`/cancel`、`/session list|use|new|drop|adopt`
 - 项目知识库搜索：`/kb status`、`/kb search <query>`
 - 多媒体上下文透传：图片、文件、音频、富文本消息会带元数据进入 Codex 提示词；下载文本类附件和 `doc/docx/odt/rtf` 后会自动摘录内容片段；图片可选生成简短视觉说明
@@ -130,7 +132,8 @@ pre_exec = "proxy_on"
 
 ```bash
 codex-feishu doctor
-codex-feishu serve --detach
+codex-feishu start
+codex-feishu status
 ```
 
 ### 5. 在飞书里直接对话
@@ -184,8 +187,18 @@ codex-feishu serve --detach
 - `/session adopt list`
 - `/session adopt <thread_id>`
 - `/admin status`
+- `/admin admin list`
+- `/admin admin add <chat_id>`
+- `/admin admin remove <chat_id>`
+- `/admin group list`
 - `/admin group add <chat_id>`
+- `/admin group remove <chat_id>`
+- `/admin chat list`
+- `/admin chat add <chat_id>`
+- `/admin chat remove <chat_id>`
+- `/admin project list`
 - `/admin project add <alias> <root>`
+- `/admin project remove <alias>`
 - `/admin project set <alias> <field> <value>`
 - `/admin service restart`
 
@@ -197,7 +210,7 @@ version = 1
 [service]
 default_project = "default"
 project_switch_auto_adopt_latest = false
-reply_mode = "text"
+reply_mode = "text" # 也可设为 "post"；"card" 需要 webhook transport
 reply_quote_user_message = true
 metrics_host = "127.0.0.1"
 memory_enabled = true
@@ -250,6 +263,31 @@ wiki_space_ids = ["space_xxx"]
 /wiki members
 /wiki grant space_xxx open_id ou_xxx admin
 /wiki revoke space_xxx open_id ou_xxx admin
+```
+
+## 回复模式与管理员入口
+
+推荐：
+
+- 想让飞书回复更清晰，但不依赖卡片回调：`reply_mode = "post"`
+- 需要卡片按钮和卡片回调：`reply_mode = "card"` 且 `transport = "webhook"`
+- 只要最简单、兼容性最高的纯文本：`reply_mode = "text"`
+
+管理员入口通过 `security.admin_chat_ids` 控制。常见配置和命令：
+
+```toml
+[security]
+admin_chat_ids = ["oc_admin_chat_1"]
+```
+
+```text
+/admin status
+/admin admin add <chat_id>
+/admin group add <chat_id>
+/admin chat add <chat_id>
+/admin project add <alias> <root>
+/admin project set <alias> <field> <value>
+/admin service restart
 ```
 
 ## 飞书端交互模型
@@ -318,14 +356,18 @@ wiki_space_ids = ["space_xxx"]
 
 - 优先用飞书原生 reply 回复触发消息
 - 如果拿不到 `message_id`，才退回文本前缀引用
+- `reply_mode = "post"` 时会发送富文本消息
+- `reply_mode = "card"` 且 `transport = "webhook"` 时会发送可交互状态卡片
 
 ## 常用运维命令
 
 ```bash
-codex-feishu serve status
-codex-feishu serve logs --lines 100
-codex-feishu serve ps
-codex-feishu serve stop --force
+codex-feishu start
+codex-feishu status
+codex-feishu logs --lines 100
+codex-feishu ps
+codex-feishu stop --force
+codex-feishu restart
 codex-feishu audit tail --limit 20
 codex-feishu doctor --remote
 codex-feishu feishu inspect

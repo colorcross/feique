@@ -31,6 +31,8 @@ Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects
 - Can adopt local Codex CLI sessions with `/session adopt latest|list|<thread_id>` from `~/.codex/sessions`
 - Can auto-adopt the latest local session on project switch with `service.project_switch_auto_adopt_latest = true`
 - Serializes by `project.root` across chats so two groups cannot mutate the same repo at once; later messages are surfaced as `queued`
+- Supports three reply modes: `text`, `post`, and `card`
+- Supports admin control through `security.admin_chat_ids` and `/admin ...` for access lists and dynamic project updates
 - Supports `/kb status` and `/kb search <query>` for project-local documentation search
 - Carries image/file/audio/rich-text metadata into the Codex prompt for media-aware conversations, auto-extracts excerpts from text-like attachments and `doc/docx/odt/rtf` files after download, and can generate concise image descriptions
 - Supports `/wiki spaces`, `/wiki search <query>`, and `/wiki read <url|token>` for Feishu knowledge-base access
@@ -38,7 +40,7 @@ Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects
 - Supports `/wiki rename <node_token> <title>` for retitling wiki nodes
 - Supports `/wiki copy <node_token> [target_space_id]` and `/wiki move <source_space_id> <node_token> [target_space_id]` for node flow management
 - Supports `/wiki members [space_id]`, `/wiki grant <space_id> <member_type> <member_id> [member|admin]`, and `/wiki revoke <space_id> <member_type> <member_id> [member|admin]` for space membership management
-- Exposes operational commands such as `serve status`, `serve logs`, `serve ps`, and `doctor`
+- Exposes operational commands such as `start`, `status`, `logs`, `ps`, `stop`, `restart`, and `doctor`
 - Keeps audit logs, idempotency state, run state, and Prometheus metrics local and inspectable
 
 ## Quick start
@@ -49,7 +51,8 @@ codex-feishu init --mode global
 export FEISHU_APP_ID='cli_xxx'
 export FEISHU_APP_SECRET='xxx'
 codex-feishu doctor --remote
-codex-feishu serve --detach
+codex-feishu start
+codex-feishu status
 ```
 
 If you want to pin a specific release artifact, install directly from the GitHub Release tarball:
@@ -107,6 +110,30 @@ Common Feishu commands:
 - `/session adopt latest`
 - `/session adopt list`
 - `/session adopt <thread_id>`
+- `/admin status`
+- `/admin admin add <chat_id>`
+- `/admin group add <chat_id>`
+- `/admin chat add <chat_id>`
+- `/admin project add <alias> <root>`
+- `/admin project set <alias> <field> <value>`
+- `/admin service restart`
+
+Recommended reply modes:
+
+- `reply_mode = "post"` for richer message formatting without card callbacks
+- `reply_mode = "card"` with `transport = "webhook"` when you want interactive cards
+- `reply_mode = "text"` for the simplest plain-text path
+
+Common runtime commands:
+
+```bash
+codex-feishu start
+codex-feishu status
+codex-feishu logs --lines 100
+codex-feishu ps
+codex-feishu stop --force
+codex-feishu restart
+```
 
 ## Documentation
 

@@ -120,6 +120,52 @@ describe('bridge service', () => {
     expect(replyBody).not.toContain('运行:');
   });
 
+  it('uses Feishu post messages when reply_mode=post', async () => {
+    const setup = await createService({
+      service: {
+        reply_mode: 'post',
+      },
+    });
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-1',
+      finalMessage: 'done',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('post 模式测试', { message_id: 'm-post-mode' }));
+    expect(setup.sendPost).toHaveBeenCalled();
+    expect(setup.sendText).not.toHaveBeenCalled();
+  });
+
+  it('lets admin chats add a group id and project dynamically', async () => {
+    const setup = await createService({
+      security: {
+        admin_chat_ids: ['chat'],
+      },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('/admin group add oc_group_1', { message_id: 'm-admin-group' }));
+    await setup.service.handleIncomingMessage(buildMessage('/admin project add repo-b /tmp/repo-b', { message_id: 'm-admin-project' }));
+    await setup.service.handleIncomingMessage(buildMessage('/admin project set repo-b mention_required false', { message_id: 'm-admin-project-set' }));
+
+    expect(setup.config.feishu.allowed_group_ids).toContain('oc_group_1');
+    expect(setup.config.projects['repo-b']?.root).toBe('/tmp/repo-b');
+    expect(setup.config.projects['repo-b']?.mention_required).toBe(false);
+  });
+
+  it('lets admin restart the service from Feishu', async () => {
+    const setup = await createService({
+      security: {
+        admin_chat_ids: ['chat'],
+      },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('/admin service restart', { message_id: 'm-admin-restart' }));
+    expect(setup.restart).toHaveBeenCalledTimes(1);
+  });
+
   it('supports listing and switching saved sessions', async () => {
     const setup = await createService();
     runCodexTurnMock
@@ -1256,25 +1302,44 @@ async function createService(overrides: TestConfigOverrides = {}) {
   tempDirs.push(dir);
 
   const config = buildConfig(dir, overrides);
+  const configPath = path.join(dir, 'config.toml');
+  await fs.writeFile(configPath, '', 'utf8');
   const sessionStore = new SessionStore(config.storage.dir);
   const auditLog = new AuditLog(config.storage.dir);
   const idempotencyStore = new IdempotencyStore(config.storage.dir);
   const runStateStore = new RunStateStore(config.storage.dir);
   const sendText = vi.fn().mockResolvedValue({ message_id: 'm-1', open_message_id: 'm-1' });
   const sendCard = vi.fn().mockResolvedValue({ message_id: 'm-card', open_message_id: 'm-card' });
+  const sendPost = vi.fn().mockResolvedValue({ message_id: 'm-post', open_message_id: 'm-post' });
   const createSdkClient = vi.fn(() => ({}));
-  const feishuClient = { sendText, sendCard, createSdkClient } as any;
-  const service = new CodexFeishuService(config, feishuClient, sessionStore, auditLog, logger, undefined, idempotencyStore, runStateStore);
+  const restart = vi.fn().mockResolvedValue(undefined);
+  const feishuClient = { sendText, sendCard, sendPost, createSdkClient } as any;
+  const service = new CodexFeishuService(
+    config,
+    feishuClient,
+    sessionStore,
+    auditLog,
+    logger,
+    undefined,
+    idempotencyStore,
+    runStateStore,
+    undefined,
+    undefined,
+    { configPath, restart },
+  );
 
   return {
     config,
+    configPath,
     service,
     sendText,
     sendCard,
+    sendPost,
     feishuClient,
     sessionStore,
     idempotencyStore,
     runStateStore,
+    restart,
   };
 }
 

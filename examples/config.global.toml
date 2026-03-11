@@ -2,7 +2,10 @@ version = 1
 
 [service]
 default_project = "repo-a"
+project_switch_auto_adopt_latest = false
 reply_mode = "text"
+# reply_mode = "post"   # richer Feishu reply formatting
+# reply_mode = "card"   # requires webhook transport for card callbacks
 emit_progress_updates = false
 progress_update_interval_ms = 4000
 idempotency_ttl_seconds = 86400
@@ -23,6 +26,7 @@ dir = "~/.codex-feishu/state"
 
 [security]
 allowed_project_roots = []
+# admin_chat_ids = ["oc_admin_chat_1"]
 admin_chat_ids = []
 require_group_mentions = true
 

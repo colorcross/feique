@@ -56,7 +56,8 @@ codex-feishu doctor --remote
 ### 4. 启动服务
 
 ```bash
-codex-feishu serve --detach
+codex-feishu start
+codex-feishu status
 ```
 
 ### 5. 在飞书里发消息
@@ -102,7 +103,8 @@ encrypt_key = "env:FEISHU_ENCRYPT_KEY"
 ### 4. 启动服务
 
 ```bash
-codex-feishu serve --detach
+codex-feishu start
+codex-feishu status
 ```
 
 ## 绑定多个项目
@@ -178,13 +180,62 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 ## 常用命令
 
 ```bash
-codex-feishu serve status
-codex-feishu serve restart
-codex-feishu serve logs --lines 100
-codex-feishu serve ps
-codex-feishu serve stop --force
+codex-feishu start
+codex-feishu status
+codex-feishu logs --lines 100
+codex-feishu ps
+codex-feishu stop --force
+codex-feishu restart
 codex-feishu audit tail --limit 20
 ```
+
+## 回复模式
+
+配置项：
+
+```toml
+[service]
+reply_mode = "text"
+```
+
+可选值：
+
+- `text`：最简单的纯文本回复
+- `post`：富文本回复，适合长文本、状态摘要和命令回显
+- `card`：交互卡片；需要 `transport = "webhook"` 才能完整使用卡片回调
+
+建议：
+
+- 本机 long-connection 优先用 `post`
+- 共享 webhook 服务如果需要按钮交互，再切到 `card`
+
+## 管理员入口
+
+管理员入口按 `chat_id` 控制：
+
+```toml
+[security]
+admin_chat_ids = ["oc_admin_chat_1"]
+```
+
+常用管理员命令：
+
+```text
+/admin status
+/admin admin add <chat_id>
+/admin admin remove <chat_id>
+/admin group add <chat_id>
+/admin group remove <chat_id>
+/admin chat add <chat_id>
+/admin chat remove <chat_id>
+/admin project list
+/admin project add <alias> <root>
+/admin project remove <alias>
+/admin project set <alias> <field> <value>
+/admin service restart
+```
+
+这组命令会直接更新当前实例对应的可写配置文件；`/admin service restart` 会保存后重启服务。
 
 ## 常见联调问题
 

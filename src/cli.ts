@@ -9,7 +9,7 @@ import { createLogger } from './logging.js';
 import { buildInitialConfig, getInitTargetPath } from './config/init.js';
 import { getGlobalConfigPath } from './config/paths.js';
 import { fileExists, writeUtf8Atomic } from './utils/fs.js';
-import { findNearestProjectConfig, loadBridgeConfig } from './config/load.js';
+import { findNearestProjectConfig, loadBridgeConfig, loadRuntimeConfig } from './config/load.js';
 import { SessionStore } from './state/session-store.js';
 import { AuditLog } from './state/audit-log.js';
 import { RunStateStore } from './state/run-state-store.js';
@@ -32,6 +32,16 @@ import { isProcessAlive, terminateProcess } from './runtime/process.js';
 
 const logger = createLogger();
 const program = new Command();
+
+interface RuntimeCliConfig {
+  service: {
+    name: string;
+    log_tail_lines: number;
+  };
+  storage: {
+    dir: string;
+  };
+}
 
 program
   .name('codex-feishu')
@@ -67,8 +77,8 @@ const serveCommand = program
   .option('--all', 'show all runs for `serve ps`', false)
   .action(async (operation: string | undefined, options: { config?: string; detach: boolean; skipDoctor: boolean; json: boolean; lines?: string; force: boolean; waitMs: string; all: boolean }) => {
     if (operation && operation !== 'start') {
-      const { config } = await loadBridgeConfig({ cwd: process.cwd(), configPath: options.config });
       if (operation === 'status') {
+        const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
         const runtimeStatus = await inspectRuntimeStatus(config);
         if (options.json) {
           console.log(JSON.stringify(runtimeStatus, null, 2));
@@ -85,6 +95,7 @@ const serveCommand = program
       }
 
       if (operation === 'stop') {
+        const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
         const runtimeStatus = await inspectRuntimeStatus(config);
         if (!runtimeStatus.pid || !runtimeStatus.running) {
           console.log('Bridge is not running.');
@@ -101,6 +112,7 @@ const serveCommand = program
       }
 
       if (operation === 'restart') {
+        const { config } = await loadBridgeConfig({ cwd: process.cwd(), configPath: options.config });
         const runtimeStatus = await inspectRuntimeStatus(config);
         if (runtimeStatus.pid && runtimeStatus.running) {
           const stopped = await stopRuntimeProcess(runtimeStatus.pid, Number(options.waitMs), options.force);
@@ -121,6 +133,7 @@ const serveCommand = program
       }
 
       if (operation === 'logs') {
+        const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
         const runtimePaths = getRuntimePaths(config);
         const lines = Number(options.lines ?? config.service.log_tail_lines);
         const content = await tailFile(runtimePaths.logPath, lines);
@@ -129,6 +142,7 @@ const serveCommand = program
       }
 
       if (operation === 'ps') {
+        const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
         const runStateStore = new RunStateStore(config.storage.dir);
         const runs = options.all ? await runStateStore.listRuns() : await runStateStore.listActiveRuns();
         console.log(JSON.stringify(runs, null, 2));
@@ -230,6 +244,119 @@ const serveCommand = program
       await instanceLock.release();
       await fs.rm(runtimePaths.pidPath, { force: true });
     }
+  });
+
+program
+  .command('start')
+  .description('Start the bridge in the background')
+  .option('--config <path>', 'config path override')
+  .action(async (options: { config?: string }) => {
+    const { config } = await loadBridgeConfig({ cwd: process.cwd(), configPath: options.config });
+    const runtimeStatus = await inspectRuntimeStatus(config);
+    if (runtimeStatus.pid && runtimeStatus.running) {
+      console.log(`Bridge is already running: pid=${runtimeStatus.pid}`);
+      return;
+    }
+    const detached = await detachServeProcess({
+      config,
+      configPath: options.config,
+      cwd: process.cwd(),
+    });
+    console.log(`Started bridge: pid=${detached.pid}`);
+    console.log(`Log file: ${detached.logPath}`);
+    console.log(`PID file: ${detached.pidPath}`);
+  });
+
+program
+  .command('stop')
+  .description('Stop the bridge')
+  .option('--config <path>', 'config path override')
+  .option('--force', 'use SIGKILL if SIGTERM does not stop the process in time', false)
+  .option('--wait-ms <number>', 'grace period before forcing stop', '5000')
+  .action(async (options: { config?: string; force: boolean; waitMs: string }) => {
+    const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
+    const runtimeStatus = await inspectRuntimeStatus(config);
+    if (!runtimeStatus.pid || !runtimeStatus.running) {
+      console.log('Bridge is not running.');
+      return;
+    }
+    const stopped = await stopRuntimeProcess(runtimeStatus.pid, Number(options.waitMs), options.force);
+    if (!stopped) {
+      throw new Error(`Failed to stop bridge pid ${runtimeStatus.pid}`);
+    }
+    await fs.rm(runtimeStatus.pidPath, { force: true });
+    console.log(`Stopped bridge pid ${runtimeStatus.pid}`);
+  });
+
+program
+  .command('restart')
+  .description('Restart the bridge in the background')
+  .option('--config <path>', 'config path override')
+  .option('--force', 'use SIGKILL if SIGTERM does not stop the process in time', false)
+  .option('--wait-ms <number>', 'grace period before forcing stop', '5000')
+  .action(async (options: { config?: string; force: boolean; waitMs: string }) => {
+    const { config } = await loadBridgeConfig({ cwd: process.cwd(), configPath: options.config });
+    const runtimeStatus = await inspectRuntimeStatus(config);
+    if (runtimeStatus.pid && runtimeStatus.running) {
+      const stopped = await stopRuntimeProcess(runtimeStatus.pid, Number(options.waitMs), options.force);
+      if (!stopped) {
+        throw new Error(`Failed to stop bridge pid ${runtimeStatus.pid}`);
+      }
+      await fs.rm(runtimeStatus.pidPath, { force: true });
+    }
+    const detached = await detachServeProcess({
+      config,
+      configPath: options.config,
+      cwd: process.cwd(),
+    });
+    console.log(`Restarted bridge: pid=${detached.pid}`);
+    console.log(`Log file: ${detached.logPath}`);
+    console.log(`PID file: ${detached.pidPath}`);
+  });
+
+program
+  .command('status')
+  .description('Print the current bridge runtime status')
+  .option('--config <path>', 'config path override')
+  .option('--json', 'print status as JSON', false)
+  .action(async (options: { config?: string; json: boolean }) => {
+    const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
+    const runtimeStatus = await inspectRuntimeStatus(config);
+    if (options.json) {
+      console.log(JSON.stringify(runtimeStatus, null, 2));
+      return;
+    }
+    console.log(`service: ${config.service.name}`);
+    console.log(`running: ${runtimeStatus.running}`);
+    console.log(`pid: ${runtimeStatus.pid ?? '-'}`);
+    console.log(`pid_file: ${runtimeStatus.pidPath}`);
+    console.log(`log_file: ${runtimeStatus.logPath}`);
+    console.log(`active_runs: ${runtimeStatus.activeRuns}`);
+  });
+
+program
+  .command('logs')
+  .description('Tail bridge logs')
+  .option('--config <path>', 'config path override')
+  .option('--lines <number>', 'number of lines to print')
+  .action(async (options: { config?: string; lines?: string }) => {
+    const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
+    const runtimePaths = getRuntimePaths(config);
+    const lines = Number(options.lines ?? config.service.log_tail_lines);
+    const content = await tailFile(runtimePaths.logPath, lines);
+    process.stdout.write(content || 'No runtime log file found.\n');
+  });
+
+program
+  .command('ps')
+  .description('Print current run states')
+  .option('--config <path>', 'config path override')
+  .option('--all', 'show all runs instead of only active runs', false)
+  .action(async (options: { config?: string; all: boolean }) => {
+    const { config } = await loadRuntimeConfig({ cwd: process.cwd(), configPath: options.config });
+    const runStateStore = new RunStateStore(config.storage.dir);
+    const runs = options.all ? await runStateStore.listRuns() : await runStateStore.listActiveRuns();
+    console.log(JSON.stringify(runs, null, 2));
   });
 
 program
@@ -673,7 +800,7 @@ function trimLeadingSlash(input: string): string {
   return input.startsWith('/') ? input.slice(1) : input;
 }
 
-function getRuntimePaths(config: BridgeConfig): {
+function getRuntimePaths(config: RuntimeCliConfig): {
   pidPath: string;
   logPath: string;
 } {
@@ -683,7 +810,7 @@ function getRuntimePaths(config: BridgeConfig): {
   };
 }
 
-async function inspectRuntimeStatus(config: BridgeConfig): Promise<{
+async function inspectRuntimeStatus(config: RuntimeCliConfig): Promise<{
   running: boolean;
   pid?: number;
   pidPath: string;

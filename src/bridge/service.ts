@@ -22,7 +22,7 @@ import { MemoryStore } from '../state/memory-store.js';
 import { retrieveMemoryContext, type MemoryContext } from '../memory/retrieve.js';
 import { summarizeThreadTurn } from '../memory/summarize.js';
 import { CodexSessionIndex, renderSessionMatchLabel, type IndexedCodexSession } from '../codex/session-index.js';
-import { bindProjectAlias, removeProjectAlias, updateBridgeConfigFile, updateProjectConfig, updateStringList } from '../config/mutate.js';
+import { bindProjectAlias, removeProjectAlias, updateProjectConfig, updateStringList } from '../config/mutate.js';
 import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
 
 interface ActiveRunHandle {
@@ -478,6 +478,17 @@ export class CodexFeishuService {
       session_id: currentSession?.thread_id,
       prompt: input.prompt,
     });
+    this.logger.info(
+      {
+        runId,
+        queueKey: input.queueKey,
+        sessionKey: input.sessionKey,
+        projectAlias: input.projectAlias,
+        projectRoot,
+        sessionId: currentSession?.thread_id,
+      },
+      'Codex run started',
+    );
 
     this.metrics?.recordCodexTurnStarted(input.projectAlias, runId);
 
@@ -541,6 +552,18 @@ export class CodexFeishuService {
         exit_code: result.exitCode,
         duration_ms: Date.now() - startedAt,
       });
+      this.logger.info(
+        {
+          runId,
+          queueKey: input.queueKey,
+          sessionKey: input.sessionKey,
+          projectAlias: input.projectAlias,
+          sessionId: result.sessionId,
+          exitCode: result.exitCode,
+          durationMs: Date.now() - startedAt,
+        },
+        'Codex run completed',
+      );
       await this.sessionStore.upsertProjectSession(input.sessionKey, input.projectAlias, {
         thread_id: result.sessionId,
         last_prompt: input.prompt,
@@ -668,7 +691,30 @@ export class CodexFeishuService {
         conversation_key: input.sessionKey,
         error: message,
       });
-      this.logger.error({ error, project: input.projectAlias, runId }, 'Codex run failed');
+      if (cancelled) {
+        this.logger.warn(
+          {
+            runId,
+            queueKey: input.queueKey,
+            sessionKey: input.sessionKey,
+            projectAlias: input.projectAlias,
+            durationMs: Date.now() - startedAt,
+          },
+          'Codex run cancelled',
+        );
+      } else {
+        this.logger.error(
+          {
+            error,
+            runId,
+            queueKey: input.queueKey,
+            sessionKey: input.sessionKey,
+            projectAlias: input.projectAlias,
+            durationMs: Date.now() - startedAt,
+          },
+          'Codex run failed',
+        );
+      }
       await this.sendRunLifecycleReply({
         chatId: input.chatId,
         projectAlias: input.projectAlias,
@@ -2224,6 +2270,20 @@ export class CodexFeishuService {
       blocking_run_id: blockingRun?.run_id,
       front_count: frontCount,
     });
+    this.logger.warn(
+      {
+        runId,
+        queueKey: projectContext.queueKey,
+        sessionKey: projectContext.sessionKey,
+        projectAlias: projectContext.projectAlias,
+        projectRoot,
+        reason,
+        frontCount,
+        blockingStatus: blockingRun?.status,
+        blockingProjectAlias: blockingRun?.project_alias,
+      },
+      'Codex run queued',
+    );
 
     return {
       runId,

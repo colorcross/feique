@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import * as toml from '@iarna/toml';
 import { ZodError } from 'zod';
+import { z } from 'zod';
 import { fileExists, readUtf8 } from '../utils/fs.js';
 import { expandHomePath, resolveMaybeRelative } from '../utils/path.js';
 import { PROJECT_CONFIG_RELATIVE_PATH, getGlobalConfigPath } from './paths.js';
@@ -9,6 +10,19 @@ import { bridgeConfigSchema, type BridgeConfig } from './schema.js';
 
 export interface LoadedConfig {
   config: BridgeConfig;
+  sources: string[];
+}
+
+export interface LoadedRuntimeConfig {
+  config: {
+    service: {
+      name: string;
+      log_tail_lines: number;
+    };
+    storage: {
+      dir: string;
+    };
+  };
   sources: string[];
 }
 
@@ -42,6 +56,50 @@ export async function loadBridgeConfig(options: { cwd?: string; configPath?: str
   }
 }
 
+const runtimeConfigSchema = z.object({
+  service: z
+    .object({
+      name: z.string().default('codex-feishu'),
+      log_tail_lines: z.number().int().positive().default(100),
+    })
+    .default({
+      name: 'codex-feishu',
+      log_tail_lines: 100,
+    }),
+  storage: z
+    .object({
+      dir: z.string().default('~/.codex-feishu/state'),
+    })
+    .default({
+      dir: '~/.codex-feishu/state',
+    }),
+});
+
+export async function loadRuntimeConfig(options: { cwd?: string; configPath?: string } = {}): Promise<LoadedRuntimeConfig> {
+  const cwd = options.cwd ?? process.cwd();
+  const layers = await loadConfigLayers({ ...(options.configPath ? { configPath: options.configPath } : {}), cwd }, { resolveEnv: false });
+  if (layers.length === 0) {
+    throw new Error(
+      `No config found. Run \`codex-feishu init --mode global\` or create ${PROJECT_CONFIG_RELATIVE_PATH}.`,
+    );
+  }
+
+  const merged = layers.reduce<Record<string, unknown>>((accumulator, layer) => deepMerge(accumulator, layer.value), {});
+
+  try {
+    const config = runtimeConfigSchema.parse(merged);
+    return {
+      config,
+      sources: layers.map((layer) => layer.path),
+    };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new Error(`Invalid runtime config: ${error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}`);
+    }
+    throw error;
+  }
+}
+
 export async function findNearestProjectConfig(cwd: string): Promise<string | null> {
   let current = path.resolve(cwd);
 
@@ -59,19 +117,23 @@ export async function findNearestProjectConfig(cwd: string): Promise<string | nu
   }
 }
 
-async function loadConfigLayers(options: { cwd: string; configPath?: string }): Promise<ConfigLayer[]> {
+async function loadConfigLayers(
+  options: { cwd: string; configPath?: string },
+  behavior: { resolveEnv?: boolean } = {},
+): Promise<ConfigLayer[]> {
   const layers: ConfigLayer[] = [];
   const globalPath = getGlobalConfigPath();
+  const resolveEnv = behavior.resolveEnv ?? true;
 
   if (!options.configPath) {
-    const globalLayer = await readLayerIfExists(globalPath);
+    const globalLayer = await readLayerIfExists(globalPath, { resolveEnv });
     if (globalLayer) {
       layers.push(globalLayer);
     }
 
     const projectConfigPath = await findNearestProjectConfig(options.cwd);
     if (projectConfigPath && path.resolve(projectConfigPath) !== path.resolve(globalPath)) {
-      const projectLayer = await readLayerIfExists(projectConfigPath);
+      const projectLayer = await readLayerIfExists(projectConfigPath, { resolveEnv });
       if (projectLayer) {
         layers.push(projectLayer);
       }
@@ -82,13 +144,13 @@ async function loadConfigLayers(options: { cwd: string; configPath?: string }): 
 
   const explicitPath = path.resolve(expandHomePath(options.configPath));
   if (path.resolve(globalPath) !== explicitPath) {
-    const globalLayer = await readLayerIfExists(globalPath);
+    const globalLayer = await readLayerIfExists(globalPath, { resolveEnv });
     if (globalLayer) {
       layers.push(globalLayer);
     }
   }
 
-  const explicitLayer = await readLayerIfExists(explicitPath);
+  const explicitLayer = await readLayerIfExists(explicitPath, { resolveEnv });
   if (!explicitLayer) {
     throw new Error(`Config file not found: ${explicitPath}`);
   }
@@ -96,18 +158,18 @@ async function loadConfigLayers(options: { cwd: string; configPath?: string }): 
   return layers;
 }
 
-async function readLayerIfExists(filePath: string): Promise<ConfigLayer | null> {
+async function readLayerIfExists(filePath: string, behavior: { resolveEnv?: boolean } = {}): Promise<ConfigLayer | null> {
   const resolvedPath = path.resolve(expandHomePath(filePath));
   if (!(await fileExists(resolvedPath))) {
     return null;
   }
   const content = await readUtf8(resolvedPath);
   const parsed = toml.parse(content) as Record<string, unknown>;
-  const envResolved = resolveEnvRefs(parsed);
-  if (!isPlainObject(envResolved)) {
+  const maybeResolved = behavior.resolveEnv === false ? parsed : resolveEnvRefs(parsed);
+  if (!isPlainObject(maybeResolved)) {
     throw new Error(`Invalid TOML structure in ${resolvedPath}`);
   }
-  const resolved = resolveLayerPaths(envResolved, resolveLayerBaseDir(resolvedPath));
+  const resolved = resolveLayerPaths(maybeResolved, resolveLayerBaseDir(resolvedPath));
   return { path: resolvedPath, value: resolved };
 }
 

@@ -278,7 +278,7 @@ describe('cli flow', () => {
     expect(summary.card.statusCode).toBe(200);
   });
 
-  it('inspects and stops runtime state through serve subcommands', async () => {
+  it('inspects and stops runtime state through runtime management commands without requiring Feishu secrets', async () => {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-runtime-home-'));
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-runtime-cli-'));
     tempDirs.push(home, cwd);
@@ -294,13 +294,14 @@ describe('cli flow', () => {
         '[service]',
         'name = "runtime-test"',
         'default_project = "repo-a"',
+        'log_tail_lines = 100',
         '',
         '[storage]',
         `dir = "${stateDir}"`,
         '',
         '[feishu]',
-        'app_id = "app-id"',
-        'app_secret = "app-secret"',
+        'app_id = "env:RUNTIME_TEST_APP_ID"',
+        'app_secret = "env:RUNTIME_TEST_APP_SECRET"',
         '',
         '[projects.repo-a]',
         `root = "${cwd}"`,
@@ -328,20 +329,24 @@ describe('cli flow', () => {
       pid: child.pid,
     });
 
-    const runtimeEnv = { HOME: home, FEISHU_APP_ID: 'app-id', FEISHU_APP_SECRET: 'app-secret' };
+    const runtimeEnv = { HOME: home };
 
-    const status = runCli(['serve', 'status', '--config', configPath], { cwd, env: runtimeEnv });
+    const status = runCli(['status', '--config', configPath], { cwd, env: runtimeEnv });
     expect(status.status).toBe(0);
     expect(status.stdout).toContain('running: true');
     expect(status.stdout).toContain('active_runs: 1');
 
-    const logs = runCli(['serve', 'logs', '--config', configPath, '--lines', '2'], { cwd, env: runtimeEnv });
+    const serveStatus = runCli(['serve', 'status', '--config', configPath], { cwd, env: runtimeEnv });
+    expect(serveStatus.status).toBe(0);
+    expect(serveStatus.stdout).toContain('running: true');
+
+    const logs = runCli(['logs', '--config', configPath, '--lines', '2'], { cwd, env: runtimeEnv });
     expect(logs.status).toBe(0);
     expect(logs.stdout).toContain('line-2');
     expect(logs.stdout).toContain('line-3');
     expect(logs.stdout).not.toContain('line-1');
 
-    const ps = runCli(['serve', 'ps', '--config', configPath], { cwd, env: runtimeEnv });
+    const ps = runCli(['ps', '--config', configPath], { cwd, env: runtimeEnv });
     expect(ps.status).toBe(0);
     const runs = JSON.parse(ps.stdout) as Array<{ run_id: string; status: string }>;
     expect(runs).toEqual([
@@ -351,7 +356,7 @@ describe('cli flow', () => {
       }),
     ]);
 
-    const stop = runCli(['serve', 'stop', '--config', configPath, '--force', '--wait-ms', '1000'], { cwd, env: runtimeEnv });
+    const stop = runCli(['stop', '--config', configPath, '--force', '--wait-ms', '1000'], { cwd, env: runtimeEnv });
     expect(stop.status).toBe(0);
     expect(stop.stdout).toContain('Stopped bridge pid');
     await waitForProcessExit(child.pid ?? 0);

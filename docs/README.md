@@ -28,6 +28,8 @@
   - 最小配置
   - 飞书侧联调
   - 常用命令
+  - `reply_mode` / 富文本 / 卡片
+  - 管理员动态接入与 `/admin` 命令
   - `/session adopt` 续接本地 Codex 会话
   - `queued` / 仓库占用提示
 
@@ -55,10 +57,12 @@
 - [部署说明](deployment.md)
   - 本机单用户模式
   - 团队共享模式
+  - `start|status|logs|ps|stop|restart`
   - systemd / launchd
   - Webhook / 反向代理 / 探针
 - [安全与运维](security.md)
   - 凭证处理
+  - 日志脱敏
   - 项目根目录白名单
   - 群聊风险
   - 指标与审计建议
@@ -69,7 +73,9 @@
   - 群聊为什么必须 `@机器人`
   - 怎么绑定项目
   - 怎么管理多个 session
+  - 怎么选择 `reply_mode`
   - 切项目后怎么自动续上最新会话
+  - 管理员怎么动态开通 chat / group / project
   - 排队和仓库锁怎么判断
   - 怎么收敛 `chat_id` 白名单
   - 怎么启用 `proxy_on`

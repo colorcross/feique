@@ -85,13 +85,28 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 codex-feishu audit tail --limit 20
 ```
 
-## 5. 回复为什么现在看起来像“回复某条消息”？
+## 6. 回复为什么现在看起来像“回复某条消息”？
 
 这是刻意做的。
 
 当 `service.reply_quote_user_message = true` 时，桥接器优先走飞书原生 reply API，体验比简单文本前缀更清晰。
 
-## 6. `security.allowed_project_roots` 应该怎么配？
+## 7. 怎么选择 `reply_mode`？
+
+可以按交互复杂度来选：
+
+- `text`：最简单的纯文本回复
+- `post`：富文本回复，适合大多数长连接和 webhook 回复场景
+- `card`：交互卡片；需要 `transport = "webhook"`，并且更适合有按钮回调的共享服务
+
+如果没有明确的卡片交互需求，推荐优先用：
+
+```toml
+[service]
+reply_mode = "post"
+```
+
+## 8. `security.allowed_project_roots` 应该怎么配？
 
 生产环境建议填明确的仓库父目录，例如：
 
@@ -108,23 +123,46 @@ allowed_project_roots = ["/"]
 
 这会让目录边界保护失效。
 
-## 7. `bind` 现在为什么可以不带 `--config`？
+## 9. `bind` 现在为什么可以不带 `--config`？
 
 因为 CLI 已经做了默认路由：
 
 - 优先找最近的项目配置 `.codex-feishu/config.toml`
 - 找不到时回退到全局 `~/.codex-feishu/config.toml`
 
-## 8. 如何后台运行、停机、看日志？
+## 10. 如何后台运行、停机、看日志？
 
 ```bash
-codex-feishu serve --detach
-codex-feishu serve status
-codex-feishu serve logs --lines 100
-codex-feishu serve stop --force
+codex-feishu start
+codex-feishu status
+codex-feishu logs --lines 100
+codex-feishu ps
+codex-feishu stop --force
+codex-feishu restart
 ```
 
-## 9. 本地没有公网，能不能先做闭环验证？
+## 11. 管理员怎么动态开通 chat / group / project？
+
+先把管理员 chat_id 配进去：
+
+```toml
+[security]
+admin_chat_ids = ["oc_admin_chat_1"]
+```
+
+然后在这个管理员 chat 里执行：
+
+```text
+/admin group add <chat_id>
+/admin chat add <chat_id>
+/admin project add <alias> <root>
+/admin project set <alias> <field> <value>
+/admin service restart
+```
+
+这组命令会直接修改当前实例对应的配置文件；如果改动需要重启生效，再执行 `/admin service restart`。
+
+## 12. 本地没有公网，能不能先做闭环验证？
 
 可以。
 
@@ -136,14 +174,14 @@ npm run demo:down
 
 它会启用 `feishu.dry_run = true`，本地跑完整链路但不真实向飞书出站。
 
-## 10. 这个项目适合直接开源到 GitHub 吗？
+## 13. 这个项目适合直接开源到 GitHub 吗？
 
 可以，但上线前至少要做两件事：
 
 - 确保没把真实密钥、状态文件、打包产物提交进去
 - 把 `App Secret` 视为敏感信息，必要时立即轮换
 
-## 11. 这里的项目 / session 和 Codex App 里的项目 / 线程是同一个东西吗？
+## 14. 这里的项目 / session 和 Codex App 里的项目 / 线程是同一个东西吗？
 
 不建议把它们当成同一个抽象。
 
@@ -170,7 +208,7 @@ npm run demo:down
 - Codex CLI reference：<https://developers.openai.com/codex/cli/reference/>
 - Codex config reference：<https://developers.openai.com/codex/config-reference/#configtoml>
 
-## 12. 现在支持在飞书里处理图片、文件、音频和项目文档吗？
+## 15. 现在支持在飞书里处理图片、文件、音频和项目文档吗？
 
 支持第一版：
 
@@ -188,7 +226,7 @@ npm run demo:down
 - 当前仍然不是“把任意二进制原样上传给 Codex”；增强的是元数据、文本摘要和音频转写
 - 如果你要更深入的文档 / 知识库管理，下一步应该接飞书文档、知识库或外部检索后端，而不是继续堆 prompt
 
-## 13. 飞书知识库为什么搜不到结果？
+## 16. 飞书知识库为什么搜不到结果？
 
 优先检查这几项：
 
@@ -205,7 +243,7 @@ npm run demo:down
 
 如果这里就是空的，问题基本不在桥接器，而在飞书空间权限。
 
-## 14. 能直接在飞书里创建知识库文档吗？
+## 17. 能直接在飞书里创建知识库文档吗？
 
 现在可以做第一版：
 

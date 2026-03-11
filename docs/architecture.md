@@ -66,7 +66,7 @@
 
 4. 运行态管理
 - 在状态目录写 `<service-name>.pid`
-- `serve status|stop|logs|ps` 直接读取 pid / log / run state
+- `status|stop|logs|ps` 直接读取 pid / log / run state
 - 启动时会把遗留的 `running` run 恢复成 `stale` 或 `orphaned`
 
 ### Observability

@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased
+
+### Highlights
+
+- 清理文档和示例里的本机强相关口径，统一改为可迁移的占位路径和环境变量引用。
+- 飞书回复链路支持 `post` 富文本模式与管理员动态控制；运行态回复不再暴露用户侧 `run_id`。
+- 运行管理 CLI 补齐 `start|status|logs|ps|stop|restart`，并让 `status/logs/ps/stop` 不再依赖飞书密钥环境变量。
+- 日志增加敏感字段脱敏和 `queued/running/completed/cancelled/failed` 关键运行态结构化记录。
+
+### Included
+
+- 配置与 CLI：
+  - `src/config/load.ts`
+  - `src/config/mutate.ts`
+  - `src/cli.ts`
+  - `examples/config.global.toml`
+- 飞书回复与管理员控制：
+  - `src/bridge/service.ts`
+  - `src/bridge/commands.ts`
+  - `src/feishu/client.ts`
+  - `src/feishu/text.ts`
+  - `src/feishu/cards.ts`
+- 日志与清理：
+  - `src/logging.ts`
+  - `src/bridge/types.ts`
+- 文档：
+  - `README.md`
+  - `README.en.md`
+  - `docs/README.md`
+  - `docs/README.en.md`
+  - `docs/getting-started.md`
+  - `docs/deployment.md`
+  - `docs/security.md`
+  - `docs/faq.md`
+  - `docs/architecture.md`
+  - `docs/website.md`
+
 ## v0.1.6 - 2026-03-11
 
 ### Highlights

@@ -40,9 +40,3 @@ export interface IncomingCardActionContext {
   action_value: Record<string, unknown>;
   raw: unknown;
 }
-
-export interface BridgeReply {
-  kind: 'text' | 'card';
-  text?: string;
-  card?: Record<string, unknown>;
-}

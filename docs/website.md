@@ -20,7 +20,7 @@
 新版首页不再只是“文档入口页”，而是更明确的产品控制面介绍页，首页现在突出：
 
 - npm 已发布，安装路径明确可见
-- `chat_id` 项目绑定、`/session adopt`、`project.root` 串行和 `queued` 状态这些最近迭代
+- `chat_id` 项目绑定、`/session adopt`、`project.root` 串行和 `queued` 状态这些关键能力
 - 首页直接展示安装命令、飞书命令和运行态示例
 - README / docs / Releases / npm 入口放在同一层导航里
 
