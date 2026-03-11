@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.1.11 - 2026-03-12
+
 ### Highlights
 
 - 新增 `viewer / operator / admin` 三档访问模型，把项目可见性、会话控制和服务级操作分层收口。
