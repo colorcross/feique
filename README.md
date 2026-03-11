@@ -183,6 +183,11 @@ codex-feishu serve --detach
 - `/session adopt latest`
 - `/session adopt list`
 - `/session adopt <thread_id>`
+- `/admin status`
+- `/admin group add <chat_id>`
+- `/admin project add <alias> <root>`
+- `/admin project set <alias> <field> <value>`
+- `/admin service restart`
 
 ## 一个最小配置示例
 
@@ -214,7 +219,8 @@ run_timeout_ms = 600000
 dir = "~/.codex-feishu/state"
 
 [security]
-allowed_project_roots = ["/Users/dh/workspace"]
+allowed_project_roots = ["/srv/repos"]
+admin_chat_ids = ["oc_admin_chat_1"]
 require_group_mentions = true
 
 [feishu]
@@ -225,7 +231,7 @@ allowed_chat_ids = []
 allowed_group_ids = []
 
 [projects.default]
-root = "/Users/dh/workspace/repo-a"
+root = "/srv/repos/repo-a"
 session_scope = "chat"
 mention_required = true
 knowledge_paths = ["docs", "README.md"]

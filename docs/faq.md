@@ -97,7 +97,7 @@ codex-feishu audit tail --limit 20
 
 ```toml
 [security]
-allowed_project_roots = ["/srv/repos", "/Users/dh/workspace"]
+allowed_project_roots = ["/srv/repos", "/opt/repos"]
 ```
 
 不建议长期使用：

@@ -100,6 +100,26 @@ const serveCommand = program
         return;
       }
 
+      if (operation === 'restart') {
+        const runtimeStatus = await inspectRuntimeStatus(config);
+        if (runtimeStatus.pid && runtimeStatus.running) {
+          const stopped = await stopRuntimeProcess(runtimeStatus.pid, Number(options.waitMs), options.force);
+          if (!stopped) {
+            throw new Error(`Failed to stop bridge pid ${runtimeStatus.pid}`);
+          }
+          await fs.rm(runtimeStatus.pidPath, { force: true });
+        }
+        const detached = await detachServeProcess({
+          config,
+          configPath: options.config,
+          cwd: process.cwd(),
+        });
+        console.log(`Restarted bridge: pid=${detached.pid}`);
+        console.log(`Log file: ${detached.logPath}`);
+        console.log(`PID file: ${detached.pidPath}`);
+        return;
+      }
+
       if (operation === 'logs') {
         const runtimePaths = getRuntimePaths(config);
         const lines = Number(options.lines ?? config.service.log_tail_lines);
@@ -153,7 +173,21 @@ const serveCommand = program
       transport: config.feishu.transport,
     });
     const feishuClient = new FeishuClient(config.feishu, logger, metrics);
-    const service = new CodexFeishuService(config, feishuClient, sessionStore, auditLog, logger, metrics);
+    const mutableConfigPath = options.config ? path.resolve(options.config) : sources[0];
+    const service = new CodexFeishuService(config, feishuClient, sessionStore, auditLog, logger, metrics, undefined, undefined, undefined, undefined, {
+      configPath: mutableConfigPath,
+      restart: async () => {
+        const detached = await detachServeProcess({
+          config,
+          ...(mutableConfigPath ? { configPath: mutableConfigPath } : {}),
+          cwd: process.cwd(),
+        });
+        logger.warn({ newPid: detached.pid, configPath: mutableConfigPath }, 'Restarted bridge from admin command');
+        setTimeout(() => {
+          process.kill(process.pid, 'SIGTERM');
+        }, 200);
+      },
+    });
     const recoveredRuns = await service.recoverRuntimeState();
     await service.runMemoryMaintenance();
     service.startMaintenanceLoop();

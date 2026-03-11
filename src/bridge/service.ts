@@ -11,7 +11,6 @@ import { buildStatusCard } from '../feishu/cards.js';
 import { runCodexTurn, summarizeCodexEvent } from '../codex/runner.js';
 import { TaskQueue } from './task-queue.js';
 import { AuditLog } from '../state/audit-log.js';
-import { truncateForFeishuCard } from '../feishu/text.js';
 import type { MetricsRegistry } from '../observability/metrics.js';
 import { IdempotencyStore } from '../state/idempotency-store.js';
 import { RunStateStore, type RunState } from '../state/run-state-store.js';
@@ -23,6 +22,8 @@ import { MemoryStore } from '../state/memory-store.js';
 import { retrieveMemoryContext, type MemoryContext } from '../memory/retrieve.js';
 import { summarizeThreadTurn } from '../memory/summarize.js';
 import { CodexSessionIndex, renderSessionMatchLabel, type IndexedCodexSession } from '../codex/session-index.js';
+import { bindProjectAlias, removeProjectAlias, updateBridgeConfigFile, updateProjectConfig, updateStringList } from '../config/mutate.js';
+import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
 
 interface ActiveRunHandle {
   runId: string;
@@ -42,6 +43,11 @@ interface ScheduledProjectExecution {
   completion: Promise<void>;
 }
 
+interface RuntimeControl {
+  configPath?: string;
+  restart?: () => Promise<void>;
+}
+
 export class CodexFeishuService {
   private readonly queue = new TaskQueue();
   private readonly projectRootQueue = new TaskQueue();
@@ -59,6 +65,7 @@ export class CodexFeishuService {
     private readonly runStateStore: RunStateStore = new RunStateStore(config.storage.dir),
     private readonly memoryStore: MemoryStore = new MemoryStore(config.storage.dir),
     private readonly codexSessionIndex: CodexSessionIndex = new CodexSessionIndex(),
+    private readonly runtimeControl?: RuntimeControl,
   ) {}
 
   public async recoverRuntimeState(): Promise<RunState[]> {
@@ -194,6 +201,9 @@ export class CodexFeishuService {
           sessionArgument,
         );
         return;
+      case 'admin':
+        await this.handleAdminCommand(context, command);
+        return;
       case 'prompt': {
         const prompt = normalizeIncomingText(command.prompt) || (context.attachments.length > 0 ? '请结合这条飞书消息附带的多媒体信息继续处理。' : '');
         if (!prompt) {
@@ -237,12 +247,25 @@ export class CodexFeishuService {
           },
         );
         if (scheduled.queued) {
-          await this.sendTextReply(
-            context.chat_id,
-            this.buildQueuedReplyText(projectContext.projectAlias, scheduled.queued),
-            context.message_id,
-            context.text,
-          );
+          await this.sendRunLifecycleReply({
+            chatId: context.chat_id,
+            projectAlias: projectContext.projectAlias,
+            title: '已加入排队',
+            body: this.buildQueuedReplyText(projectContext.projectAlias, scheduled.queued),
+            runStatus: 'queued',
+            replyToMessageId: context.message_id,
+            originalText: context.text,
+          });
+        } else {
+          await this.sendRunLifecycleReply({
+            chatId: context.chat_id,
+            projectAlias: projectContext.projectAlias,
+            title: 'Codex 处理中',
+            body: `项目: ${projectContext.projectAlias}\n状态: running\n\n已收到消息，正在处理。`,
+            runStatus: 'running',
+            replyToMessageId: context.message_id,
+            originalText: context.text,
+          });
         }
         await scheduled.completion;
       }
@@ -374,7 +397,6 @@ export class CodexFeishuService {
         summary: scheduled.queued?.detail ?? '桥接器正在重新执行上一轮，结果会通过消息回传。',
         projectAlias,
         sessionId: conversation.projects[projectAlias]?.thread_id,
-        runId: scheduled.queued?.runId,
         runStatus: scheduled.queued ? 'queued' : undefined,
         includeActions: false,
       });
@@ -575,7 +597,6 @@ export class CodexFeishuService {
             summary: cardSummary,
             projectAlias: input.projectAlias,
             sessionId: result.sessionId,
-            runId,
             runStatus: 'success',
             sessionCount: (await this.sessionStore.listProjectSessions(input.sessionKey, input.projectAlias)).length,
             includeActions: true,
@@ -602,12 +623,15 @@ export class CodexFeishuService {
         );
       } else {
         const durationSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-        await this.sendTextReply(
-          input.chatId,
-          [`项目: ${input.projectAlias}`, `运行: ${runId}`, `耗时: ${durationSeconds}s`, '', excerpt || 'Codex 已完成，但没有返回可显示文本。'].join('\n'),
-          input.replyToMessageId,
-          input.prompt,
-        );
+        await this.sendRunLifecycleReply({
+          chatId: input.chatId,
+          projectAlias: input.projectAlias,
+          title: 'Codex 已完成',
+          body: [`项目: ${input.projectAlias}`, `耗时: ${durationSeconds}s`, '', excerpt || 'Codex 已完成，但没有返回可显示文本。'].join('\n'),
+          runStatus: 'success',
+          replyToMessageId: input.replyToMessageId,
+          originalText: input.prompt,
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -645,14 +669,15 @@ export class CodexFeishuService {
         error: message,
       });
       this.logger.error({ error, project: input.projectAlias, runId }, 'Codex run failed');
-      await this.sendTextReply(
-        input.chatId,
-        cancelled
-          ? [`项目: ${input.projectAlias}`, `运行: ${runId}`, '当前运行已取消。'].join('\n')
-          : [`项目: ${input.projectAlias}`, `运行: ${runId}`, '执行失败。', '', message].join('\n'),
-        input.replyToMessageId,
-        input.prompt,
-      );
+      await this.sendRunLifecycleReply({
+        chatId: input.chatId,
+        projectAlias: input.projectAlias,
+        title: cancelled ? '运行已取消' : '执行失败',
+        body: cancelled ? [`项目: ${input.projectAlias}`, '当前运行已取消。'].join('\n') : [`项目: ${input.projectAlias}`, '执行失败。', '', message].join('\n'),
+        runStatus: cancelled ? 'cancelled' : 'failure',
+        replyToMessageId: input.replyToMessageId,
+        originalText: input.prompt,
+      });
     } finally {
       this.activeRuns.delete(input.queueKey);
     }
@@ -836,6 +861,105 @@ export class CodexFeishuService {
         return;
       }
     }
+  }
+
+  private async handleAdminCommand(
+    context: IncomingMessageContext,
+    command:
+      | { kind: 'admin'; resource: 'admin' | 'group' | 'chat'; action: 'status' | 'list' | 'add' | 'remove'; value?: string }
+      | { kind: 'admin'; resource: 'project'; action: 'add' | 'remove' | 'set' | 'list'; alias?: string; field?: string; value?: string }
+      | { kind: 'admin'; resource: 'service'; action: 'status' | 'restart' },
+  ): Promise<void> {
+    if (!this.isAdminChat(context.chat_id)) {
+      await this.sendTextReply(context.chat_id, '当前 chat_id 没有管理员权限。请先在配置里加入 `security.admin_chat_ids`。', context.message_id, context.text);
+      return;
+    }
+
+    if (!this.runtimeControl?.configPath) {
+      await this.sendTextReply(context.chat_id, '当前运行实例没有可写配置路径，无法执行管理员动态操作。', context.message_id, context.text);
+      return;
+    }
+
+    if (command.resource === 'service') {
+      if (command.action === 'restart') {
+        await this.sendTextReply(context.chat_id, '配置已保存，正在重启服务。预计数秒内恢复。', context.message_id, context.text);
+        this.logger.warn({ chatId: context.chat_id, actorId: context.actor_id }, 'Restart requested by Feishu admin');
+        await this.runtimeControl.restart?.();
+        return;
+      }
+      await this.sendTextReply(context.chat_id, this.buildAdminStatusText(), context.message_id, context.text);
+      return;
+    }
+
+    if (command.resource === 'project') {
+      if (command.action === 'list') {
+        await this.sendTextReply(context.chat_id, this.buildProjectsAdminText(), context.message_id, context.text);
+        return;
+      }
+      if (command.action === 'add') {
+        if (!command.alias || !command.value) {
+          await this.sendTextReply(context.chat_id, '用法: /admin project add <alias> <root>', context.message_id, context.text);
+          return;
+        }
+        await bindProjectAlias({ configPath: this.runtimeControl.configPath, alias: command.alias, root: command.value });
+        this.config.projects[command.alias] = {
+          root: path.resolve(command.value),
+          session_scope: 'chat',
+          mention_required: true,
+          knowledge_paths: [],
+          wiki_space_ids: [],
+        };
+        await this.sendTextReply(context.chat_id, `已接入项目: ${command.alias}\n根目录: ${path.resolve(command.value)}`, context.message_id, context.text);
+        this.logger.info({ alias: command.alias, root: path.resolve(command.value), actorId: context.actor_id }, 'Project added by Feishu admin');
+        return;
+      }
+      if (command.action === 'remove') {
+        if (!command.alias) {
+          await this.sendTextReply(context.chat_id, '用法: /admin project remove <alias>', context.message_id, context.text);
+          return;
+        }
+        if (this.config.service.default_project === command.alias) {
+          await this.sendTextReply(context.chat_id, `不能移除默认项目: ${command.alias}。请先切换 service.default_project。`, context.message_id, context.text);
+          return;
+        }
+        await removeProjectAlias(this.runtimeControl.configPath, command.alias);
+        delete this.config.projects[command.alias];
+        await this.sendTextReply(context.chat_id, `已移除项目: ${command.alias}`, context.message_id, context.text);
+        this.logger.info({ alias: command.alias, actorId: context.actor_id }, 'Project removed by Feishu admin');
+        return;
+      }
+      if (!command.alias || !command.field || !command.value) {
+        await this.sendTextReply(context.chat_id, '用法: /admin project set <alias> <field> <value>', context.message_id, context.text);
+        return;
+      }
+      const patch = this.parseProjectPatch(command.field, command.value);
+      if (!patch) {
+        await this.sendTextReply(context.chat_id, '支持字段: root, profile, sandbox, session_scope, mention_required, description', context.message_id, context.text);
+        return;
+      }
+      const nextProject = await updateProjectConfig(this.runtimeControl.configPath, command.alias, patch);
+      this.config.projects[command.alias] = {
+        ...this.requireProject(command.alias),
+        ...nextProject,
+      };
+      await this.sendTextReply(context.chat_id, `已更新项目 ${command.alias}\n字段: ${command.field}\n值: ${command.value}`, context.message_id, context.text);
+      this.logger.info({ alias: command.alias, field: command.field, actorId: context.actor_id }, 'Project config updated by Feishu admin');
+      return;
+    }
+
+    if (command.action === 'list' || command.action === 'status') {
+      await this.sendTextReply(context.chat_id, this.buildAdminListText(command.resource), context.message_id, context.text);
+      return;
+    }
+    if (!command.value) {
+      await this.sendTextReply(context.chat_id, `用法: /admin ${command.resource} ${command.action} <chat_id>`, context.message_id, context.text);
+      return;
+    }
+    const { section, key } = resolveAdminListTarget(command.resource);
+    const nextValues = await updateStringList(this.runtimeControl.configPath, section, key, command.value, command.action);
+    this.applyAdminListValues(command.resource, nextValues);
+    await this.sendTextReply(context.chat_id, `已${command.action === 'add' ? '添加' : '移除'} ${command.resource}:\n${command.value}`, context.message_id, context.text);
+    this.logger.info({ resource: command.resource, action: command.action, value: command.value, actorId: context.actor_id }, 'Feishu access list updated by admin');
   }
 
   private async handleSessionAdoptCommand(
@@ -1770,7 +1894,7 @@ export class CodexFeishuService {
       `已保存会话数: ${sessions.length}`,
       `项目记忆数: ${memoryCount}`,
       `最近更新时间: ${session?.updated_at ?? conversation.updated_at}`,
-      `当前运行: ${activeRun ? `${activeRun.run_id} (${activeRun.status})` : '无'}`,
+      `当前运行状态: ${activeRun?.status ?? '无'}`,
       ...(activeRun?.status === 'queued' && activeRun.status_detail ? ['', activeRun.status_detail] : []),
       '',
       threadSummary?.summary ?? session?.last_response_excerpt ?? '暂无回复摘要。',
@@ -1786,7 +1910,6 @@ export class CodexFeishuService {
       summary: this.buildRunStatusSummary(session?.last_response_excerpt, activeRun),
       projectAlias,
       sessionId: session?.thread_id,
-      runId: activeRun?.run_id,
       runStatus: activeRun?.status,
       sessionCount,
       includeActions: true,
@@ -2110,7 +2233,7 @@ export class CodexFeishuService {
   }
 
   private buildQueuedReplyText(projectAlias: string, queued: QueuedExecutionNotice): string {
-    return [`项目: ${projectAlias}`, `运行: ${queued.runId}`, '状态: queued', '', queued.detail].join('\n');
+    return [`项目: ${projectAlias}`, '状态: queued', '', queued.detail].join('\n');
   }
 
   private buildQueuedStatusDetail(
@@ -2122,7 +2245,7 @@ export class CodexFeishuService {
     const lines = [
       reason === 'project' ? `当前项目 ${projectAlias} 已有任务在处理，已进入排队。` : '当前仓库正在被其他会话操作，已进入排队。',
       frontCount > 0 ? `前方还有 ${frontCount} 个任务。` : null,
-      blockingRun ? `阻塞运行: ${blockingRun.run_id} (${blockingRun.status})` : null,
+      blockingRun ? `阻塞状态: ${blockingRun.status}` : null,
       reason === 'project-root' && blockingRun?.project_alias && blockingRun.project_alias !== projectAlias ? `占用项目: ${blockingRun.project_alias}` : null,
     ];
     return lines.filter(Boolean).join('\n');
@@ -2133,6 +2256,82 @@ export class CodexFeishuService {
       return [activeRun.status_detail, lastResponseExcerpt ? `\n上一轮摘要:\n${lastResponseExcerpt}` : null].filter(Boolean).join('\n');
     }
     return lastResponseExcerpt ?? '暂无会话摘要。';
+  }
+
+  private isAdminChat(chatId: string): boolean {
+    return this.config.security.admin_chat_ids.includes(chatId);
+  }
+
+  private buildAdminStatusText(): string {
+    return [
+      '管理员配置',
+      '',
+      `管理员 chat_id 数: ${this.config.security.admin_chat_ids.length}`,
+      `允许私聊数: ${this.config.feishu.allowed_chat_ids.length}`,
+      `允许群聊数: ${this.config.feishu.allowed_group_ids.length}`,
+      `项目数: ${Object.keys(this.config.projects).length}`,
+      `默认项目: ${this.config.service.default_project ?? '未设置'}`,
+      `回复模式: ${this.config.service.reply_mode}`,
+      `可写配置: ${this.runtimeControl?.configPath ?? '无'}`,
+    ].join('\n');
+  }
+
+  private buildAdminListText(resource: 'admin' | 'group' | 'chat'): string {
+    const items =
+      resource === 'admin'
+        ? this.config.security.admin_chat_ids
+        : resource === 'group'
+          ? this.config.feishu.allowed_group_ids
+          : this.config.feishu.allowed_chat_ids;
+    return [`当前${resource}列表:`, ...(items.length > 0 ? items : ['(empty)'])].join('\n');
+  }
+
+  private buildProjectsAdminText(): string {
+    const lines = Object.entries(this.config.projects).map(([alias, project]) => {
+      const flags = [`scope=${project.session_scope}`, `mention=${project.mention_required ? 'on' : 'off'}`].join(' ');
+      return `- ${alias}: ${project.root} | ${flags}`;
+    });
+    return ['当前项目列表:', ...(lines.length > 0 ? lines : ['(empty)'])].join('\n');
+  }
+
+  private parseProjectPatch(field: string, value: string): Partial<ProjectConfig> | null {
+    switch (field) {
+      case 'root':
+        return { root: value };
+      case 'profile':
+        return { profile: value };
+      case 'sandbox':
+        if (value === 'read-only' || value === 'workspace-write' || value === 'danger-full-access') {
+          return { sandbox: value };
+        }
+        return null;
+      case 'session_scope':
+        if (value === 'chat' || value === 'chat-user') {
+          return { session_scope: value };
+        }
+        return null;
+      case 'mention_required':
+        if (value === 'true' || value === 'false') {
+          return { mention_required: value === 'true' };
+        }
+        return null;
+      case 'description':
+        return { description: value };
+      default:
+        return null;
+    }
+  }
+
+  private applyAdminListValues(resource: 'admin' | 'group' | 'chat', values: string[]): void {
+    if (resource === 'admin') {
+      this.config.security.admin_chat_ids = values;
+      return;
+    }
+    if (resource === 'group') {
+      this.config.feishu.allowed_group_ids = values;
+      return;
+    }
+    this.config.feishu.allowed_chat_ids = values;
   }
 
   private resolveProjectRoot(project: ProjectConfig): string {
@@ -2148,6 +2347,15 @@ export class CodexFeishuService {
   }
 
   private async sendTextReply(chatId: string, body: string, replyToMessageId?: string, originalText?: string): Promise<void> {
+    if (this.config.service.reply_mode === 'post') {
+      const post = buildFeishuPost(this.buildReplyTitle(body), this.formatQuotedReply(body, originalText));
+      if (this.config.service.reply_quote_user_message && replyToMessageId) {
+        await this.feishuClient.sendPost(chatId, post, { replyToMessageId });
+        return;
+      }
+      await this.feishuClient.sendPost(chatId, post);
+      return;
+    }
     if (this.config.service.reply_quote_user_message && replyToMessageId) {
       await this.feishuClient.sendText(chatId, body, { replyToMessageId });
       return;
@@ -2163,6 +2371,32 @@ export class CodexFeishuService {
     await this.feishuClient.sendCard(chatId, card);
   }
 
+  private async sendRunLifecycleReply(input: {
+    chatId: string;
+    projectAlias: string;
+    title: string;
+    body: string;
+    runStatus: string;
+    replyToMessageId?: string;
+    originalText?: string;
+  }): Promise<void> {
+    if (this.config.service.reply_mode === 'card' && this.config.feishu.transport === 'webhook') {
+      await this.sendCardReply(
+        input.chatId,
+        buildStatusCard({
+          title: input.title,
+          summary: truncateForFeishuCard(input.body),
+          projectAlias: input.projectAlias,
+          runStatus: input.runStatus,
+          includeActions: false,
+        }),
+        input.replyToMessageId,
+      );
+      return;
+    }
+    await this.sendTextReply(input.chatId, input.body, input.replyToMessageId, input.originalText);
+  }
+
   private formatQuotedReply(body: string, originalText?: string): string {
     if (!this.config.service.reply_quote_user_message || !originalText?.trim()) {
       return body;
@@ -2171,6 +2405,14 @@ export class CodexFeishuService {
     const normalized = originalText.replace(/\s+/g, ' ').trim();
     const quoted = truncateExcerpt(normalized, this.config.service.reply_quote_max_chars);
     return [`引用: ${quoted}`, '', body].join('\n');
+  }
+
+  private buildReplyTitle(body: string): string {
+    const firstLine = body
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+    return truncateExcerpt(firstLine ?? 'Codex Feishu', 40);
   }
 }
 
@@ -2199,6 +2441,17 @@ function buildCardDedupeKey(context: IncomingCardActionContext, action: string):
 
 function truncateExcerpt(text: string, limit: number = 160): string {
   return text.length > limit ? `${text.slice(0, limit)}...` : text;
+}
+
+function resolveAdminListTarget(resource: 'admin' | 'group' | 'chat'): { section: 'security' | 'feishu'; key: string } {
+  switch (resource) {
+    case 'admin':
+      return { section: 'security', key: 'admin_chat_ids' };
+    case 'group':
+      return { section: 'feishu', key: 'allowed_group_ids' };
+    case 'chat':
+      return { section: 'feishu', key: 'allowed_chat_ids' };
+  }
 }
 
 function buildConversationKeyForConversation(conversation: ConversationState): string {

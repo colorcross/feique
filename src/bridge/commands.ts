@@ -5,6 +5,10 @@ export interface MemoryCommandFilters {
   created_by?: string;
 }
 
+export type AdminResource = 'admin' | 'group' | 'chat' | 'project' | 'service';
+export type AdminListAction = 'status' | 'list' | 'add' | 'remove';
+export type AdminProjectAction = 'add' | 'remove' | 'set' | 'list';
+
 export type BridgeCommand =
   | { kind: 'help' }
   | { kind: 'status' }
@@ -17,6 +21,9 @@ export type BridgeCommand =
   | { kind: 'project'; alias?: string }
   | { kind: 'session'; action: 'list' | 'use' | 'new' | 'drop'; threadId?: string }
   | { kind: 'session'; action: 'adopt'; target?: string }
+  | { kind: 'admin'; resource: Exclude<AdminResource, 'project' | 'service'>; action: AdminListAction; value?: string }
+  | { kind: 'admin'; resource: 'project'; action: AdminProjectAction; alias?: string; field?: string; value?: string }
+  | { kind: 'admin'; resource: 'service'; action: 'status' | 'restart' }
   | { kind: 'prompt'; prompt: string };
 
 export function parseBridgeCommand(input: string): BridgeCommand {
@@ -50,6 +57,8 @@ export function parseBridgeCommand(input: string): BridgeCommand {
       return { kind: 'project', alias: argument || undefined };
     case '/session':
       return parseSessionCommand(argument);
+    case '/admin':
+      return parseAdminCommand(argument);
     default:
       return { kind: 'prompt', prompt: trimmed };
   }
@@ -117,9 +126,66 @@ export function buildHelpText(): string {
     '/session adopt latest 接管当前项目最近的本地 Codex 会话',
     '/session adopt list 列出当前项目可接管的本地 Codex 会话',
     '/session adopt <thread_id> 接管指定本地 Codex 会话',
+    '/admin status 查看管理员配置摘要',
+    '/admin admin add <chat_id> 添加管理员 chat_id',
+    '/admin admin remove <chat_id> 移除管理员 chat_id',
+    '/admin group add <chat_id> 允许一个群聊接入',
+    '/admin group remove <chat_id> 移除一个群聊接入',
+    '/admin chat add <chat_id> 允许一个私聊接入',
+    '/admin chat remove <chat_id> 移除一个私聊接入',
+    '/admin project add <alias> <root> 动态接入项目',
+    '/admin project remove <alias> 移除项目',
+    '/admin project set <alias> <field> <value> 修改项目配置',
+    '/admin service restart 保存配置并重启服务',
     '',
     '直接发送文本会进入当前项目的 Codex 会话。',
   ].join('\n');
+}
+
+function parseAdminCommand(argument: string): BridgeCommand {
+  const [resource, action, ...rest] = argument.split(/\s+/).filter(Boolean);
+
+  if (!resource || resource === 'status') {
+    return { kind: 'admin', resource: 'service', action: 'status' };
+  }
+
+  if (resource === 'service') {
+    return { kind: 'admin', resource: 'service', action: action === 'restart' ? 'restart' : 'status' };
+  }
+
+  if (resource === 'project') {
+    if (action === 'list' || !action) {
+      return { kind: 'admin', resource: 'project', action: 'list' };
+    }
+    if (action === 'add') {
+      return { kind: 'admin', resource: 'project', action: 'add', alias: rest[0], value: rest.slice(1).join(' ').trim() || undefined };
+    }
+    if (action === 'remove') {
+      return { kind: 'admin', resource: 'project', action: 'remove', alias: rest[0] };
+    }
+    if (action === 'set') {
+      return {
+        kind: 'admin',
+        resource: 'project',
+        action: 'set',
+        alias: rest[0],
+        field: rest[1],
+        value: rest.slice(2).join(' ').trim() || undefined,
+      };
+    }
+    return { kind: 'prompt', prompt: `/admin${argument ? ` ${argument}` : ''}`.trim() };
+  }
+
+  if (resource === 'admin' || resource === 'group' || resource === 'chat') {
+    if (action === 'list' || !action) {
+      return { kind: 'admin', resource, action: 'list' };
+    }
+    if (action === 'add' || action === 'remove') {
+      return { kind: 'admin', resource, action, value: rest.join(' ').trim() || undefined };
+    }
+  }
+
+  return { kind: 'prompt', prompt: `/admin${argument ? ` ${argument}` : ''}`.trim() };
 }
 
 function parseSessionCommand(argument: string): BridgeCommand {

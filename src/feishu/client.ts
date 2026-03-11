@@ -25,6 +25,13 @@ export interface FeishuSendOptions {
   replyInThread?: boolean;
 }
 
+export interface FeishuPostMessage {
+  zh_cn: {
+    title: string;
+    content: Array<Array<{ tag: 'text'; text: string }>>;
+  };
+}
+
 const FEISHU_MAX_SEND_ATTEMPTS = 3;
 const FEISHU_RETRY_BASE_DELAY_MS = 500;
 const FEISHU_RETRY_MAX_DELAY_MS = 5000;
@@ -79,6 +86,10 @@ export class FeishuClient {
     return this.sendMessage('chat_id', chatId, 'interactive', JSON.stringify(card), options);
   }
 
+  public async sendPost(chatId: string, post: FeishuPostMessage, options: FeishuSendOptions = {}): Promise<FeishuMessageResponse> {
+    return this.sendMessage('chat_id', chatId, 'post', JSON.stringify(post), options);
+  }
+
   public async sendTextToReceiveId(
     receiveIdType: FeishuReceiveIdType,
     receiveId: string,
@@ -126,7 +137,7 @@ export class FeishuClient {
   private async sendMessage(
     receiveIdType: FeishuReceiveIdType,
     receiveId: string,
-    msgType: 'text' | 'interactive',
+    msgType: 'text' | 'interactive' | 'post',
     content: string,
     options: FeishuSendOptions = {},
   ): Promise<FeishuMessageResponse> {

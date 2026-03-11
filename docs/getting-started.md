@@ -155,7 +155,7 @@ project_switch_auto_adopt_latest = true
 /status
 ```
 
-查看当前 run id、状态和排队原因。
+查看当前运行状态和排队原因。
 
 ## 群聊建议
 
@@ -179,6 +179,7 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 
 ```bash
 codex-feishu serve status
+codex-feishu serve restart
 codex-feishu serve logs --lines 100
 codex-feishu serve ps
 codex-feishu serve stop --force

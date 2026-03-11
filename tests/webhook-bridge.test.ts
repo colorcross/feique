@@ -179,6 +179,7 @@ function buildWebhookConfig(): BridgeConfig {
     },
     security: {
       allowed_project_roots: [],
+      admin_chat_ids: [],
       require_group_mentions: true,
     },
     feishu: {

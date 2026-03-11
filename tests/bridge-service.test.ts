@@ -63,7 +63,7 @@ describe('bridge service', () => {
     await setup.service.handleIncomingMessage(message);
 
     expect(runCodexTurnMock).toHaveBeenCalledTimes(1);
-    expect(setup.sendText).toHaveBeenCalledTimes(1);
+    expect(setup.sendText).toHaveBeenCalledTimes(2);
     expect((await setup.idempotencyStore.tail(10))[0]?.duplicate_count).toBe(1);
   });
 
@@ -102,6 +102,22 @@ describe('bridge service', () => {
       expect.stringContaining('项目: default'),
       expect.objectContaining({ replyToMessageId: 'm-reply' }),
     );
+  });
+
+  it('does not include run ids in Feishu success replies', async () => {
+    const setup = await createService();
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-1',
+      finalMessage: 'done',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('检查输出', { message_id: 'm-no-run-id' }));
+    const replyBody = setup.sendText.mock.calls.at(-1)?.[1] as string;
+    expect(replyBody).toContain('项目: default');
+    expect(replyBody).not.toContain('运行:');
   });
 
   it('supports listing and switching saved sessions', async () => {
@@ -373,7 +389,7 @@ describe('bridge service', () => {
 
     await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: 'm-root-queue-status' }));
     const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
-    expect(statusReply).toContain('(queued)');
+    expect(statusReply).toContain('当前运行状态: queued');
     expect(statusReply).toContain('当前仓库正在被其他会话操作，已进入排队。');
 
     resolvers.shift()?.({ sessionId: 'thread-shared-a', finalMessage: 'done-a', stderr: '', exitCode: 0, capabilities: { version: 'v', exec: {}, resume: {} } });
@@ -1306,6 +1322,7 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
     },
     security: {
       allowed_project_roots: [],
+      admin_chat_ids: [],
       require_group_mentions: true,
     },
     feishu: {

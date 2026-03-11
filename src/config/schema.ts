@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const sandboxSchema = z.enum(['read-only', 'workspace-write', 'danger-full-access']);
 export const sessionScopeSchema = z.enum(['chat', 'chat-user']);
 export const transportSchema = z.enum(['long-connection', 'webhook']);
-export const replyModeSchema = z.enum(['text', 'card']);
+export const replyModeSchema = z.enum(['text', 'post', 'card']);
 export const memoryPinOverflowStrategySchema = z.enum(['reject', 'age-out']);
 export const memoryPinAgeBasisSchema = z.enum(['updated_at', 'last_accessed_at']);
 
@@ -110,10 +110,12 @@ export const bridgeConfigSchema = z.object({
   security: z
     .object({
       allowed_project_roots: z.array(z.string()).default([]),
+      admin_chat_ids: z.array(z.string()).default([]),
       require_group_mentions: z.boolean().default(true),
     })
     .default({
       allowed_project_roots: [],
+      admin_chat_ids: [],
       require_group_mentions: true,
     }),
   feishu: z.object({

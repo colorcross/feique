@@ -49,6 +49,29 @@ export function truncateForFeishuCard(input: string, maxChars: number = DEFAULT_
   return `${text.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
+export function buildFeishuPost(title: string, body: string): {
+  zh_cn: {
+    title: string;
+    content: Array<Array<{ tag: 'text'; text: string }>>;
+  };
+} {
+  const rawLines = body.split(/\r?\n/).map((line) => line.trimEnd());
+  const lines: string[] = [];
+  for (const line of rawLines) {
+    if (line.length > 0 || (lines.length > 0 && lines[lines.length - 1] !== '')) {
+      lines.push(line);
+    }
+  }
+
+  const content = lines.length > 0 ? lines.map((line) => [{ tag: 'text' as const, text: line || ' ' }]) : [[{ tag: 'text' as const, text: body.trim() || ' ' }]];
+  return {
+    zh_cn: {
+      title,
+      content,
+    },
+  };
+}
+
 function splitHard(input: string, maxChars: number): string[] {
   const chunks: string[] = [];
   let remaining = input.trim();

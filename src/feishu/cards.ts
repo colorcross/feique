@@ -3,7 +3,6 @@ export function buildStatusCard(input: {
   summary: string;
   projectAlias: string;
   sessionId?: string;
-  runId?: string;
   runStatus?: string;
   sessionCount?: number;
   includeActions: boolean;
@@ -54,7 +53,6 @@ export function buildStatusCard(input: {
   const metadata = [
     `**项目**: ${input.projectAlias}`,
     input.sessionId ? `**会话**: ${input.sessionId}` : null,
-    input.runId ? `**运行**: ${input.runId}` : null,
     input.runStatus ? `**状态**: ${input.runStatus}` : null,
     typeof input.sessionCount === 'number' ? `**已保存会话数**: ${input.sessionCount}` : null,
   ]

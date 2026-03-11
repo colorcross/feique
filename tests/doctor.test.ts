@@ -83,6 +83,7 @@ describe('doctor', () => {
       },
       security: {
         allowed_project_roots: [workspace],
+        admin_chat_ids: [],
         require_group_mentions: false,
       },
       feishu: {
