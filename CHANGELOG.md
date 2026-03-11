@@ -10,6 +10,12 @@
 - 新增飞书交互路线图，明确文档 / 知识库 / 多媒体沟通的下一阶段范围。
 - 新增 `/kb status`、`/kb search <query>`，支持项目内文档搜索。
 - 图片、文件、音频、富文本消息会解析成结构化元数据并注入 Codex 提示词。
+- 新增 `/session adopt latest|list|<thread_id>`，可在飞书里直接接管本机 `~/.codex/sessions` 下的原生 Codex CLI 会话。
+- 项目绑定改为按 `chat_id` 持久化；群里切一次项目后，整群后续消息会继承该项目。
+- 新增 `service.project_switch_auto_adopt_latest = true`，切项目时可自动续上该项目最近的本地 Codex 会话。
+- 运行串行从 `queue key` 扩展到 `project.root`，避免不同群、不同私聊同时操作同一仓库。
+- 新增 `queued` 可见运行态，命中项目内队列或仓库锁时会先返回排队提示，`/status` 与卡片状态也能看到排队原因。
+- 新增飞书知识库写操作：创建、改名、复制、移动和知识空间成员管理。
 
 ### Included
 
@@ -25,19 +31,29 @@
   - `docs/README.en.md`
   - `docs/faq.md`
   - `docs/feishu-roadmap.md`
+- 会话 / 项目路由：
+  - `src/codex/session-index.ts`
+  - `src/bridge/service.ts`
+  - `src/state/session-store.ts`
+  - `src/bridge/task-queue.ts`
+  - `src/state/run-state-store.ts`
 - 飞书交互：
   - `src/feishu/extractors.ts`
   - `src/knowledge/search.ts`
   - `src/bridge/service.ts`
+- 飞书 wiki：
+  - `src/feishu/wiki.ts`
+  - `src/bridge/commands.ts`
+  - `tests/bridge-service.test.ts`
 - 发布准备：
   - `package.json`
   - `src/cli.ts`
 
 ### Verification
 
-- `pnpm build`
-- `pnpm test`
-- `pnpm typecheck`
+- `npm run build`
+- `npm run test`
+- `npm run typecheck`
 - `npm pack --dry-run`
 - GitHub Pages 中英文页面可访问
 
@@ -68,7 +84,7 @@
 
 ### Verification
 
-- `pnpm build`
+- `npm run build`
 - 文档/官网链接检查通过
 - GitHub Pages workflow 发布成功
 
@@ -137,9 +153,9 @@
 
 ### Verification
 
-- `pnpm test`
-- `pnpm typecheck`
-- `pnpm build`
+- `npm run test`
+- `npm run typecheck`
+- `npm run build`
 
 当前版本在发布前验证结果：
 

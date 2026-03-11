@@ -25,7 +25,11 @@ Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects
 
 - Supports both `long-connection` and `webhook` Feishu transports
 - Routes one Feishu entry point to multiple project directories
+- Persists project binding by `chat_id`, so each DM or group keeps its own current project until `/project <alias>` changes it
 - Starts new Codex sessions with `codex exec` and resumes existing ones with `codex exec resume`
+- Can adopt local Codex CLI sessions with `/session adopt latest|list|<thread_id>` from `~/.codex/sessions`
+- Can auto-adopt the latest local session on project switch with `service.project_switch_auto_adopt_latest = true`
+- Serializes by `project.root` across chats so two groups cannot mutate the same repo at once; later messages are surfaced as `queued`
 - Supports `/kb status` and `/kb search <query>` for project-local documentation search
 - Carries image/file/audio/rich-text metadata into the Codex prompt for media-aware conversations, auto-extracts excerpts from text-like attachments and `doc/docx/odt/rtf` files after download, and can generate concise image descriptions
 - Supports `/wiki spaces`, `/wiki search <query>`, and `/wiki read <url|token>` for Feishu knowledge-base access
@@ -97,6 +101,11 @@ Common Feishu commands:
 - `/wiki revoke <space_id> <member_type> <member_id> [member|admin]`
 - `/session list`
 - `/session use <thread_id>`
+- `/session new`
+- `/session drop [thread_id]`
+- `/session adopt latest`
+- `/session adopt list`
+- `/session adopt <thread_id>`
 
 ## Documentation
 

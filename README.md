@@ -38,7 +38,11 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 
 - `long-connection` 和 `webhook` 双模式接入飞书
 - 项目级路由：`/project <alias>` 切换当前仓库
+- 项目绑定按 `chat_id` 持久化：群里切一次，整群后续都会落到同一项目；私聊也会记住自己的当前项目
 - Codex 会话续接：新会话走 `codex exec`，续会话走 `codex exec resume`
+- 本地 Codex 会话接管：`/session adopt latest|list|<thread_id>` 可直接接上 `~/.codex/sessions` 中最近的项目会话
+- 切项目时可选自动接管最近本地会话：`service.project_switch_auto_adopt_latest = true`
+- 同仓库根目录全局串行：不同群、不同私聊、不同 alias 命中同一个 `project.root` 时不会并发改同一仓库，后续消息会先显示 `queued`
 - 飞书命令控制：`/status`、`/new`、`/cancel`、`/session list|use|new|drop|adopt`
 - 项目知识库搜索：`/kb status`、`/kb search <query>`
 - 多媒体上下文透传：图片、文件、音频、富文本消息会带元数据进入 Codex 提示词；下载文本类附件和 `doc/docx/odt/rtf` 后会自动摘录内容片段；图片可选生成简短视觉说明
@@ -171,8 +175,11 @@ codex-feishu serve --detach
 - `/wiki revoke <space_id> <member_type> <member_id> [member|admin]`
 - `/session list`
 - `/session use <thread_id>`
+- `/session new`
+- `/session drop [thread_id]`
 - `/session adopt latest`
 - `/session adopt list`
+- `/session adopt <thread_id>`
 
 ## 一个最小配置示例
 

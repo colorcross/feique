@@ -6,10 +6,11 @@
 
 ## Validation
 
-- [ ] `pnpm build`
-- [ ] `pnpm test`
-- [ ] `pnpm typecheck`
+- [ ] `npm run build`
+- [ ] `npm run test`
+- [ ] `npm run typecheck`
 - [ ] Manual Feishu flow checked when relevant
+- [ ] README / docs updated when behavior, routing, session, or runtime state changed
 
 ## Risks
 

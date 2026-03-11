@@ -132,6 +132,31 @@ codex-feishu bind repo-b /abs/path/to/repo-b
 project_switch_auto_adopt_latest = true
 ```
 
+如果你想手工指定要续接的原生 Codex 会话，可直接在飞书里用：
+
+```text
+/session adopt list
+/session adopt latest
+/session adopt <thread_id>
+```
+
+这会去本机 `~/.codex/sessions` 里找当前项目可匹配的 Codex CLI 会话，并把它设成当前 chat 下该项目的 active session。
+
+## 排队与仓库占用提示
+
+如果当前 chat 下同一项目已经有运行，或者别的 chat 正在操作同一个 `project.root`，新消息不会静默等待，而是会先收到一条 `queued` 提示：
+
+- 同 chat 内排队：`当前项目 <alias> 已有任务在处理，已进入排队。`
+- 跨 chat 命中仓库锁：`当前仓库正在被其他会话操作，已进入排队。`
+
+这时可以继续用：
+
+```text
+/status
+```
+
+查看当前 run id、状态和排队原因。
+
 ## 群聊建议
 
 默认建议：
