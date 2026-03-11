@@ -206,6 +206,8 @@ shell = "/bin/zsh"
 pre_exec = "proxy_on"
 ```
 
+长连接模式会继承当前 shell 的 `HTTP_PROXY` / `HTTPS_PROXY`，所以飞书 WebSocket 也会走代理，不需要再单独给事件通道做一份代理配置。
+
 ### 3. 想看实际生效配置
 
 ```bash

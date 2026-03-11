@@ -54,7 +54,9 @@
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@larksuiteoapi/node-sdk": "^1.59.0",
+    "axios": "^1.13.6",
     "commander": "^14.0.1",
+    "https-proxy-agent": "^7.0.6",
     "pino": "^9.11.0",
     "zod": "^4.1.11"
   },

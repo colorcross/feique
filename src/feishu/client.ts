@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import * as lark from '@larksuiteoapi/node-sdk';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import type { Logger } from '../logging.js';
 import type { BridgeConfig } from '../config/schema.js';
 import { splitTextForFeishu } from './text.js';
@@ -51,11 +53,15 @@ export class FeishuClient {
   }
 
   public createWsClient(): lark.WSClient {
+    const agent = this.createWsAgent();
+    const httpInstance = this.createWsHttpInstance(agent);
     return new lark.WSClient({
       appId: this.config.app_id,
       appSecret: this.config.app_secret,
       domain: lark.Domain.Feishu,
       loggerLevel: lark.LoggerLevel.warn,
+      ...(agent ? { agent } : {}),
+      ...(httpInstance ? { httpInstance } : {}),
     });
   }
 
@@ -169,6 +175,55 @@ export class FeishuClient {
       this.metrics?.recordOutboundMessage(msgType, 'failure');
       throw error;
     }
+  }
+
+  private createWsAgent(): HttpsProxyAgent<string> | undefined {
+    const proxyUrl =
+      process.env.HTTPS_PROXY ??
+      process.env.https_proxy ??
+      process.env.HTTP_PROXY ??
+      process.env.http_proxy;
+    if (!proxyUrl) {
+      return undefined;
+    }
+
+    try {
+      return new HttpsProxyAgent(proxyUrl);
+    } catch (error) {
+      this.logger.warn({ err: error }, 'Failed to build Feishu WebSocket proxy agent; falling back to direct connection');
+      return undefined;
+    }
+  }
+
+  private createWsHttpInstance(agent: HttpsProxyAgent<string> | undefined): AxiosInstance | undefined {
+    if (!agent) {
+      return undefined;
+    }
+
+    const httpInstance = axios.create({
+      httpAgent: agent,
+      httpsAgent: agent,
+      proxy: false,
+    });
+
+    httpInstance.interceptors.request.use((request: InternalAxiosRequestConfig) => {
+      if (request.headers) {
+        request.headers['User-Agent'] = 'oapi-node-sdk/1.0.0';
+      }
+      return request;
+    }, undefined, { synchronous: true });
+
+    httpInstance.interceptors.response.use((response: AxiosResponse) => {
+      if ((response.config as InternalAxiosRequestConfig & { $return_headers?: boolean }).$return_headers) {
+        return {
+          data: response.data,
+          headers: response.headers,
+        };
+      }
+      return response.data;
+    });
+
+    return httpInstance;
   }
 }
 

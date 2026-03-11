@@ -124,6 +124,8 @@ shell = "/bin/zsh"
 pre_exec = "proxy_on"
 ```
 
+长连接模式会继承当前 shell 的 `HTTP_PROXY` / `HTTPS_PROXY`，这样飞书 WebSocket 和后续的 Codex 命令都会走同一套代理出口。
+
 ### 4. 启动服务
 
 ```bash

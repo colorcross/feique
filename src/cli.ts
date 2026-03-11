@@ -4,6 +4,7 @@ import { closeSync, openSync } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { Command } from 'commander';
+import packageJson from '../package.json' with { type: 'json' };
 import { createLogger } from './logging.js';
 import { buildInitialConfig, getInitTargetPath } from './config/init.js';
 import { getGlobalConfigPath } from './config/paths.js';
@@ -35,7 +36,7 @@ const program = new Command();
 program
   .name('codex-feishu')
   .description('Feishu bridge for Codex CLI with session routing and project-scoped config.')
-  .version('0.1.2');
+  .version(packageJson.version);
 
 program
   .command('init')

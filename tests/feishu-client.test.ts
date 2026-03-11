@@ -49,6 +49,11 @@ const config: BridgeConfig['feishu'] = {
   allowed_group_ids: [],
 };
 
+const originalHttpsProxy = process.env.HTTPS_PROXY;
+const originalHttpProxy = process.env.HTTP_PROXY;
+const originalHttpsProxyLower = process.env.https_proxy;
+const originalHttpProxyLower = process.env.http_proxy;
+
 beforeEach(() => {
   vi.useFakeTimers();
   requestMock.mockReset();
@@ -61,6 +66,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  restoreProxyEnv();
 });
 
 describe('FeishuClient', () => {
@@ -139,4 +145,53 @@ describe('FeishuClient', () => {
       }),
     );
   });
+
+  it('passes a proxy agent to WSClient when proxy env is configured', () => {
+    process.env.HTTPS_PROXY = 'http://127.0.0.1:1087';
+    delete process.env.HTTP_PROXY;
+    delete process.env.https_proxy;
+    delete process.env.http_proxy;
+
+    const client = new FeishuClient(config, logger);
+    client.createWsClient();
+
+    expect(wsClientCtorMock).toHaveBeenCalledTimes(1);
+    const options = wsClientCtorMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(options.appId).toBe('app-id');
+    expect(options.appSecret).toBe('app-secret');
+    expect(options.agent).toBeTruthy();
+    expect(options.httpInstance).toBeTruthy();
+  });
+
+  it('creates WSClient without agent when no proxy env is configured', () => {
+    delete process.env.HTTPS_PROXY;
+    delete process.env.HTTP_PROXY;
+    delete process.env.https_proxy;
+    delete process.env.http_proxy;
+
+    const client = new FeishuClient(config, logger);
+    client.createWsClient();
+
+    expect(wsClientCtorMock).toHaveBeenCalledTimes(1);
+    expect(wsClientCtorMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        agent: expect.anything(),
+      }),
+    );
+  });
 });
+
+function restoreProxyEnv(): void {
+  setOptionalEnv('HTTPS_PROXY', originalHttpsProxy);
+  setOptionalEnv('HTTP_PROXY', originalHttpProxy);
+  setOptionalEnv('https_proxy', originalHttpsProxyLower);
+  setOptionalEnv('http_proxy', originalHttpProxyLower);
+}
+
+function setOptionalEnv(key: 'HTTPS_PROXY' | 'HTTP_PROXY' | 'https_proxy' | 'http_proxy', value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[key];
+    return;
+  }
+  process.env[key] = value;
+}
