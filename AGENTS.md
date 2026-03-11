@@ -1,11 +1,6 @@
 # Codex Feishu Repo Workflow
 
-## Language
-- 默认使用中文沟通；代码、命令、路径、接口名保持原文。
-
-## Execution
-- 对当前仓库内的连续工程任务，默认自动连续执行，不等待用户回复“继续”。
-- 每一轮都要先实现，再做最小必要验证；验证通过后，若目标尚未完成，则直接进入下一轮。
+This file only keeps repository-specific rules. Global workflow, verification grading, token hygiene, and self-iteration live in `~/.codex/AGENTS.md`.
 
 ## Commit discipline
 - 每一轮开始前，如果工作区不是干净状态，先提交一个 checkpoint commit，再开始本轮改动。
@@ -13,18 +8,8 @@
 - 若一轮开始时工作区已干净，不创建空提交。
 - 不 amend 已有提交，除非用户明确要求。
 
-## Validation
-- 改完先跑最小相关验证，再决定是否扩大到更完整测试。
+## Verification baseline
 - 除非明确不适用，优先保留 `typecheck`、`test`、`build` 之一或多项作为收尾验证。
 
-## Status grading
-- 每一轮结果都要明确区分以下状态，不得混用：
-  - `已实现`：代码或配置已经改完，但尚未完成验证。
-  - `本地验证通过`：已完成本机或 CI 级验证，例如 `typecheck`、`test`、`build`、本地 smoke test。
-  - `真实闭环完成`：已在真实外部环境完成验证，例如真实飞书、GitHub、npm、Webhook、长连接、线上服务。
-- 若只完成前两者，不得表述为“已完成上线”或“已完全可用”。
-- 涉及外部系统时，最终汇报中应单独标明阻塞点、依赖用户动作和未完成的真实闭环项。
-
-## Safety
-- 不回退用户已有改动，除非用户明确要求。
-- 遇到凭证、OTP、登录、审批、外部权限或高风险不可逆操作时再暂停等待用户。
+## External closure focus
+- 本仓库涉及飞书、GitHub、npm、Webhook、long-connection、MCP、Pages 等外部系统；汇报时要单独标明哪些只是本地验证，哪些已完成真实闭环。
