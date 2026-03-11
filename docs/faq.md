@@ -129,9 +129,9 @@ codex-feishu serve stop --force
 可以。
 
 ```bash
-pnpm demo:up
-pnpm demo:smoke
-pnpm demo:down
+npm run demo:up
+npm run demo:smoke
+npm run demo:down
 ```
 
 它会启用 `feishu.dry_run = true`，本地跑完整链路但不真实向飞书出站。

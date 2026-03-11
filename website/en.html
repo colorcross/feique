@@ -6,12 +6,12 @@
     <title>Codex Feishu</title>
     <meta
       name="description"
-      content="Turn Feishu into a disciplined entry point for Codex CLI. Codex Feishu keeps project routing, resumable sessions, and operational control on the same path."
+      content="Route Feishu into a real Codex control plane. Codex Feishu keeps sticky project routing, local session adoption, repo-safe serialization, and visible runtime state on one path."
     />
     <meta property="og:title" content="Codex Feishu" />
     <meta
       property="og:description"
-      content="Turn Feishu into a disciplined entry point for Codex CLI with project routing, resumable sessions, native reply, and operational control."
+      content="A project-aware Feishu bridge for Codex CLI with sticky chat routing, local session adoption, queued run visibility, and production-grade runtime control."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://colorcross.github.io/codex-feishu/en.html" />
@@ -20,336 +20,299 @@
     <meta name="twitter:title" content="Codex Feishu" />
     <meta
       name="twitter:description"
-      content="A session-aware bridge between Feishu and Codex CLI, built for project routing, resumable chats, native reply, and production-grade operations."
+      content="Sticky project routing, local session adoption, repo-root locking, and queued run visibility for Feishu-driven Codex workflows."
     />
     <meta name="twitter:image" content="https://colorcross.github.io/codex-feishu/social-preview.png" />
+    <meta name="theme-color" content="#0d1118" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="site-shell">
-      <div class="ambient ambient-left"></div>
-      <div class="ambient ambient-right"></div>
+      <div class="halo halo-amber"></div>
+      <div class="halo halo-teal"></div>
 
       <header class="site-header fade-up">
-        <div class="brand-lockup">
-          <span class="micro-label">Open Source / Feishu × Codex CLI</span>
-          <a class="brand-mark" href="https://github.com/colorcross/codex-feishu">Codex Feishu</a>
-        </div>
+        <a class="brand-mark" href="https://github.com/colorcross/codex-feishu">Codex Feishu</a>
         <nav class="site-nav" aria-label="Primary">
           <a href="./index.html">中文</a>
+          <a href="https://www.npmjs.com/package/codex-feishu">npm</a>
           <a href="https://github.com/colorcross/codex-feishu">GitHub</a>
           <a href="https://github.com/colorcross/codex-feishu/tree/main/docs">Docs</a>
-          <a href="https://github.com/colorcross/codex-feishu/discussions">Discussions</a>
           <a href="https://github.com/colorcross/codex-feishu/releases">Releases</a>
         </nav>
       </header>
 
       <main>
-        <section class="hero-grid">
-          <div class="hero-copy fade-up delay-1">
-            <p class="eyebrow">Session-aware bridge for disciplined engineering workflows</p>
+        <section class="announcement-bar fade-up delay-1" aria-label="Release status">
+          <span class="announcement-pill">Now on npm</span>
+          <p><code>codex-feishu</code> is live on npm, and tagged releases now align npm publishing with GitHub Release assets.</p>
+          <a href="https://www.npmjs.com/package/codex-feishu">Open package page</a>
+        </section>
+
+        <section class="hero-layout">
+          <article class="hero-panel hero-copy fade-up delay-1">
+            <span class="eyebrow">Feishu × Codex CLI / Project-aware control plane</span>
             <h1 class="display-stack">
-              <span class="display-line">Turn Feishu into</span>
-              <span class="display-line display-accent">Codex's working entry point.</span>
+              <span class="display-line">Route Feishu</span>
+              <span class="display-line">into Codex's</span>
+              <span class="display-line display-accent">control plane.</span>
             </h1>
             <p class="hero-body">
-              Codex Feishu sends Feishu messages into resumable Codex sessions. Projects stay routable, replies stay traceable, and runtime state stays operable. It is not a disposable bot script. It is an engineering bridge built to stay up.
+              Codex Feishu sends Feishu messages into resumable Codex CLI sessions. Project binding sticks by <code>chat_id</code>, local sessions can be adopted, shared repos are serialized safely, and queued runtime state stays visible inside Feishu.
             </p>
             <div class="hero-actions">
-              <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">Open GitHub</a>
+              <a class="button button-primary" href="https://www.npmjs.com/package/codex-feishu">Install from npm</a>
               <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/README.en.md">Read README</a>
+              <a class="button button-tertiary" href="https://github.com/colorcross/codex-feishu">View source</a>
             </div>
-            <div class="hero-notes">
-              <span>Dual transport</span>
-              <span>Project routing</span>
-              <span>Recoverable runtime</span>
+            <div class="status-pills" aria-label="Key release facts">
+              <span>chat_id project binding</span>
+              <span>/session adopt</span>
+              <span>project.root lock</span>
+              <span>queued visibility</span>
             </div>
-          </div>
+          </article>
 
-          <aside class="hero-aside fade-up delay-2" aria-label="Operational preview">
-            <div class="aside-card aside-card-terminal">
-              <div class="window-dots" aria-hidden="true">
-                <span></span><span></span><span></span>
+          <aside class="hero-stack fade-up delay-2" aria-label="Runtime preview">
+            <article class="hero-panel install-panel">
+              <div class="panel-head">
+                <span class="micro-label">Install / First Run</span>
+                <span class="panel-kicker">latest on npm</span>
               </div>
-              <pre><code>$ npm install -g codex-feishu
-$ codex-feishu init --mode global
-$ export FEISHU_APP_ID=cli_xxx
-$ export FEISHU_APP_SECRET=***
-$ codex-feishu doctor --remote
-$ codex-feishu serve --detach
+              <pre><code>npm install -g codex-feishu
+codex-feishu init --mode global
+export FEISHU_APP_ID=cli_xxx
+export FEISHU_APP_SECRET=***
+codex-feishu doctor --remote
+codex-feishu serve --detach</code></pre>
+            </article>
 
-Feishu: connected
-Transport: long-connection
-Project: default
-Reply: native message reply
-State: healthy</code></pre>
-            </div>
-            <div class="aside-card aside-card-proof">
-              <span class="micro-label">What this keeps stable</span>
-              <ul>
-                <li>One chat entry point can route to multiple repository roots.</li>
-                <li>One project can keep resuming the same Codex session.</li>
-                <li>Audit logs, metrics, and cancellation stay on the local control plane.</li>
-                <li>Knowledge search and media metadata now enter the same operating loop.</li>
-              </ul>
+            <article class="hero-panel status-panel">
+              <div class="panel-head">
+                <span class="micro-label">Run State Preview</span>
+                <span class="panel-kicker">same repo, no race</span>
+              </div>
+              <pre><code>Project: repo-a
+Current session: thread-2026-03
+Current run: run_queued (queued)
+
+This repository is currently being operated by another chat.
+Queued with 1 task ahead.
+Blocking run: run_live (running)</code></pre>
+            </article>
+
+            <div class="signal-cluster">
+              <article class="signal-card">
+                <span class="micro-label">Sticky Routing</span>
+                <strong>Switch once in a group and the whole chat keeps the same project.</strong>
+              </article>
+              <article class="signal-card">
+                <span class="micro-label">Session Adoption</span>
+                <strong>Adopt live Codex sessions directly from <code>~/.codex/sessions</code>.</strong>
+              </article>
+              <article class="signal-card">
+                <span class="micro-label">Runtime Guard</span>
+                <strong>Different chats targeting one repo are serialized instead of fighting over files.</strong>
+              </article>
             </div>
           </aside>
         </section>
 
-        <section class="stat-strip fade-up delay-2" aria-label="Core proof points">
+        <section class="signal-rail fade-up delay-2" aria-label="Core proof points">
           <article>
-            <span class="micro-label">Transport</span>
-            <strong>long-connection + webhook</strong>
-            <p>Local-first by default, shared-service ready when needed.</p>
+            <span class="micro-label">Binding</span>
+            <strong>Project choice sticks to the chat</strong>
+            <p>Project selection is not a per-message guess. DMs and groups keep their own current project.</p>
           </article>
           <article>
-            <span class="micro-label">Routing</span>
-            <strong>Selection / Session / Queue separation</strong>
-            <p>Chat state stays explainable instead of collapsing into collisions.</p>
+            <span class="micro-label">Resume</span>
+            <strong>Resume bridge sessions or adopt local ones</strong>
+            <p>The bridge can now continue its own sessions and take over native Codex CLI sessions from local state.</p>
           </article>
           <article>
-            <span class="micro-label">Operations</span>
-            <strong>Cancel / Timeout / Recovery</strong>
-            <p>Not only message forwarding, but actual runtime control.</p>
+            <span class="micro-label">Queue</span>
+            <strong>Queue key plus repo-root lock</strong>
+            <p>Runs stay serialized both within a project thread and across chats that point to the same <code>project.root</code>.</p>
           </article>
           <article>
-            <span class="micro-label">Context</span>
-            <strong>Knowledge search + media-aware prompts</strong>
-            <p>Project docs are searchable, and images/files/audio contribute structured context.</p>
+            <span class="micro-label">Surface</span>
+            <strong>Wiki, KB, media, and runtime state together</strong>
+            <p>Knowledge search, wiki operations, media-aware prompts, and visible run state now share one entry point.</p>
           </article>
         </section>
 
-        <section class="section intro-block fade-up">
+        <section class="section fade-up">
           <div class="section-head">
-            <span class="micro-label">Why this exists</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">Feishu handles communication. Codex handles execution.</span>
-              <span class="display-line display-shift">The bridge keeps context and control intact.</span>
-            </h2>
+            <span class="micro-label">How it works</span>
+            <h2 class="section-title">This is not message forwarding. It is a control plane that puts engineering context in the right place.</h2>
           </div>
-          <div class="principle-grid">
-            <article>
-              <h3>Route by project</h3>
-              <p>Use `/project &lt;alias&gt;` to make the active repository explicit instead of re-explaining context in every message.</p>
+          <div class="workflow-grid">
+            <article class="workflow-card">
+              <span class="step-index">01</span>
+              <h3>Messages enter a sticky project layer first</h3>
+              <p>The bridge resolves the current chat's project binding before execution starts. It does not re-guess the repository every turn.</p>
             </article>
-            <article>
-              <h3>Resume by session</h3>
-              <p>New work starts with `codex exec`; continued work resumes with `codex exec resume`.</p>
+            <article class="workflow-card">
+              <span class="step-index">02</span>
+              <h3>Session continuity is explicit</h3>
+              <p>If a project already has an active session, it resumes. If not, <code>/session adopt latest</code> can attach the closest local Codex session.</p>
             </article>
-            <article>
-              <h3>Operate with confidence</h3>
-              <p>Idempotency, native replies, audit logs, metrics, and runtime guards keep the bridge trustworthy over time.</p>
+            <article class="workflow-card">
+              <span class="step-index">03</span>
+              <h3>Repo concurrency is blocked before damage</h3>
+              <p>If another chat is already operating the same repository root, the new run is surfaced as <code>queued</code> instead of racing silently.</p>
             </article>
-          </div>
-        </section>
-
-        <section class="section architecture-section fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">System shape</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">A thin bridge.</span>
-              <span class="display-line display-shift">The critical control points still have to be exact.</span>
-            </h2>
-          </div>
-          <div class="architecture-layout">
-            <div class="architecture-copy">
-              <p>
-                The value is not only that Feishu can talk to Codex. The value is that every message goes through routing, session state, and runtime policy before it touches a working repository.
-              </p>
-              <ul class="architecture-list">
-                <li>Feishu receives the message and provides the chat boundary.</li>
-                <li>The bridge resolves project, session, idempotency, and permissions.</li>
-                <li>Codex executes inside a project root with the expected shell, sandbox, and pre-exec setup.</li>
-                <li>Audit, metrics, and runtime state stay visible after the reply is sent.</li>
-              </ul>
-            </div>
-            <div class="diagram-frame" aria-label="Architecture diagram">
-              <svg viewBox="0 0 760 420" role="img" aria-labelledby="diagram-title diagram-desc">
-                <title id="diagram-title">Codex Feishu architecture</title>
-                <desc id="diagram-desc">Messages flow from Feishu into the bridge service, then into Codex runtime and local repositories, with audit and metrics connected underneath.</desc>
-                <defs>
-                  <linearGradient id="node-fill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#fcfaf5" />
-                    <stop offset="100%" stop-color="#f1e8da" />
-                  </linearGradient>
-                </defs>
-                <rect x="34" y="70" width="168" height="94" rx="22" fill="url(#node-fill)" stroke="#cfc2af" />
-                <text x="58" y="106" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">ENTRY</text>
-                <text x="58" y="136" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Feishu</text>
-                <text x="58" y="160" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">Private chats / groups / mentions</text>
-
-                <rect x="274" y="42" width="212" height="150" rx="24" fill="url(#node-fill)" stroke="#cfc2af" />
-                <text x="300" y="78" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">CONTROL PLANE</text>
-                <text x="300" y="112" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Bridge Service</text>
-                <text x="300" y="140" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">project routing</text>
-                <text x="300" y="164" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">session selection</text>
-                <text x="300" y="188" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">idempotency and permissions</text>
-
-                <rect x="556" y="70" width="170" height="94" rx="22" fill="#171513" stroke="#312a23" />
-                <text x="582" y="106" font-size="16" fill="#d3c8ba" font-family="IBM Plex Mono, monospace">EXECUTION</text>
-                <text x="582" y="136" font-size="28" fill="#f3ede3" font-family="IBM Plex Sans, sans-serif" font-weight="600">Codex</text>
-                <text x="582" y="160" font-size="17" fill="#d3c8ba" font-family="IBM Plex Sans, sans-serif">exec / resume / shell</text>
-
-                <rect x="520" y="252" width="206" height="96" rx="22" fill="url(#node-fill)" stroke="#cfc2af" />
-                <text x="546" y="288" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">WORKSPACE</text>
-                <text x="546" y="318" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Project Roots</text>
-                <text x="546" y="342" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">repo A / repo B / repo C</text>
-
-                <rect x="218" y="274" width="220" height="74" rx="22" fill="#f8f2e8" stroke="#cfc2af" />
-                <text x="246" y="304" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">OBSERVABILITY</text>
-                <text x="246" y="330" font-size="18" fill="#171512" font-family="IBM Plex Sans, sans-serif">audit / metrics / runtime state</text>
-
-                <path d="M202 117H274" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M486 117H556" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M612 164V252" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M380 192V274" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M486 117C526 117 540 117 556 117" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" fill="none" />
-                <circle cx="274" cy="117" r="4.5" fill="#8e5d31" />
-                <circle cx="556" cy="117" r="4.5" fill="#8e5d31" />
-                <circle cx="612" cy="252" r="4.5" fill="#8e5d31" />
-                <circle cx="380" cy="274" r="4.5" fill="#8e5d31" />
-              </svg>
-            </div>
-          </div>
-        </section>
-
-        <section class="section split-layout fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">Deployment posture</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">Two deployment shapes.</span>
-              <span class="display-line display-shift">Each solves a different operational problem.</span>
-            </h2>
-          </div>
-          <div class="mode-columns">
-            <article class="mode-panel featured">
-              <header>
-                <span class="mode-tag">Local-first</span>
-                <h3>long-connection</h3>
-              </header>
-              <p>No public callback URL required. Best for individual development, internal networks, and fast iteration.</p>
-              <ul>
-                <li>Fast onboarding</li>
-                <li>Minimal deployment overhead</li>
-                <li>Strong fit for personal daily workflow</li>
-              </ul>
+            <article class="workflow-card">
+              <span class="step-index">04</span>
+              <h3>Codex runs inside explicit boundaries</h3>
+              <p>Project root, sandbox, shell, pre-exec, timeout, and runtime policy remain visible and configurable.</p>
             </article>
-            <article class="mode-panel">
-              <header>
-                <span class="mode-tag">Shared service</span>
-                <h3>webhook</h3>
-              </header>
-              <p>Best for shared services, card callbacks, reverse proxies, and standard production exposure.</p>
-              <ul>
-                <li>Card callback support</li>
-                <li>Reverse proxy and HTTPS friendly</li>
-                <li>Suitable for formal service deployment</li>
-              </ul>
+            <article class="workflow-card">
+              <span class="step-index">05</span>
+              <h3>The control plane remains after the reply</h3>
+              <p>Audit logs, metrics, run state, and session history continue to exist after the final answer is sent.</p>
             </article>
           </div>
         </section>
 
-        <section class="section operations-grid fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">Day-2 operations</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">The first successful run is not the value.</span>
-              <span class="display-line display-shift">The weeks after that are.</span>
-            </h2>
+        <section class="section fade-up">
+          <div class="section-head">
+            <span class="micro-label">Capabilities</span>
+            <h2 class="section-title">The story is no longer “it can chat.” The story is “it can route, adopt, serialize, and operate.”</h2>
           </div>
-          <div class="ops-layout">
-            <article class="ops-panel command-panel">
-              <span class="micro-label">Essential commands</span>
-              <pre><code>codex-feishu doctor --remote
-codex-feishu serve --detach
-codex-feishu serve status
-codex-feishu serve logs --lines 100
-codex-feishu serve ps
-codex-feishu serve stop --force
-codex-feishu audit tail --limit 20</code></pre>
+          <div class="capability-grid">
+            <article class="capability-card">
+              <span class="micro-label">Project Routing</span>
+              <h3><code>/project &lt;alias&gt;</code> changes the active project for the current chat</h3>
+              <p>Switch once in a group and everyone in that group inherits the same project until it is changed again.</p>
             </article>
-            <article class="ops-panel list-panel">
-              <span class="micro-label">Operational surface</span>
-              <div class="ops-list">
-                <div>
-                  <strong>Runtime discipline</strong>
-                  <p>Cancel, timeout, stale run recovery, and instance locking stop one message from corrupting long-lived runtime state.</p>
-                </div>
-                <div>
-                  <strong>Message discipline</strong>
-                  <p>Bot self-loop filtering, idempotency, and native Feishu replies keep conversation state readable.</p>
-                </div>
-                <div>
-                  <strong>Observability</strong>
-                  <p>Audit logs, run state, Prometheus metrics, and Grafana / Alertmanager examples ship together.</p>
-                </div>
+            <article class="capability-card">
+              <span class="micro-label">Session Adoption</span>
+              <h3><code>/session adopt latest|list|&lt;thread_id&gt;</code></h3>
+              <p>Feishu can now attach to native Codex CLI sessions instead of only sessions previously persisted by the bridge.</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Auto Adopt</span>
+              <h3>Project switch can auto-connect the latest local session</h3>
+              <p>With <code>service.project_switch_auto_adopt_latest = true</code>, project switching prefers the chat's existing session and otherwise adopts the latest matching local one.</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Runtime Discipline</span>
+              <h3><code>queue key</code> plus <code>project.root</code> locking</h3>
+              <p>Project threads do not overlap, and separate chats cannot mutate the same repository in parallel.</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Visible Queue</span>
+              <h3>Queued state is a first-class runtime surface</h3>
+              <p><code>/status</code>, status cards, and text replies all expose whether the run is blocked by the current project or another chat touching the same repo.</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Extended Context</span>
+              <h3>Wiki, KB, media, and memory all feed one execution path</h3>
+              <p>Knowledge search, wiki operations, attachment metadata, thread summaries, and project memory now join the same execution surface.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section fade-up">
+          <div class="section-head">
+            <span class="micro-label">Quick Start</span>
+            <h2 class="section-title">A homepage should give the shortest path first, not force readers into docs before they understand the shape.</h2>
+          </div>
+          <div class="quickstart-grid">
+            <article class="quick-card code-card">
+              <div class="panel-head">
+                <span class="micro-label">CLI</span>
+                <span class="panel-kicker">install and bootstrap</span>
               </div>
+              <pre><code>npm install -g codex-feishu
+codex-feishu init --mode global
+codex-feishu doctor
+codex-feishu doctor --remote
+codex-feishu serve --detach</code></pre>
+            </article>
+            <article class="quick-card code-card">
+              <div class="panel-head">
+                <span class="micro-label">Feishu</span>
+                <span class="panel-kicker">switch, adopt, continue</span>
+              </div>
+              <pre><code>/projects
+/project repo-a
+/session adopt list
+/session adopt latest
+Continue closing out this release flow</code></pre>
+            </article>
+            <article class="quick-card summary-card">
+              <span class="micro-label">Release Surface</span>
+              <ul class="summary-list">
+                <li><strong>npm</strong><span>Install directly with <code>npm install -g codex-feishu</code></span></li>
+                <li><strong>GitHub Release</strong><span>tagged builds produce synchronized tgz assets</span></li>
+                <li><strong>GitHub Pages</strong><span>the site remains pure static HTML/CSS</span></li>
+                <li><strong>Docs</strong><span>README, docs, and workflows now describe the same current behavior</span></li>
+              </ul>
             </article>
           </div>
         </section>
 
-        <section class="section resources-section fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">Documentation</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">The homepage establishes judgment.</span>
-              <span class="display-line display-shift">The docs make it deployable.</span>
-            </h2>
+        <section class="section fade-up">
+          <div class="section-head">
+            <span class="micro-label">Docs & Surface Area</span>
+            <h2 class="section-title">The repository, documentation, release pipeline, and website should now all tell the same story.</h2>
           </div>
           <div class="resource-grid">
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/README.en.md">
+              <strong>README</strong>
+              <span>Current installation path, command surface, and runtime model</span>
+            </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">
-              <strong>Getting started</strong>
-              <span>Launch a usable instance in minutes</span>
-            </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/architecture.md">
-              <strong>Architecture</strong>
-              <span>Understand transport, session state, and runtime guardrails</span>
-            </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/deployment.md">
-              <strong>Deployment</strong>
-              <span>Local-first mode, shared mode, services, and probes</span>
-            </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/security.md">
-              <strong>Security and ops</strong>
-              <span>Credentials, project boundaries, group-chat risk, and metrics</span>
+              <strong>Getting Started</strong>
+              <span>The shortest path from npm install to Feishu round-trip</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/faq.md">
               <strong>FAQ</strong>
-              <span>Sessions, allow-lists, reply behavior, and proxy setup</span>
+              <span>Project binding, session adoption, queued state, and allow-lists</span>
             </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">
-              <strong>Feishu roadmap</strong>
-              <span>Docs, knowledge-base, multimedia, and approval workflows next</span>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/architecture.md">
+              <strong>Architecture</strong>
+              <span>selection key, session key, queue key, and repo-root lock</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/releases">
+              <strong>Releases</strong>
+              <span>Versioned artifacts, notes, and release workflow output</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/discussions">
+              <strong>Discussions</strong>
+              <span>Deployment tradeoffs, ops experience, and product direction</span>
             </a>
           </div>
         </section>
 
         <section class="final-call fade-up">
           <div>
-            <span class="micro-label">Start from the repository</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">Run it first.</span>
-              <span class="display-line display-shift">Then decide which projects and team workflows deserve the bridge.</span>
-            </h2>
+            <span class="micro-label">Start where people already work</span>
+            <h2 class="section-title">First connect the communication surface. Then bring the project, session, and runtime discipline with it.</h2>
+            <p class="final-copy">Codex Feishu is no longer just a Feishu bot. It is a controllable bridge for real Codex execution workflows.</p>
           </div>
-          <div class="final-actions">
-            <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">Open GitHub</a>
-            <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">Roadmap</a>
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://www.npmjs.com/package/codex-feishu">Install from npm</a>
+            <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/releases">View Releases</a>
+            <a class="button button-tertiary" href="https://github.com/colorcross/codex-feishu/tree/main/docs">Open Docs</a>
           </div>
         </section>
       </main>
 
       <footer class="site-footer fade-up">
-        <p>Codex Feishu · a quieter, more disciplined way to drive Codex CLI from Feishu.</p>
+        <p>Codex Feishu · Route Feishu into a manageable Codex execution control plane.</p>
         <div>
-          <a href="https://github.com/colorcross/codex-feishu/discussions">Discussions</a>
+          <a href="https://github.com/colorcross/codex-feishu">GitHub</a>
+          <a href="https://www.npmjs.com/package/codex-feishu">npm</a>
           <a href="https://github.com/colorcross/codex-feishu/blob/main/SUPPORT.md">Support</a>
           <a href="https://github.com/colorcross/codex-feishu/blob/main/CONTRIBUTING.md">Contributing</a>
           <a href="https://github.com/colorcross/codex-feishu/blob/main/SECURITY.md">Security</a>

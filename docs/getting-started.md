@@ -17,14 +17,14 @@
 
 ### 1. 安装
 
-优先使用 npm 全局安装：
+直接从 npm 全局安装：
 
 ```bash
 npm install -g codex-feishu
 codex-feishu init --mode global
 ```
 
-如果 npm 包还没完成最终发布，可以先用 GitHub Release 产物：
+如果你想固定到某个 release 产物，也可以直接安装 GitHub Release 的 tgz：
 
 ```bash
 npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.2/codex-feishu-0.1.2.tgz

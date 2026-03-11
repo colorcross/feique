@@ -6,12 +6,12 @@
     <title>Codex Feishu</title>
     <meta
       name="description"
-      content="把飞书变成 Codex 的工作入口。Codex Feishu 连接飞书与 Codex CLI，让项目路由、会话续接和运行运维落到同一条链路里。"
+      content="把飞书接到 Codex 的控制面。Codex Feishu 让项目绑定、会话接管、仓库串行和运维状态在同一条链路里闭环。"
     />
     <meta property="og:title" content="Codex Feishu" />
     <meta
       property="og:description"
-      content="Turn Feishu into a disciplined entry point for Codex CLI with project routing, resumable sessions, native reply, and operational control."
+      content="A project-aware Feishu bridge for Codex CLI with sticky chat routing, local session adoption, queued run visibility, and production-grade runtime control."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://colorcross.github.io/codex-feishu/" />
@@ -20,335 +20,299 @@
     <meta name="twitter:title" content="Codex Feishu" />
     <meta
       name="twitter:description"
-      content="A session-aware bridge between Feishu and Codex CLI, built for project routing, resumable chats, and production-grade operations."
+      content="把飞书接到 Codex 的控制面。项目可路由，会话可接管，仓库并发有边界，运行状态在飞书里可见。"
     />
     <meta name="twitter:image" content="https://colorcross.github.io/codex-feishu/social-preview.png" />
+    <meta name="theme-color" content="#0d1118" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="site-shell">
-      <div class="ambient ambient-left"></div>
-      <div class="ambient ambient-right"></div>
+      <div class="halo halo-amber"></div>
+      <div class="halo halo-teal"></div>
 
       <header class="site-header fade-up">
-        <div class="brand-lockup">
-          <span class="micro-label">Open Source / Feishu × Codex CLI</span>
-          <a class="brand-mark" href="https://github.com/colorcross/codex-feishu">Codex Feishu</a>
-        </div>
+        <a class="brand-mark" href="https://github.com/colorcross/codex-feishu">Codex Feishu</a>
         <nav class="site-nav" aria-label="Primary">
           <a href="./en.html">EN</a>
+          <a href="https://www.npmjs.com/package/codex-feishu">npm</a>
           <a href="https://github.com/colorcross/codex-feishu">GitHub</a>
           <a href="https://github.com/colorcross/codex-feishu/tree/main/docs">Docs</a>
-          <a href="https://github.com/colorcross/codex-feishu/discussions">Discussions</a>
           <a href="https://github.com/colorcross/codex-feishu/releases">Releases</a>
         </nav>
       </header>
 
       <main>
-        <section class="hero-grid">
-          <div class="hero-copy fade-up delay-1">
-            <p class="eyebrow">Session-aware bridge for disciplined engineering workflows</p>
+        <section class="announcement-bar fade-up delay-1" aria-label="Release status">
+          <span class="announcement-pill">npm 已上线</span>
+          <p>`codex-feishu` 已发布到 npm，tag 发布链路会自动同步 npm 与 GitHub Release。</p>
+          <a href="https://www.npmjs.com/package/codex-feishu">查看包页面</a>
+        </section>
+
+        <section class="hero-layout">
+          <article class="hero-panel hero-copy fade-up delay-1">
+            <span class="eyebrow">Feishu × Codex CLI / Project-aware control plane</span>
             <h1 class="display-stack">
-              <span class="display-line">把飞书变成</span>
-              <span class="display-line display-accent">Codex 的工作入口。</span>
+              <span class="display-line">把飞书</span>
+              <span class="display-line">接到 Codex</span>
+              <span class="display-line display-accent">的控制面。</span>
             </h1>
             <p class="hero-body">
-              Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路由，回复可追踪，运行可运维。它不是一次性 bot，而是一层能长期运行的工程桥接器。
+              Codex Feishu 让飞书消息直接进入可续接的 Codex CLI 会话。项目绑定按 <code>chat_id</code> 持久化，本地会话可接管，同仓库自动串行，排队和运行态在飞书里直接可见。
             </p>
             <div class="hero-actions">
-              <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">查看仓库</a>
+              <a class="button button-primary" href="https://www.npmjs.com/package/codex-feishu">npm 安装</a>
               <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">快速开始</a>
+              <a class="button button-tertiary" href="https://github.com/colorcross/codex-feishu">查看源码</a>
             </div>
-            <div class="hero-notes">
-              <span>双模式接入</span>
-              <span>多项目路由</span>
-              <span>可恢复运行态</span>
+            <div class="status-pills" aria-label="Key release facts">
+              <span>chat_id 项目绑定</span>
+              <span>/session adopt</span>
+              <span>project.root 锁</span>
+              <span>queued 可见状态</span>
             </div>
-          </div>
+          </article>
 
-          <aside class="hero-aside fade-up delay-2" aria-label="Operational preview">
-            <div class="aside-card aside-card-terminal">
-              <div class="window-dots" aria-hidden="true">
-                <span></span><span></span><span></span>
+          <aside class="hero-stack fade-up delay-2" aria-label="Runtime preview">
+            <article class="hero-panel install-panel">
+              <div class="panel-head">
+                <span class="micro-label">Install / First Run</span>
+                <span class="panel-kicker">latest on npm</span>
               </div>
-              <pre><code>$ npm install -g codex-feishu
-$ codex-feishu init --mode global
-$ export FEISHU_APP_ID=cli_xxx
-$ export FEISHU_APP_SECRET=***
-$ codex-feishu doctor --remote
-$ codex-feishu serve --detach
+              <pre><code>npm install -g codex-feishu
+codex-feishu init --mode global
+export FEISHU_APP_ID=cli_xxx
+export FEISHU_APP_SECRET=***
+codex-feishu doctor --remote
+codex-feishu serve --detach</code></pre>
+            </article>
 
-Feishu: connected
-Transport: long-connection
-Project: default
-Reply: native message reply
-State: healthy</code></pre>
-            </div>
-            <div class="aside-card aside-card-proof">
-              <span class="micro-label">What this keeps stable</span>
-              <ul>
-                <li>同一个聊天入口，可以路由到多个仓库目录</li>
-                <li>同一个项目，可以持续续接同一条 Codex 会话</li>
-                <li>运行状态、审计、指标与取消能力保留在本地控制面</li>
-                <li>项目文档检索和多媒体消息元数据开始进入同一条工作流</li>
-              </ul>
+            <article class="hero-panel status-panel">
+              <div class="panel-head">
+                <span class="micro-label">Run State Preview</span>
+                <span class="panel-kicker">same repo, no collisions</span>
+              </div>
+              <pre><code>项目: repo-a
+当前会话: thread-2026-03
+当前运行: run_queued (queued)
+
+当前仓库正在被其他会话操作，已进入排队。
+前方还有 1 个任务。
+阻塞运行: run_live (running)</code></pre>
+            </article>
+
+            <div class="signal-cluster">
+              <article class="signal-card">
+                <span class="micro-label">Sticky Routing</span>
+                <strong>群里切一次项目，整群后续会继承。</strong>
+              </article>
+              <article class="signal-card">
+                <span class="micro-label">Session Adoption</span>
+                <strong>直接接管 <code>~/.codex/sessions</code> 里的本地会话。</strong>
+              </article>
+              <article class="signal-card">
+                <span class="micro-label">Runtime Guard</span>
+                <strong>不同 chat 命中同一仓库时自动串行，不再互相打架。</strong>
+              </article>
             </div>
           </aside>
         </section>
 
-        <section class="stat-strip fade-up delay-2" aria-label="Core proof points">
+        <section class="signal-rail fade-up delay-2" aria-label="Core proof points">
           <article>
-            <span class="micro-label">Transport</span>
-            <strong>long-connection + webhook</strong>
-            <p>本机优先，也可以作为共享服务部署。</p>
+            <span class="micro-label">Binding</span>
+            <strong>项目选择按 chat 记住</strong>
+            <p>不是按人各记各的，而是按私聊窗口或群聊上下文持续生效。</p>
           </article>
           <article>
-            <span class="micro-label">Routing</span>
-            <strong>Selection / Session / Queue 分离</strong>
-            <p>避免聊天窗口状态碰撞，保证项目切换可解释。</p>
+            <span class="micro-label">Resume</span>
+            <strong>既能 resume，也能 adopt</strong>
+            <p>桥接器自己的 session 与本机 Codex 原生 session 现在能接到同一条链路里。</p>
           </article>
           <article>
-            <span class="micro-label">Operations</span>
-            <strong>Cancel / Timeout / Recovery</strong>
-            <p>不是只会转发消息，还能管理运行生命周期。</p>
+            <span class="micro-label">Queue</span>
+            <strong>项目队列 + 仓库根锁</strong>
+            <p>同 chat 内同项目串行，不同 chat 命中同一 <code>project.root</code> 也会自动排队。</p>
           </article>
           <article>
-            <span class="micro-label">Context</span>
-            <strong>Knowledge search + media-aware prompts</strong>
-            <p>项目文档可检索，图片文件音频会带元数据进入上下文。</p>
+            <span class="micro-label">Surface</span>
+            <strong>Wiki / KB / media / run state</strong>
+            <p>文档检索、多媒体上下文、飞书知识库和运行态回复都在同一入口里。</p>
           </article>
         </section>
 
-        <section class="section intro-block fade-up">
+        <section class="section fade-up">
           <div class="section-head">
-            <span class="micro-label">Why this exists</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">飞书负责沟通，Codex 负责执行。</span>
-              <span class="display-line display-shift">桥接器负责把上下文和控制权保住。</span>
-            </h2>
+            <span class="micro-label">How it works</span>
+            <h2 class="section-title">不是简单转发消息，而是把工程上下文放到正确的控制点上。</h2>
           </div>
-          <div class="principle-grid">
-            <article>
-              <h3>Route by project</h3>
-              <p>用 `/project &lt;alias&gt;` 明确当前仓库，而不是让每条消息都重新解释上下文。</p>
+          <div class="workflow-grid">
+            <article class="workflow-card">
+              <span class="step-index">01</span>
+              <h3>消息先进入项目绑定层</h3>
+              <p>先取当前 chat 绑定的项目；没绑定就回退默认项目，而不是让每条消息都重新猜仓库。</p>
             </article>
-            <article>
-              <h3>Resume by session</h3>
-              <p>新会话走 `codex exec`，续会话走 `codex exec resume`，让多轮任务真正延续。</p>
+            <article class="workflow-card">
+              <span class="step-index">02</span>
+              <h3>会话优先续当前上下文</h3>
+              <p>已有 active session 就直接续；没有的话，可通过 <code>/session adopt latest</code> 接上本机最近会话。</p>
             </article>
-            <article>
-              <h3>Operate with confidence</h3>
-              <p>幂等去重、原生 reply、审计日志、指标和运行态保护，保证它能长期工作而不是偶尔成功。</p>
+            <article class="workflow-card">
+              <span class="step-index">03</span>
+              <h3>仓库并发在执行前收口</h3>
+              <p>同一仓库根目录命中全局串行锁时，会先给出 <code>queued</code> 状态和占用原因，而不是静默等待。</p>
             </article>
-          </div>
-        </section>
-
-        <section class="section architecture-section fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">System shape</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">桥接层不需要很厚。</span>
-              <span class="display-line display-shift">但关键控制点必须放对位置。</span>
-            </h2>
-          </div>
-          <div class="architecture-layout">
-            <div class="architecture-copy">
-              <p>
-                真正的价值不是“飞书能和 Codex 说话”，而是每条消息在触达仓库之前，都会经过项目路由、会话状态、幂等控制和运行策略这几层处理。
-              </p>
-              <ul class="architecture-list">
-                <li>飞书负责接收消息并定义聊天边界。</li>
-                <li>Bridge Service 负责解析项目、会话、权限和去重。</li>
-                <li>Codex 在明确的项目根目录内执行，带着预期的 shell、sandbox 和 pre-exec。</li>
-                <li>回复结束后，审计、指标和运行状态仍然留在本地控制面里。</li>
-              </ul>
-            </div>
-            <div class="diagram-frame" aria-label="Architecture diagram">
-              <svg viewBox="0 0 760 420" role="img" aria-labelledby="diagram-title diagram-desc">
-                <title id="diagram-title">Codex Feishu 架构图</title>
-                <desc id="diagram-desc">消息从飞书进入桥接服务，再进入 Codex 执行和本地项目目录，下方连接审计和指标。</desc>
-                <defs>
-                  <linearGradient id="node-fill-zh" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#fcfaf5" />
-                    <stop offset="100%" stop-color="#f1e8da" />
-                  </linearGradient>
-                </defs>
-                <rect x="34" y="70" width="168" height="94" rx="22" fill="url(#node-fill-zh)" stroke="#cfc2af" />
-                <text x="58" y="106" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">ENTRY</text>
-                <text x="58" y="136" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">飞书</text>
-                <text x="58" y="160" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">私聊 / 群聊 / @mention</text>
-
-                <rect x="274" y="42" width="212" height="150" rx="24" fill="url(#node-fill-zh)" stroke="#cfc2af" />
-                <text x="300" y="78" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">CONTROL PLANE</text>
-                <text x="300" y="112" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">Bridge Service</text>
-                <text x="300" y="140" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">项目路由</text>
-                <text x="300" y="164" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">会话选择</text>
-                <text x="300" y="188" font-size="16" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">幂等与权限控制</text>
-
-                <rect x="556" y="70" width="170" height="94" rx="22" fill="#171513" stroke="#312a23" />
-                <text x="582" y="106" font-size="16" fill="#d3c8ba" font-family="IBM Plex Mono, monospace">EXECUTION</text>
-                <text x="582" y="136" font-size="28" fill="#f3ede3" font-family="IBM Plex Sans, sans-serif" font-weight="600">Codex</text>
-                <text x="582" y="160" font-size="17" fill="#d3c8ba" font-family="IBM Plex Sans, sans-serif">exec / resume / shell</text>
-
-                <rect x="520" y="252" width="206" height="96" rx="22" fill="url(#node-fill-zh)" stroke="#cfc2af" />
-                <text x="546" y="288" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">WORKSPACE</text>
-                <text x="546" y="318" font-size="28" fill="#171512" font-family="IBM Plex Sans, sans-serif" font-weight="600">项目目录</text>
-                <text x="546" y="342" font-size="17" fill="#5f584d" font-family="IBM Plex Sans, sans-serif">repo A / repo B / repo C</text>
-
-                <rect x="218" y="274" width="220" height="74" rx="22" fill="#f8f2e8" stroke="#cfc2af" />
-                <text x="246" y="304" font-size="16" fill="#8e5d31" font-family="IBM Plex Mono, monospace">OBSERVABILITY</text>
-                <text x="246" y="330" font-size="18" fill="#171512" font-family="IBM Plex Sans, sans-serif">audit / metrics / runtime state</text>
-
-                <path d="M202 117H274" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M486 117H556" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M612 164V252" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M380 192V274" stroke="#8e5d31" stroke-width="2.2" stroke-linecap="round" />
-                <circle cx="274" cy="117" r="4.5" fill="#8e5d31" />
-                <circle cx="556" cy="117" r="4.5" fill="#8e5d31" />
-                <circle cx="612" cy="252" r="4.5" fill="#8e5d31" />
-                <circle cx="380" cy="274" r="4.5" fill="#8e5d31" />
-              </svg>
-            </div>
-          </div>
-        </section>
-
-        <section class="section split-layout fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">Deployment posture</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">两种接入姿态。</span>
-              <span class="display-line display-shift">分别服务本机效率和团队共享。</span>
-            </h2>
-          </div>
-          <div class="mode-columns">
-            <article class="mode-panel featured">
-              <header>
-                <span class="mode-tag">Local-first</span>
-                <h3>long-connection</h3>
-              </header>
-              <p>不依赖公网回调地址，最适合个人开发、内网环境和快速联调。你在飞书里发消息，桥接器在本机直接收、直接路由、直接执行。</p>
-              <ul>
-                <li>接入快</li>
-                <li>部署简单</li>
-                <li>适合长期个人工作流</li>
-              </ul>
+            <article class="workflow-card">
+              <span class="step-index">04</span>
+              <h3>Codex 在明确边界内运行</h3>
+              <p>项目根目录、sandbox、shell、pre-exec 和超时策略都在桥接层内显式管理。</p>
             </article>
-            <article class="mode-panel">
-              <header>
-                <span class="mode-tag">Shared service</span>
-                <h3>webhook</h3>
-              </header>
-              <p>适合团队共享服务、卡片回调、反向代理和标准生产接入。把飞书消息入口接到一个稳定、可观测、可运维的服务上。</p>
-              <ul>
-                <li>支持卡片回调</li>
-                <li>便于 HTTPS 与代理接入</li>
-                <li>适合正式服务化部署</li>
-              </ul>
+            <article class="workflow-card">
+              <span class="step-index">05</span>
+              <h3>回复后仍保留控制面</h3>
+              <p>audit、metrics、run state、session history 和卡片操作都留在本地控制面，不依赖黑盒平台。</p>
             </article>
           </div>
         </section>
 
-        <section class="section operations-grid fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">Day-2 operations</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">真正的价值不是第一次跑起来。</span>
-              <span class="display-line display-shift">而是之后每一天都能被管理。</span>
-            </h2>
+        <section class="section fade-up">
+          <div class="section-head">
+            <span class="micro-label">Capabilities</span>
+            <h2 class="section-title">这轮迭代之后，首页应该反映的已经不是“能聊”，而是“能管”。</h2>
           </div>
-          <div class="ops-layout">
-            <article class="ops-panel command-panel">
-              <span class="micro-label">Essential commands</span>
-              <pre><code>codex-feishu doctor --remote
-codex-feishu serve --detach
-codex-feishu serve status
-codex-feishu serve logs --lines 100
-codex-feishu serve ps
-codex-feishu serve stop --force
-codex-feishu audit tail --limit 20</code></pre>
+          <div class="capability-grid">
+            <article class="capability-card">
+              <span class="micro-label">Project Routing</span>
+              <h3><code>/project &lt;alias&gt;</code> 会真正改写当前 chat 的默认项目</h3>
+              <p>群里切一次，整群后续都落到同一个项目；私聊也会记住各自的当前项目。</p>
             </article>
-            <article class="ops-panel list-panel">
-              <span class="micro-label">Operational surface</span>
-              <div class="ops-list">
-                <div>
-                  <strong>Runtime discipline</strong>
-                  <p>支持取消、超时、stale run 恢复和实例锁，避免一条消息把长期运行环境拖进不可控状态。</p>
-                </div>
-                <div>
-                  <strong>Message discipline</strong>
-                  <p>过滤机器人自激回环，保留消息幂等去重，并优先使用飞书原生 reply 维持对话上下文。</p>
-                </div>
-                <div>
-                  <strong>Observability</strong>
-                  <p>审计日志、本地 run state、Prometheus 指标和 Grafana / Alertmanager 示例一起提供。</p>
-                </div>
+            <article class="capability-card">
+              <span class="micro-label">Session Adoption</span>
+              <h3><code>/session adopt latest|list|&lt;thread_id&gt;</code></h3>
+              <p>飞书侧不再只能续桥接器自己保存的 thread，也能接管本机 Codex CLI 的原生 session。</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Auto Adopt</span>
+              <h3>切项目后可自动接上最近会话</h3>
+              <p>开启 <code>service.project_switch_auto_adopt_latest = true</code> 后，项目切换会优先保留当前 chat 会话，否则自动接最近匹配的本地 session。</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Runtime Discipline</span>
+              <h3><code>queue key</code> + <code>project.root</code> 双层串行</h3>
+              <p>同项目 thread 不会乱写，不同群同时操作同一仓库也会被自动收口。</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Visible Queue</span>
+              <h3>排队不是黑盒</h3>
+              <p><code>/status</code>、状态卡片和普通回复都会显示 <code>queued</code> 原因，区分“当前项目已有任务”和“仓库正在被其他 chat 操作”。</p>
+            </article>
+            <article class="capability-card">
+              <span class="micro-label">Extended Context</span>
+              <h3>Wiki、知识库、多媒体和记忆继续并到同一链路</h3>
+              <p>文档检索、wiki 读写、图片文件音频元数据、thread summary 与 project memory 都能进入执行提示。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section fade-up">
+          <div class="section-head">
+            <span class="micro-label">Quick Start</span>
+            <h2 class="section-title">首页就该给出最短路径，而不是让人先跳去翻半天文档。</h2>
+          </div>
+          <div class="quickstart-grid">
+            <article class="quick-card code-card">
+              <div class="panel-head">
+                <span class="micro-label">CLI</span>
+                <span class="panel-kicker">install and bootstrap</span>
               </div>
+              <pre><code>npm install -g codex-feishu
+codex-feishu init --mode global
+codex-feishu doctor
+codex-feishu doctor --remote
+codex-feishu serve --detach</code></pre>
+            </article>
+            <article class="quick-card code-card">
+              <div class="panel-head">
+                <span class="micro-label">Feishu</span>
+                <span class="panel-kicker">switch, adopt, continue</span>
+              </div>
+              <pre><code>/projects
+/project repo-a
+/session adopt list
+/session adopt latest
+继续把这个项目的发布链路收尾</code></pre>
+            </article>
+            <article class="quick-card summary-card">
+              <span class="micro-label">Release Surface</span>
+              <ul class="summary-list">
+                <li><strong>npm</strong><span>直接 `npm install -g codex-feishu`</span></li>
+                <li><strong>GitHub Release</strong><span>tag 发布同步生成 tgz 资产</span></li>
+                <li><strong>GitHub Pages</strong><span>官网继续走纯静态部署</span></li>
+                <li><strong>Docs</strong><span>README / docs / workflow 口径统一</span></li>
+              </ul>
             </article>
           </div>
         </section>
 
-        <section class="section resources-section fade-up">
-          <div class="section-head compact">
-            <span class="micro-label">Documentation</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">首页负责建立判断。</span>
-              <span class="display-line display-shift">文档负责把它落地。</span>
-            </h2>
+        <section class="section fade-up">
+          <div class="section-head">
+            <span class="micro-label">Docs & Surface Area</span>
+            <h2 class="section-title">仓库、文档、发布链路和官网现在应该讲同一件事。</h2>
           </div>
           <div class="resource-grid">
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/README.md">
+              <strong>README</strong>
+              <span>最新安装方式、命令面和运行模型</span>
+            </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/getting-started.md">
               <strong>快速开始</strong>
-              <span>10 分钟起一个可用实例</span>
-            </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/architecture.md">
-              <strong>架构设计</strong>
-              <span>理解 transport、session 和 runtime guardrails</span>
-            </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/deployment.md">
-              <strong>部署说明</strong>
-              <span>本机模式、共享模式、服务化与探针</span>
-            </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/security.md">
-              <strong>安全与运维</strong>
-              <span>凭证、目录边界、群聊风险与指标建议</span>
+              <span>从 npm 安装到飞书联调的最短路径</span>
             </a>
             <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/faq.md">
               <strong>FAQ</strong>
-              <span>多 session、白名单、reply 行为与 proxy_on</span>
+              <span>项目绑定、session adopt、排队状态和白名单</span>
             </a>
-            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">
-              <strong>交互路线图</strong>
-              <span>文档、知识库、多媒体与审批链的下一阶段</span>
+            <a href="https://github.com/colorcross/codex-feishu/blob/main/docs/architecture.md">
+              <strong>架构设计</strong>
+              <span>selection key、session key、queue key 和仓库根锁</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/releases">
+              <strong>Releases</strong>
+              <span>版本产物、变更摘要和自动发布链路</span>
+            </a>
+            <a href="https://github.com/colorcross/codex-feishu/discussions">
+              <strong>Discussions</strong>
+              <span>部署交流、运维经验和产品方向讨论</span>
             </a>
           </div>
         </section>
 
         <section class="final-call fade-up">
           <div>
-            <span class="micro-label">从仓库开始</span>
-            <h2 class="display-stack display-stack-section">
-              <span class="display-line">先把它跑起来。</span>
-              <span class="display-line display-shift">再决定它该接到哪些项目和团队流程里。</span>
-            </h2>
+            <span class="micro-label">Start where people already work</span>
+            <h2 class="section-title">先把入口接进去，再把项目、会话和运行纪律一起收住。</h2>
+            <p class="final-copy">Codex Feishu 现在不只是一个飞书机器人，而是一层真正的工程桥接控制面。</p>
           </div>
-          <div class="final-actions">
-            <a class="button button-primary" href="https://github.com/colorcross/codex-feishu">查看 GitHub</a>
-            <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/blob/main/docs/feishu-roadmap.md">交互路线图</a>
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://www.npmjs.com/package/codex-feishu">npm 安装</a>
+            <a class="button button-secondary" href="https://github.com/colorcross/codex-feishu/releases">查看 Release</a>
+            <a class="button button-tertiary" href="https://github.com/colorcross/codex-feishu/tree/main/docs">打开 Docs</a>
           </div>
         </section>
       </main>
 
       <footer class="site-footer fade-up">
-        <p>Codex Feishu · a quieter, more disciplined way to drive Codex CLI from Feishu.</p>
+        <p>Codex Feishu · 让沟通入口直接连到可管理的 Codex 执行控制面。</p>
         <div>
-          <a href="https://github.com/colorcross/codex-feishu/discussions">Discussions</a>
+          <a href="https://github.com/colorcross/codex-feishu">GitHub</a>
+          <a href="https://www.npmjs.com/package/codex-feishu">npm</a>
           <a href="https://github.com/colorcross/codex-feishu/blob/main/SUPPORT.md">Support</a>
           <a href="https://github.com/colorcross/codex-feishu/blob/main/CONTRIBUTING.md">Contributing</a>
           <a href="https://github.com/colorcross/codex-feishu/blob/main/SECURITY.md">Security</a>

@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+### Highlights
+
+- 官网重做为更明确的产品控制面风格，首页直接突出 npm 安装、`chat_id` 项目绑定、`/session adopt`、`project.root` 串行和 `queued` 运行态。
+- README、上手文档、FAQ、部署文档和官网说明统一切到“npm 已发布”的最新口径，不再保留首发前的占位表述。
+- 更新中英文首页共用视觉系统，并刷新仓库可用的社交预览图资源。
+
+### Included
+
+- 官网：
+  - `website/index.html`
+  - `website/en.html`
+  - `website/styles.css`
+  - `website/social-preview.png`
+  - `.github/assets/social-preview.png`
+- 文档：
+  - `README.md`
+  - `README.en.md`
+  - `docs/getting-started.md`
+  - `docs/deployment.md`
+  - `docs/faq.md`
+  - `docs/website.md`
+  - `docs/website-redesign.md`
+
+### Verification
+
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- 本地静态预览检查通过（中文页 / 英文页）
+
 ## v0.1.2 - 2026-03-11
 
 ### Highlights

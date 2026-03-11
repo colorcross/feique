@@ -3,6 +3,7 @@
 English | [简体中文](README.md)
 
 [![GitHub tag](https://img.shields.io/github/v/tag/colorcross/codex-feishu?sort=semver)](https://github.com/colorcross/codex-feishu/tags)
+[![npm](https://img.shields.io/npm/v/codex-feishu)](https://www.npmjs.com/package/codex-feishu)
 [![License](https://img.shields.io/github/license/colorcross/codex-feishu)](https://github.com/colorcross/codex-feishu/blob/main/LICENSE)
 [![Pages](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml/badge.svg)](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml)
 
@@ -16,7 +17,7 @@ Codex Feishu sends Feishu messages into resumable Codex sessions, keeps projects
 - Website: <https://colorcross.github.io/codex-feishu/>
 - Chinese landing page: <https://colorcross.github.io/codex-feishu/>
 - English landing page: <https://colorcross.github.io/codex-feishu/en.html>
-- npm: `npm install -g codex-feishu`
+- npm: <https://www.npmjs.com/package/codex-feishu>
 - Releases: <https://github.com/colorcross/codex-feishu/releases>
 - Issues: <https://github.com/colorcross/codex-feishu/issues>
 - Discussions: <https://github.com/colorcross/codex-feishu/discussions>
@@ -51,7 +52,7 @@ codex-feishu doctor --remote
 codex-feishu serve --detach
 ```
 
-If the npm package is not live yet, install directly from the GitHub Release artifact:
+If you want to pin a specific release artifact, install directly from the GitHub Release tarball:
 
 ```bash
 npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.2/codex-feishu-0.1.2.tgz

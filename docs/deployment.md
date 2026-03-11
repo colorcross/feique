@@ -53,9 +53,9 @@ codex-feishu serve stop --force
 如果只是本地开发和回归验证，也可以直接用仓库自带脚本：
 
 ```bash
-pnpm demo:up
-pnpm demo:smoke
-pnpm demo:down
+npm run demo:up
+npm run demo:smoke
+npm run demo:down
 ```
 
 这套脚本会使用 `feishu.dry_run = true`，避免本地回放时真的向飞书出站发送消息。

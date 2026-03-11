@@ -3,6 +3,7 @@
 [English](README.en.md) | 简体中文
 
 [![GitHub tag](https://img.shields.io/github/v/tag/colorcross/codex-feishu?sort=semver)](https://github.com/colorcross/codex-feishu/tags)
+[![npm](https://img.shields.io/npm/v/codex-feishu)](https://www.npmjs.com/package/codex-feishu)
 [![License](https://img.shields.io/github/license/colorcross/codex-feishu)](https://github.com/colorcross/codex-feishu/blob/main/LICENSE)
 [![Pages](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml/badge.svg)](https://github.com/colorcross/codex-feishu/actions/workflows/pages.yml)
 [![Node >=20.10](https://img.shields.io/badge/node-%3E%3D20.10-0f172a)](https://nodejs.org/)
@@ -20,7 +21,7 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 - 仓库：<https://github.com/colorcross/codex-feishu>
 - 官网：<https://colorcross.github.io/codex-feishu/>
 - 英文页：<https://colorcross.github.io/codex-feishu/en.html>
-- npm：`npm install -g codex-feishu`
+- npm：<https://www.npmjs.com/package/codex-feishu>
 - Releases：<https://github.com/colorcross/codex-feishu/releases>
 - Issues：<https://github.com/colorcross/codex-feishu/issues>
 - Discussions：<https://github.com/colorcross/codex-feishu/discussions>
@@ -75,14 +76,14 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 
 ### 2. 安装
 
-优先使用 npm 全局安装：
+直接从 npm 全局安装：
 
 ```bash
 npm install -g codex-feishu
 codex-feishu init --mode global
 ```
 
-如果 npm 包还没完成最终发布，可以先用 GitHub Release 产物：
+如果你希望固定安装某个 release 产物，也可以直接装 GitHub Release 的 tgz：
 
 ```bash
 npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.2/codex-feishu-0.1.2.tgz
@@ -354,6 +355,7 @@ website/    官网静态站点，可直接用于 GitHub Pages
 静态官网源码在：
 
 - [website/index.html](website/index.html)
+- [website/en.html](website/en.html)
 
 GitHub Pages 目标地址：
 
@@ -370,26 +372,25 @@ GitHub Pages 目标地址：
 ## 开发与验证
 
 ```bash
-pnpm install
-pnpm typecheck
-pnpm test
-pnpm build
+npm install
+npm run typecheck
+npm run test
+npm run build
 ```
 
 本地 webhook 回放：
 
 ```bash
-pnpm demo:up
-pnpm demo:smoke
-pnpm demo:down
+npm run demo:up
+npm run demo:smoke
+npm run demo:down
 ```
 
 ## 发布
 
-当前版本：`v0.1.1`
-
-- [CHANGELOG.md](CHANGELOG.md)
-- 当前发布 tag：`v0.1.1`
+- npm 包页面：<https://www.npmjs.com/package/codex-feishu>
+- GitHub Releases：<https://github.com/colorcross/codex-feishu/releases>
+- 变更摘要：[CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
