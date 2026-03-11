@@ -49,7 +49,7 @@ export class RunStateStore {
     return this.serial.run(async () => {
       const state = await this.readState();
       const existing = state.runs[runId];
-      const now = new Date().toISOString();
+      const now = nextMonotonicTimestamp(Object.values(state.runs).map((run) => run.updated_at));
       const next: RunState = {
         run_id: runId,
         queue_key: patch.queue_key,
@@ -188,4 +188,13 @@ function isTerminalRunStatus(status: RunStatus): boolean {
 
 function pickPatchedValue<T extends keyof RunState>(patch: Partial<RunState>, key: T, fallback: RunState[T]): RunState[T] {
   return (Object.prototype.hasOwnProperty.call(patch, key) ? patch[key] : fallback) as RunState[T];
+}
+
+function nextMonotonicTimestamp(existingTimestamps: string[]): string {
+  const now = Date.now();
+  const latestExisting = existingTimestamps.reduce((max, value) => {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? max : Math.max(max, parsed);
+  }, 0);
+  return new Date(Math.max(now, latestExisting + 1)).toISOString();
 }

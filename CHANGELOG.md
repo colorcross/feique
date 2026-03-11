@@ -1,12 +1,14 @@
 # Changelog
 
-## v0.1.3 - 2026-03-11
+## v0.1.4 - 2026-03-11
 
 ### Highlights
 
 - 官网重做为更明确的产品控制面风格，首页直接突出 npm 安装、`chat_id` 项目绑定、`/session adopt`、`project.root` 串行和 `queued` 运行态。
 - README、上手文档、FAQ、部署文档和官网说明统一切到“npm 已发布”的最新口径，不再保留首发前的占位表述。
 - 更新中英文首页共用视觉系统，并刷新仓库可用的社交预览图资源。
+- 修复 release workflow 在无 lockfile 仓库里的失败路径，并允许手动补发时同时执行 npm publish。
+- 修复运行态存储在同一毫秒内连续写入时的时间戳排序不稳定问题，避免 `queued` / `running` 可见顺序漂移。
 
 ### Included
 
@@ -16,6 +18,9 @@
   - `website/styles.css`
   - `website/social-preview.png`
   - `.github/assets/social-preview.png`
+- 运行态与发布：
+  - `src/state/run-state-store.ts`
+  - `.github/workflows/release.yml`
 - 文档：
   - `README.md`
   - `README.en.md`

@@ -55,7 +55,7 @@ codex-feishu serve --detach
 If you want to pin a specific release artifact, install directly from the GitHub Release tarball:
 
 ```bash
-npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.3/codex-feishu-0.1.3.tgz
+npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.4/codex-feishu-0.1.4.tgz
 codex-feishu init --mode global
 ```
 

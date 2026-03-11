@@ -27,7 +27,7 @@ codex-feishu init --mode global
 如果你想固定到某个 release 产物，也可以直接安装 GitHub Release 的 tgz：
 
 ```bash
-npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.3/codex-feishu-0.1.3.tgz
+npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.4/codex-feishu-0.1.4.tgz
 codex-feishu init --mode global
 ```
 
