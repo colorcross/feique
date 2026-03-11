@@ -1,6 +1,6 @@
 import { CodexSessionIndex, renderSessionMatchLabel, type IndexedCodexSession } from '../codex/session-index.js';
 import type { BridgeConfig, ProjectConfig } from '../config/schema.js';
-import { canAccessProject, describeMinimumRole } from '../security/access.js';
+import { canAccessProject, canAccessProjectCapability, describeMinimumRole } from '../security/access.js';
 import { SessionStore, buildConversationKey } from '../state/session-store.js';
 
 export interface ConversationRef {
@@ -195,7 +195,9 @@ export async function adoptProjectSession(
   };
 }> {
   const resolved = await resolveProjectContext(config, sessionStore, conversation);
-  ensureProjectAccess(config, resolved.projectAlias, resolved.chatId, 'operator');
+  if (!canAccessProjectCapability(config, resolved.projectAlias, resolved.chatId, 'session:control')) {
+    throw new Error(`当前 chat_id 无权接管项目 ${resolved.projectAlias} 的会话。至少需要 ${describeMinimumRole('operator')} 权限。`);
+  }
   const normalizedTarget = target?.trim();
 
   if (normalizedTarget === 'list') {

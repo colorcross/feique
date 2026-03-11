@@ -241,6 +241,12 @@ function resolveLayerPaths(raw: Record<string, unknown>, baseDir: string): Recor
       if (typeof projectConfig.temp_dir === 'string') {
         projectConfig.temp_dir = resolveMaybeRelative(projectConfig.temp_dir, baseDir);
       }
+      if (typeof projectConfig.cache_dir === 'string') {
+        projectConfig.cache_dir = resolveMaybeRelative(projectConfig.cache_dir, baseDir);
+      }
+      if (typeof projectConfig.log_dir === 'string') {
+        projectConfig.log_dir = resolveMaybeRelative(projectConfig.log_dir, baseDir);
+      }
       if (Array.isArray(projectConfig.knowledge_paths)) {
         projectConfig.knowledge_paths = projectConfig.knowledge_paths.map((entry) =>
           typeof entry === 'string' ? resolveMaybeRelative(entry, baseDir) : entry,

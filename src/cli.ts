@@ -482,10 +482,27 @@ program
 
 program
   .command('mcp')
-  .description('Run a stdio MCP server for external tools such as OpenClaw')
+  .description('Run an MCP server for external tools such as OpenClaw')
   .option('--config <path>', 'config path override')
-  .action(async (options: { config?: string }) => {
-    await startMcpServer({ cwd: process.cwd(), configPath: options.config });
+  .option('--transport <transport>', 'stdio or http')
+  .option('--host <host>', 'HTTP bind host')
+  .option('--port <number>', 'HTTP bind port')
+  .option('--path <path>', 'HTTP JSON-RPC path')
+  .option('--sse-path <path>', 'HTTP SSE path')
+  .option('--message-path <path>', 'HTTP SSE message POST path')
+  .option('--auth-token <token>', 'HTTP Bearer token')
+  .action(async (options: { config?: string; transport?: 'stdio' | 'http'; host?: string; port?: string; path?: string; ssePath?: string; messagePath?: string; authToken?: string }) => {
+    await startMcpServer({
+      cwd: process.cwd(),
+      configPath: options.config,
+      transport: options.transport,
+      host: options.host,
+      port: options.port ? Number(options.port) : undefined,
+      path: options.path,
+      ssePath: options.ssePath,
+      messagePath: options.messagePath,
+      authToken: options.authToken,
+    });
   });
 
 const sessionsCommand = program.command('sessions').description('Inspect persisted session state');

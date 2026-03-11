@@ -120,8 +120,9 @@
               <span class="tag">/session adopt</span>
               <span class="tag">project.root 锁</span>
               <span class="tag">queued 可见状态</span>
+              <span class="tag">HTTP/SSE MCP</span>
               <span class="tag">post / card 回复</span>
-              <span class="tag">MCP 接口</span>
+              <span class="tag">能力级权限</span>
             </div>
           </div>
 
@@ -368,8 +369,8 @@
                 </svg>
               </div>
               <span class="cap-label">MCP Surface</span>
-              <h3 class="cap-title">不只给飞书用，也能通过 MCP 暴露给外部工具</h3>
-              <p class="cap-desc">运行 <code>codex-feishu mcp</code>，即可把项目列表、项目切换、会话接管和自然语言控制命令暴露给 OpenClaw 等支持 MCP 的客户端。</p>
+              <h3 class="cap-title">既支持 stdio，也支持 HTTP/SSE MCP</h3>
+              <p class="cap-desc">运行 <code>codex-feishu mcp</code>，即可把项目列表、项目切换、会话接管和自然语言控制命令暴露给 OpenClaw 等客户端；远端接入可加 Bearer token。</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-amber" aria-hidden="true">
@@ -401,8 +402,8 @@
                 </svg>
               </div>
               <span class="cap-label">Access Roles</span>
-              <h3 class="cap-title">viewer / operator / admin 三档角色</h3>
-              <p class="cap-desc">项目可见、会话接管、运行控制和服务重启按最小权限分层，适合从个人 bot 扩到团队共享服务。</p>
+              <h3 class="cap-title">角色之外，再补 session / run / config / service 能力名单</h3>
+              <p class="cap-desc">可以把项目查看、会话控制、运行执行、配置修改、服务观察和服务重启拆开授权，而不是所有 operator 权限打包放开。</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-amber" aria-hidden="true">

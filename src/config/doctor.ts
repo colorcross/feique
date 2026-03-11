@@ -4,6 +4,7 @@ import type { BridgeConfig } from './schema.js';
 import { ensureDir } from '../utils/fs.js';
 import { inspectFeishuEnvironment, type FeishuInspectResult } from '../feishu/diagnostics.js';
 import { detectCodexCliCapabilities } from '../codex/capabilities.js';
+import { getProjectCacheDir, getProjectDownloadsDir, getProjectLogDir, getProjectTempDir } from '../projects/paths.js';
 
 export interface DoctorFinding {
   level: 'info' | 'warn' | 'error';
@@ -138,6 +139,13 @@ export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> 
 
   const allowedRoots = config.security.allowed_project_roots.map((root) => path.resolve(root));
 
+  if (config.mcp.transport === 'http' && !config.mcp.auth_token) {
+    findings.push({
+      level: 'warn',
+      message: 'mcp.transport=http is enabled without mcp.auth_token; MCP HTTP/SSE endpoints will be exposed without authentication.',
+    });
+  }
+
   for (const [alias, project] of Object.entries(config.projects)) {
     const resolvedRoot = path.resolve(project.root);
     try {
@@ -154,6 +162,20 @@ export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> 
 
       if (!project.mention_required && !config.security.require_group_mentions) {
         findings.push({ level: 'warn', message: `Project ${alias} has mention_required=false; group chats can trigger runs without @mention.` });
+      }
+
+      for (const [label, dir] of [
+        ['download dir', getProjectDownloadsDir(config.storage.dir, alias, project)],
+        ['temp dir', getProjectTempDir(config.storage.dir, alias, project)],
+        ['cache dir', getProjectCacheDir(config.storage.dir, alias, project)],
+        ['log dir', getProjectLogDir(config.storage.dir, alias, project)],
+      ] as const) {
+        try {
+          await ensureDir(dir);
+          findings.push({ level: 'info', message: `Project ${alias} ${label} ready: ${dir}` });
+        } catch {
+          findings.push({ level: 'error', message: `Project ${alias} ${label} is not writable: ${dir}` });
+        }
       }
 
       const gitDir = path.join(resolvedRoot, '.git');

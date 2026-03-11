@@ -90,6 +90,14 @@ describe('doctor', () => {
         admin_chat_ids: [],
         require_group_mentions: false,
       },
+      mcp: {
+        transport: 'http',
+        host: '127.0.0.1',
+        port: 8765,
+        path: '/mcp',
+        sse_path: '/mcp/sse',
+        message_path: '/mcp/message',
+      },
       feishu: {
         app_id: 'app-id',
         app_secret: 'app-secret',

@@ -120,8 +120,9 @@
               <span class="tag">/session adopt</span>
               <span class="tag">project.root lock</span>
               <span class="tag">queued visibility</span>
+              <span class="tag">HTTP/SSE MCP</span>
               <span class="tag">post / card replies</span>
-              <span class="tag">MCP interface</span>
+              <span class="tag">capability ACLs</span>
             </div>
           </div>
 
@@ -368,8 +369,8 @@ another chat. Queued with 1 task ahead.
                 </svg>
               </div>
               <span class="cap-label">MCP Surface</span>
-              <h3 class="cap-title">Expose the bridge to OpenClaw and other MCP clients</h3>
-              <p class="cap-desc">Run <code>codex-feishu mcp</code> to expose projects, project switching, session adoption, run state, config history, and natural-language control commands to external tools.</p>
+              <h3 class="cap-title">Support both stdio and HTTP/SSE MCP</h3>
+              <p class="cap-desc">Run <code>codex-feishu mcp</code> to expose projects, project switching, session adoption, run state, config history, and natural-language control commands to OpenClaw and other MCP clients, with optional Bearer auth for remote access.</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-amber" aria-hidden="true">
@@ -401,8 +402,8 @@ another chat. Queued with 1 task ahead.
                 </svg>
               </div>
               <span class="cap-label">Access Roles</span>
-              <h3 class="cap-title">viewer / operator / admin role layers</h3>
-              <p class="cap-desc">Project visibility, session adoption, runtime control, and service restarts can be scoped separately as teams grow.</p>
+              <h3 class="cap-title">Add session / run / config / service capability lists on top of roles</h3>
+              <p class="cap-desc">Project visibility, session control, run execution, config mutation, service observation, and service restarts can be granted separately as teams grow.</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-amber" aria-hidden="true">

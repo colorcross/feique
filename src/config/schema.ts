@@ -4,6 +4,7 @@ export const sandboxSchema = z.enum(['read-only', 'workspace-write', 'danger-ful
 export const sessionScopeSchema = z.enum(['chat', 'chat-user']);
 export const transportSchema = z.enum(['long-connection', 'webhook']);
 export const replyModeSchema = z.enum(['text', 'post', 'card']);
+export const mcpTransportSchema = z.enum(['stdio', 'http']);
 export const memoryPinOverflowStrategySchema = z.enum(['reject', 'age-out']);
 export const memoryPinAgeBasisSchema = z.enum(['updated_at', 'last_accessed_at']);
 
@@ -20,8 +21,13 @@ export const projectSchema = z.object({
   viewer_chat_ids: z.array(z.string()).optional(),
   operator_chat_ids: z.array(z.string()).optional(),
   admin_chat_ids: z.array(z.string()).default([]),
+  session_operator_chat_ids: z.array(z.string()).optional(),
+  run_operator_chat_ids: z.array(z.string()).optional(),
+  config_admin_chat_ids: z.array(z.string()).optional(),
   download_dir: z.string().optional(),
   temp_dir: z.string().optional(),
+  cache_dir: z.string().optional(),
+  log_dir: z.string().optional(),
   chat_rate_limit_window_seconds: z.number().int().positive().default(60),
   chat_rate_limit_max_runs: z.number().int().positive().default(20),
 });
@@ -128,12 +134,34 @@ export const bridgeConfigSchema = z.object({
       viewer_chat_ids: z.array(z.string()).optional(),
       operator_chat_ids: z.array(z.string()).optional(),
       admin_chat_ids: z.array(z.string()).default([]),
+      service_observer_chat_ids: z.array(z.string()).optional(),
+      service_restart_chat_ids: z.array(z.string()).optional(),
+      config_admin_chat_ids: z.array(z.string()).optional(),
       require_group_mentions: z.boolean().default(true),
     })
     .default({
       allowed_project_roots: [],
       admin_chat_ids: [],
       require_group_mentions: true,
+    }),
+  mcp: z
+    .object({
+      transport: mcpTransportSchema.default('stdio'),
+      host: z.string().default('127.0.0.1'),
+      port: z.number().int().positive().default(8765),
+      path: z.string().default('/mcp'),
+      sse_path: z.string().default('/mcp/sse'),
+      message_path: z.string().default('/mcp/message'),
+      auth_token: z.string().optional(),
+    })
+    .optional()
+    .default({
+      transport: 'stdio',
+      host: '127.0.0.1',
+      port: 8765,
+      path: '/mcp',
+      sse_path: '/mcp/sse',
+      message_path: '/mcp/message',
     }),
   feishu: z.object({
     app_id: z.string(),
@@ -159,5 +187,6 @@ export type SandboxMode = z.infer<typeof sandboxSchema>;
 export type SessionScope = z.infer<typeof sessionScopeSchema>;
 export type BridgeTransport = z.infer<typeof transportSchema>;
 export type ReplyMode = z.infer<typeof replyModeSchema>;
+export type McpTransport = z.infer<typeof mcpTransportSchema>;
 export type MemoryPinOverflowStrategy = z.infer<typeof memoryPinOverflowStrategySchema>;
 export type MemoryPinAgeBasis = z.infer<typeof memoryPinAgeBasisSchema>;

@@ -16,6 +16,8 @@ export interface CodexRunOptions {
   sessionId?: string;
   profile?: string;
   sandbox: SandboxMode;
+  tempDir?: string;
+  cacheDir?: string;
   skipGitRepoCheck: boolean;
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -43,7 +45,12 @@ export interface CodexJsonEvent {
 }
 
 export async function runCodexTurn(options: CodexRunOptions): Promise<CodexRunResult> {
-  const outputFile = path.join(os.tmpdir(), `codex-feishu-${randomUUID()}.txt`);
+  const runtimeTempDir = options.tempDir ? path.resolve(options.tempDir) : os.tmpdir();
+  await fs.mkdir(runtimeTempDir, { recursive: true });
+  if (options.cacheDir) {
+    await fs.mkdir(path.resolve(options.cacheDir), { recursive: true });
+  }
+  const outputFile = path.join(runtimeTempDir, `codex-feishu-${randomUUID()}.txt`);
   const capabilities = detectCodexCliCapabilities(options.bin);
   const args = buildCodexArgs(options, outputFile, capabilities);
   const spawnSpec = buildSpawnSpec(options, args);
@@ -58,6 +65,14 @@ export async function runCodexTurn(options: CodexRunOptions): Promise<CodexRunRe
       env: {
         ...process.env,
         NO_COLOR: '1',
+        ...(options.tempDir
+          ? {
+              TMPDIR: path.resolve(options.tempDir),
+              TMP: path.resolve(options.tempDir),
+              TEMP: path.resolve(options.tempDir),
+            }
+          : {}),
+        ...(options.cacheDir ? { XDG_CACHE_HOME: path.resolve(options.cacheDir) } : {}),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

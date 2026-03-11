@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
+import http from 'node:http';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import packageJson from '../../package.json' with { type: 'json' };
 import { buildHelpText, describeBridgeCommand, parseBridgeCommand, requiresCommandConfirmation, type BridgeCommand } from '../bridge/commands.js';
@@ -7,12 +9,13 @@ import { buildQueueKey } from '../bridge/service.js';
 import { adoptProjectSession as adoptSharedProjectSession, listBridgeSessions as listSharedBridgeSessions, renderSessionMatch, resolveProjectContext as resolveSharedProjectContext, switchProjectBinding as switchSharedProjectBinding, type ConversationRef, type ResolvedProjectContext } from '../control-plane/project-session.js';
 import { CodexSessionIndex } from '../codex/session-index.js';
 import { loadBridgeConfig, loadRuntimeConfig } from '../config/load.js';
-import type { BridgeConfig } from '../config/schema.js';
-import { canAccessProject, describeMinimumRole, filterAccessibleProjects } from '../security/access.js';
+import type { BridgeConfig, McpTransport } from '../config/schema.js';
+import { canAccessGlobalCapability, canAccessProjectCapability, describeMinimumRole, filterAccessibleProjects } from '../security/access.js';
 import { ConfigHistoryStore } from '../state/config-history-store.js';
 import { RunStateStore } from '../state/run-state-store.js';
 import { SessionStore, buildConversationKey } from '../state/session-store.js';
 import { fileExists, writeUtf8Atomic } from '../utils/fs.js';
+import { getProjectCacheDir, getProjectDownloadsDir, getProjectLogDir, getProjectTempDir } from '../projects/paths.js';
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -41,6 +44,24 @@ interface ToolCallResult {
   content: Array<{ type: 'text'; text: string }>;
   structuredContent?: unknown;
   isError?: boolean;
+}
+
+interface McpServerOptions {
+  cwd: string;
+  configPath?: string;
+  transport?: McpTransport;
+  host?: string;
+  port?: number;
+  path?: string;
+  ssePath?: string;
+  messagePath?: string;
+  authToken?: string;
+}
+
+interface McpHttpSession {
+  id: string;
+  response: http.ServerResponse<http.IncomingMessage>;
+  keepAlive: NodeJS.Timeout;
 }
 
 type McpConversationInput = ConversationRef;
@@ -153,8 +174,10 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
+        chatId: { type: 'string' },
         limit: { type: 'integer', minimum: 1, maximum: 20 },
       },
+      required: ['chatId'],
     },
   },
   {
@@ -164,8 +187,10 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
       type: 'object',
       additionalProperties: false,
       properties: {
+        chatId: { type: 'string' },
         target: { type: 'string' },
       },
+      required: ['chatId'],
     },
   },
   {
@@ -174,12 +199,22 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       additionalProperties: false,
-      properties: {},
+      properties: {
+        chatId: { type: 'string' },
+      },
+      required: ['chatId'],
     },
   },
 ];
 
-export async function startMcpServer(options: { cwd: string; configPath?: string }): Promise<void> {
+export async function startMcpServer(options: McpServerOptions): Promise<void> {
+  const { config } = await loadBridgeConfig({ cwd: options.cwd, configPath: options.configPath });
+  const transport = options.transport ?? config.mcp.transport;
+  if (transport === 'http') {
+    await startHttpMcpServer(options, config);
+    return;
+  }
+
   const parser = new StdioMessageParser(async (request) => {
     const response = await handleRequest(request, options);
     if (response) {
@@ -281,8 +316,13 @@ async function handleToolCall(params: Record<string, unknown>, options: { cwd: s
         session_scope: project.session_scope,
         mention_required: project.mention_required,
         admin_chat_ids: project.admin_chat_ids,
-        download_dir: project.download_dir ?? null,
-        temp_dir: project.temp_dir ?? null,
+        session_operator_chat_ids: project.session_operator_chat_ids ?? [],
+        run_operator_chat_ids: project.run_operator_chat_ids ?? [],
+        config_admin_chat_ids: project.config_admin_chat_ids ?? [],
+        download_dir: getProjectDownloadsDir(config.storage.dir, alias, project),
+        temp_dir: getProjectTempDir(config.storage.dir, alias, project),
+        cache_dir: getProjectCacheDir(config.storage.dir, alias, project),
+        log_dir: getProjectLogDir(config.storage.dir, alias, project),
         chat_rate_limit_window_seconds: project.chat_rate_limit_window_seconds,
         chat_rate_limit_max_runs: project.chat_rate_limit_max_runs,
       }));
@@ -355,6 +395,9 @@ async function handleToolCall(params: Record<string, unknown>, options: { cwd: s
     }
     case 'config.history': {
       const { config, sources } = await loadBridgeConfig({ cwd: options.cwd, configPath: options.configPath });
+      if (!canAccessGlobalCapability(config, requireString(argumentsObject, 'chatId'), 'config:history')) {
+        throw new Error('Current chat is not allowed to inspect config history.');
+      }
       const writableConfigPath = resolveWritableConfigPath(options.configPath, sources);
       const store = new ConfigHistoryStore(config.storage.dir);
       const limit = typeof argumentsObject.limit === 'number' ? Math.max(1, Math.min(20, Math.trunc(argumentsObject.limit))) : 5;
@@ -363,6 +406,9 @@ async function handleToolCall(params: Record<string, unknown>, options: { cwd: s
     }
     case 'config.rollback': {
       const { config, sources } = await loadBridgeConfig({ cwd: options.cwd, configPath: options.configPath });
+      if (!canAccessGlobalCapability(config, requireString(argumentsObject, 'chatId'), 'config:rollback')) {
+        throw new Error('Current chat is not allowed to roll back config.');
+      }
       const writableConfigPath = resolveWritableConfigPath(options.configPath, sources);
       if (!writableConfigPath) {
         throw new Error('No writable config path resolved for rollback.');
@@ -380,6 +426,9 @@ async function handleToolCall(params: Record<string, unknown>, options: { cwd: s
     }
     case 'service.restart': {
       const { config, sources } = await loadBridgeConfig({ cwd: options.cwd, configPath: options.configPath });
+      if (!canAccessGlobalCapability(config, requireString(argumentsObject, 'chatId'), 'service:restart')) {
+        throw new Error('Current chat is not allowed to restart the service.');
+      }
       const writableConfigPath = resolveWritableConfigPath(options.configPath, sources);
       await restartServiceProcess(options.cwd, writableConfigPath);
       return buildToolResult('Service restart command submitted.', { restarted: true, service: config.service.name });
@@ -387,6 +436,129 @@ async function handleToolCall(params: Record<string, unknown>, options: { cwd: s
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
+}
+
+async function startHttpMcpServer(options: McpServerOptions, config: BridgeConfig): Promise<void> {
+  const host = options.host ?? config.mcp.host;
+  const port = options.port ?? config.mcp.port;
+  const rpcPath = options.path ?? config.mcp.path;
+  const ssePath = options.ssePath ?? config.mcp.sse_path;
+  const messagePath = options.messagePath ?? config.mcp.message_path;
+  const authToken = options.authToken ?? config.mcp.auth_token;
+  const sessions = new Map<string, McpHttpSession>();
+
+  const server = http.createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `${host}:${port}`}`);
+      if (!authorizeHttpRequest(request, authToken)) {
+        response.statusCode = 401;
+        response.setHeader('content-type', 'application/json; charset=utf-8');
+        response.end(JSON.stringify({ error: 'Unauthorized MCP request.' }));
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === ssePath) {
+        const sessionId = randomUUID();
+        response.writeHead(200, {
+          'content-type': 'text/event-stream; charset=utf-8',
+          'cache-control': 'no-cache, no-transform',
+          connection: 'keep-alive',
+        });
+        response.write(`event: endpoint\ndata: ${JSON.stringify({ sessionId, rpcPath, messagePath: `${messagePath}?sessionId=${sessionId}` })}\n\n`);
+        const keepAlive = setInterval(() => {
+          response.write(`: keep-alive ${Date.now()}\n\n`);
+        }, 15000);
+        keepAlive.unref?.();
+        sessions.set(sessionId, { id: sessionId, response, keepAlive });
+        request.on('close', () => {
+          const session = sessions.get(sessionId);
+          if (session) {
+            clearInterval(session.keepAlive);
+            sessions.delete(sessionId);
+          }
+        });
+        return;
+      }
+
+      if (request.method === 'POST' && url.pathname === messagePath) {
+        const sessionId = url.searchParams.get('sessionId');
+        if (!sessionId || !sessions.has(sessionId)) {
+          response.statusCode = 404;
+          response.setHeader('content-type', 'application/json; charset=utf-8');
+          response.end(JSON.stringify({ error: 'Unknown MCP SSE session.' }));
+          return;
+        }
+        const body = await readRequestBody(request);
+        const payload = JSON.parse(body) as JsonRpcRequest;
+        const rpcResponse = await handleRequest(payload, options);
+        if (rpcResponse) {
+          sessions.get(sessionId)?.response.write(`event: message\ndata: ${JSON.stringify(rpcResponse)}\n\n`);
+        }
+        response.statusCode = 202;
+        response.setHeader('content-type', 'application/json; charset=utf-8');
+        response.end(JSON.stringify({ accepted: true, sessionId }));
+        return;
+      }
+
+      if (request.method === 'POST' && url.pathname === rpcPath) {
+        const body = await readRequestBody(request);
+        const payload = JSON.parse(body) as JsonRpcRequest;
+        const rpcResponse = await handleRequest(payload, options);
+        response.statusCode = rpcResponse ? 200 : 204;
+        response.setHeader('content-type', 'application/json; charset=utf-8');
+        response.end(rpcResponse ? JSON.stringify(rpcResponse) : '');
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === rpcPath) {
+        response.statusCode = 200;
+        response.setHeader('content-type', 'application/json; charset=utf-8');
+        response.end(JSON.stringify({
+          transport: 'http',
+          rpcPath,
+          ssePath,
+          messagePath,
+          auth: authToken ? 'bearer' : 'none',
+        }));
+        return;
+      }
+
+      response.statusCode = 404;
+      response.setHeader('content-type', 'application/json; charset=utf-8');
+      response.end(JSON.stringify({ error: 'Not found.' }));
+    } catch (error) {
+      response.statusCode = 500;
+      response.setHeader('content-type', 'application/json; charset=utf-8');
+      response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
+    }
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, host, () => {
+      resolve();
+    });
+  });
+  process.stderr.write(`MCP HTTP server listening on http://${host}:${port}${rpcPath}\n`);
+
+  await new Promise<void>((resolve, reject) => {
+    const shutdown = () => {
+      for (const session of sessions.values()) {
+        clearInterval(session.keepAlive);
+        session.response.end();
+      }
+      sessions.clear();
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    };
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
+  });
 }
 
 async function switchProjectBinding(
@@ -614,7 +786,7 @@ async function executeSessionCommand(
       };
     }
     case 'use': {
-      if (!canAccessProject(config, resolved.projectAlias, conversation.chatId, 'operator')) {
+      if (!canAccessProjectCapability(config, resolved.projectAlias, conversation.chatId, 'session:control')) {
         throw new Error(`Current chat requires ${describeMinimumRole('operator')} role to switch sessions for ${resolved.projectAlias}.`);
       }
       if (!command.threadId) {
@@ -634,7 +806,7 @@ async function executeSessionCommand(
       };
     }
     case 'new':
-      if (!canAccessProject(config, resolved.projectAlias, conversation.chatId, 'operator')) {
+      if (!canAccessProjectCapability(config, resolved.projectAlias, conversation.chatId, 'session:control')) {
         throw new Error(`Current chat requires ${describeMinimumRole('operator')} role to open a new session for ${resolved.projectAlias}.`);
       }
       await sessionStore.clearActiveProjectSession(resolved.sessionKey, resolved.projectAlias);
@@ -649,7 +821,7 @@ async function executeSessionCommand(
         },
       };
     case 'drop': {
-      if (!canAccessProject(config, resolved.projectAlias, conversation.chatId, 'operator')) {
+      if (!canAccessProjectCapability(config, resolved.projectAlias, conversation.chatId, 'session:control')) {
         throw new Error(`Current chat requires ${describeMinimumRole('operator')} role to drop sessions for ${resolved.projectAlias}.`);
       }
       const targetThreadId = command.threadId ?? activeSessionId;
@@ -706,7 +878,7 @@ async function executeAdminServiceCommand(
 
   if (command.action === 'status') {
     const allowedAliases = filterAccessibleProjects(input.config, input.conversation.chatId, 'operator');
-    if (allowedAliases.length === 0) {
+    if (!canAccessGlobalCapability(input.config, input.conversation.chatId, 'service:status') && allowedAliases.length === 0) {
       throw new Error(`Current chat requires ${describeMinimumRole('operator')} role to inspect service state.`);
     }
     const status = await inspectRuntimeStatus(input.config);
@@ -724,11 +896,13 @@ async function executeAdminServiceCommand(
 
   if (command.action === 'runs') {
     const allowedAliases = new Set(filterAccessibleProjects(input.config, input.conversation.chatId, 'operator'));
-    if (allowedAliases.size === 0) {
+    if (!canAccessGlobalCapability(input.config, input.conversation.chatId, 'service:runs') && allowedAliases.size === 0) {
       throw new Error(`Current chat requires ${describeMinimumRole('operator')} role to inspect active runs.`);
     }
     const runs = await input.runStateStore.listRuns();
-    const visibleRuns = runs.filter((run) => allowedAliases.has(run.project_alias));
+    const visibleRuns = canAccessGlobalCapability(input.config, input.conversation.chatId, 'service:runs')
+      ? runs
+      : runs.filter((run) => allowedAliases.has(run.project_alias));
     const active = visibleRuns.filter((run) => run.status === 'queued' || run.status === 'running' || run.status === 'orphaned').slice(0, 10);
     const recentFailures = visibleRuns.filter((run) => run.status === 'failure' || run.status === 'cancelled' || run.status === 'stale').slice(0, 5);
     const lines = ['当前运行列表', '', 'active/queued:'];
@@ -763,7 +937,7 @@ async function executeAdminServiceCommand(
   }
 
   const adminAliases = filterAccessibleProjects(input.config, input.conversation.chatId, 'admin');
-  if (adminAliases.length === 0) {
+  if (!canAccessGlobalCapability(input.config, input.conversation.chatId, 'service:restart') && adminAliases.length === 0) {
     throw new Error(`Current chat requires ${describeMinimumRole('admin')} role to restart the service.`);
   }
   await restartServiceProcess(input.cwd, input.writableConfigPath);
@@ -903,6 +1077,22 @@ function buildToolResult(text: string, structuredContent?: unknown): ToolCallRes
     content: [{ type: 'text', text }],
     ...(structuredContent !== undefined ? { structuredContent } : {}),
   };
+}
+
+function authorizeHttpRequest(request: http.IncomingMessage, authToken?: string): boolean {
+  if (!authToken) {
+    return true;
+  }
+  const authorization = request.headers.authorization;
+  return typeof authorization === 'string' && authorization === `Bearer ${authToken}`;
+}
+
+async function readRequestBody(request: http.IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 class StdioMessageParser {

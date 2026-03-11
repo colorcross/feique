@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BridgeConfig, ProjectConfig } from '../src/config/schema.js';
-import { canAccessProject, filterAccessibleProjects, resolveProjectAccessRole } from '../src/security/access.js';
+import { canAccessGlobalCapability, canAccessProject, canAccessProjectCapability, filterAccessibleProjects, resolveProjectAccessRole } from '../src/security/access.js';
 
 describe('access control', () => {
   it('resolves global and project-scoped viewer/operator/admin roles with least surprise defaults', () => {
@@ -45,6 +45,44 @@ describe('access control', () => {
     expect(canAccessProject(config, 'default', 'any-chat', 'viewer')).toBe(true);
     expect(canAccessProject(config, 'default', 'any-chat', 'operator')).toBe(true);
     expect(filterAccessibleProjects(config, 'any-chat')).toEqual(['default']);
+  });
+
+  it('supports capability-specific overrides for sessions, runs, config, and service operations', () => {
+    const config = buildConfig({
+      security: {
+        allowed_project_roots: [],
+        admin_chat_ids: [],
+        service_observer_chat_ids: ['chat-service-observer'],
+        service_restart_chat_ids: ['chat-service-restart'],
+        config_admin_chat_ids: ['chat-config-admin'],
+        require_group_mentions: true,
+      },
+      projects: {
+        default: buildProjectConfig({
+          root: '/tmp/default',
+          mention_required: true,
+          viewer_chat_ids: ['chat-viewer'],
+          operator_chat_ids: ['chat-operator'],
+          admin_chat_ids: ['chat-project-admin'],
+          session_operator_chat_ids: ['chat-session-operator'],
+          run_operator_chat_ids: ['chat-run-operator'],
+          config_admin_chat_ids: ['chat-project-config-admin'],
+        }),
+      },
+    });
+
+    expect(canAccessProjectCapability(config, 'default', 'chat-viewer', 'project:view')).toBe(true);
+    expect(canAccessProjectCapability(config, 'default', 'chat-session-operator', 'session:control')).toBe(true);
+    expect(canAccessProjectCapability(config, 'default', 'chat-operator', 'session:control')).toBe(false);
+    expect(canAccessProjectCapability(config, 'default', 'chat-run-operator', 'run:execute')).toBe(true);
+    expect(canAccessProjectCapability(config, 'default', 'chat-operator', 'run:execute')).toBe(false);
+    expect(canAccessProjectCapability(config, 'default', 'chat-project-config-admin', 'project:mutate')).toBe(true);
+    expect(canAccessProjectCapability(config, 'default', 'chat-project-admin', 'project:mutate')).toBe(true);
+
+    expect(canAccessGlobalCapability(config, 'chat-service-observer', 'service:status')).toBe(true);
+    expect(canAccessGlobalCapability(config, 'chat-service-restart', 'service:restart')).toBe(true);
+    expect(canAccessGlobalCapability(config, 'chat-config-admin', 'config:rollback')).toBe(true);
+    expect(canAccessGlobalCapability(config, 'chat-service-observer', 'service:restart')).toBe(false);
   });
 });
 
@@ -102,6 +140,15 @@ function buildConfig(overrides: Partial<BridgeConfig> = {}): BridgeConfig {
       admin_chat_ids: [],
       require_group_mentions: true,
       ...(overrides.security ?? {}),
+    },
+    mcp: {
+      transport: 'stdio',
+      host: '127.0.0.1',
+      port: 8765,
+      path: '/mcp',
+      sse_path: '/mcp/sse',
+      message_path: '/mcp/message',
+      ...(overrides.mcp ?? {}),
     },
     feishu: {
       app_id: 'app-id',

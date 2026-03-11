@@ -63,7 +63,19 @@ allowed_project_roots = []
 # viewer_chat_ids = ["oc_viewer_chat_1"]
 # operator_chat_ids = ["oc_operator_chat_1"]
 admin_chat_ids = []
+# service_observer_chat_ids = ["oc_service_observer_1"]
+# service_restart_chat_ids = ["oc_service_restart_1"]
+# config_admin_chat_ids = ["oc_config_admin_1"]
 require_group_mentions = true
+
+[mcp]
+transport = "stdio"
+host = "127.0.0.1"
+port = 8765
+path = "/mcp"
+sse_path = "/mcp/sse"
+message_path = "/mcp/message"
+# auth_token = "env:MCP_AUTH_TOKEN"
 
 [feishu]
 app_id = "env:FEISHU_APP_ID"
@@ -87,6 +99,9 @@ mention_required = true
 # viewer_chat_ids = ["oc_project_viewer_1"]
 # operator_chat_ids = ["oc_project_operator_1"]
 admin_chat_ids = []
+# session_operator_chat_ids = ["oc_session_operator_1"]
+# run_operator_chat_ids = ["oc_run_operator_1"]
+# config_admin_chat_ids = ["oc_project_config_admin_1"]
 chat_rate_limit_window_seconds = 60
 chat_rate_limit_max_runs = 20
 # profile = "default"
@@ -94,5 +109,7 @@ chat_rate_limit_max_runs = 20
 # description = "Main repo"
 # download_dir = "./.codex-feishu/downloads"
 # temp_dir = "./.codex-feishu/tmp"
+# cache_dir = "./.codex-feishu/cache"
+# log_dir = "./.codex-feishu/logs"
 `;
 }

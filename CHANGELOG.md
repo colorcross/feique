@@ -7,6 +7,9 @@
 - 新增 `viewer / operator / admin` 三档访问模型，把项目可见性、会话控制和服务级操作分层收口。
 - 提升可观测性入口，`/healthz`、`/readyz`、`/metrics` 现在会携带 readiness 与启动告警信息。
 - MCP 与飞书共用项目/会话控制层，项目切换、会话接管和状态查看不再重复维护两套逻辑。
+- MCP 新增 `HTTP/SSE + Bearer token` 入口，便于 OpenClaw 等远端客户端接入。
+- 权限从“角色”扩到“能力”，新增 session/run/config/service 级 allow-list。
+- 项目默认拥有独立的下载、临时文件、缓存和项目审计目录，收口到 `storage.dir/projects/<alias>/...`。
 
 ### Included
 
@@ -15,6 +18,10 @@
   - `src/control-plane/project-session.ts`
   - `src/bridge/service.ts`
   - `src/mcp/server.ts`
+- MCP HTTP/SSE 与项目隔离：
+  - `src/projects/paths.ts`
+  - `src/codex/runner.ts`
+  - `tests/mcp-http-server.test.ts`
 - readiness / metrics：
   - `src/observability/readiness.ts`
   - `src/observability/metrics.ts`

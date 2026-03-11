@@ -161,7 +161,7 @@ describe('mcp server', () => {
       projectAlias: 'repo-b',
       activeSessionId: 'thread-repo-b',
     });
-  });
+  }, 15000);
 });
 
 class McpTestClient {

@@ -1512,6 +1512,14 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
       admin_chat_ids: [],
       require_group_mentions: true,
     },
+    mcp: {
+      transport: 'stdio',
+      host: '127.0.0.1',
+      port: 8765,
+      path: '/mcp',
+      sse_path: '/mcp/sse',
+      message_path: '/mcp/message',
+    },
     feishu: {
       app_id: 'cli_test',
       app_secret: 'secret',

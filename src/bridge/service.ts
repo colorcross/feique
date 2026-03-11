@@ -35,10 +35,11 @@ import { bindProjectAlias, removeProjectAlias, updateProjectConfig, updateString
 import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
 import { ConfigHistoryStore, type ConfigSnapshot } from '../state/config-history-store.js';
 import { loadBridgeConfig } from '../config/load.js';
-import { writeUtf8Atomic } from '../utils/fs.js';
+import { ensureDir, writeUtf8Atomic } from '../utils/fs.js';
 import { PendingCommandStore, type PendingCommandRecord } from '../state/pending-command-store.js';
-import { canAccessProject, describeMinimumRole, filterAccessibleProjects, resolveProjectAccessRole, type AccessRole } from '../security/access.js';
+import { canAccessGlobalCapability, canAccessProject, canAccessProjectCapability, describeMinimumRole, filterAccessibleProjects, resolveProjectAccessRole, type AccessRole } from '../security/access.js';
 import { adoptProjectSession as adoptSharedProjectSession, listBridgeSessions as listSharedBridgeSessions, switchProjectBinding as switchSharedProjectBinding } from '../control-plane/project-session.js';
+import { getProjectAuditDir, getProjectCacheDir, getProjectDownloadsDir, getProjectTempDir } from '../projects/paths.js';
 
 interface ActiveRunHandle {
   runId: string;
@@ -273,7 +274,7 @@ export class CodexFeishuService {
             return;
           }
           const projectContext = await this.resolveProjectContext(context, selectionKey);
-          if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+          if (!this.canExecuteProjectRuns(context.chat_id, projectContext.projectAlias)) {
             await this.sendTextReply(
               context.chat_id,
               `当前 chat_id 只有 ${resolveProjectAccessRole(this.config, projectContext.projectAlias, context.chat_id) ?? '未授权'} 权限，执行运行至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -284,7 +285,7 @@ export class CodexFeishuService {
           }
           const resolvedContext = await resolveMessageResources(
             this.feishuClient.createSdkClient?.(),
-            this.resolveProjectDownloadDir(projectContext.project),
+            this.resolveProjectDownloadDir(projectContext.projectAlias, projectContext.project),
             context,
             {
               downloadEnabled: this.config.service.download_message_resources,
@@ -579,6 +580,14 @@ export class CodexFeishuService {
       session_id: currentSession?.thread_id,
       prompt: input.prompt,
     });
+    await this.appendProjectAuditEvent(input.projectAlias, input.project, {
+      type: 'codex.run.started',
+      run_id: runId,
+      chat_id: input.chatId,
+      actor_id: input.actorId,
+      session_id: currentSession?.thread_id,
+      project_root: projectRoot,
+    });
     this.logger.info(
       {
         runId,
@@ -611,6 +620,8 @@ export class CodexFeishuService {
         sessionId: currentSession?.thread_id,
         profile: input.project.profile ?? this.config.codex.default_profile,
         sandbox: input.project.sandbox ?? this.config.codex.default_sandbox,
+        tempDir: this.resolveProjectTempDir(input.projectAlias, input.project),
+        cacheDir: this.resolveProjectCacheDir(input.projectAlias, input.project),
         skipGitRepoCheck: this.config.codex.skip_git_repo_check,
         timeoutMs: this.config.codex.run_timeout_ms,
         signal: activeRun.controller.signal,
@@ -659,6 +670,14 @@ export class CodexFeishuService {
         conversation_key: input.sessionKey,
         session_id: result.sessionId,
         exit_code: result.exitCode,
+        duration_ms: Date.now() - startedAt,
+      });
+      await this.appendProjectAuditEvent(input.projectAlias, input.project, {
+        type: 'codex.run.completed',
+        run_id: runId,
+        chat_id: input.chatId,
+        actor_id: input.actorId,
+        session_id: result.sessionId,
         duration_ms: Date.now() - startedAt,
       });
       this.logger.info(
@@ -764,6 +783,13 @@ export class CodexFeishuService {
         actor_id: input.actorId,
         project_alias: input.projectAlias,
         conversation_key: input.sessionKey,
+        error: message,
+      });
+      await this.appendProjectAuditEvent(input.projectAlias, input.project, {
+        type: cancelled ? 'codex.run.cancelled' : 'codex.run.failed',
+        run_id: runId,
+        chat_id: input.chatId,
+        actor_id: input.actorId,
         error: message,
       });
       if (cancelled) {
@@ -889,7 +915,7 @@ export class CodexFeishuService {
 
   private async handleNewCommand(context: IncomingMessageContext, selectionKey: string): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+    if (!this.canControlProjectSessions(context.chat_id, projectContext.projectAlias)) {
       await this.sendTextReply(
         context.chat_id,
         `当前 chat_id 无权为项目 ${projectContext.projectAlias} 新开会话。至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -911,7 +937,7 @@ export class CodexFeishuService {
 
   private async handleCancelCommand(context: IncomingMessageContext, selectionKey: string): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+    if (!this.canCancelProjectRuns(context.chat_id, projectContext.projectAlias)) {
       await this.sendTextReply(
         context.chat_id,
         `当前 chat_id 无权取消项目 ${projectContext.projectAlias} 的运行。至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -951,7 +977,7 @@ export class CodexFeishuService {
         return;
       }
       case 'use': {
-        if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+        if (!this.canControlProjectSessions(context.chat_id, projectContext.projectAlias)) {
           await this.sendTextReply(
             context.chat_id,
             `当前 chat_id 无权切换项目 ${projectContext.projectAlias} 的会话。至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -969,7 +995,7 @@ export class CodexFeishuService {
         return;
       }
       case 'new': {
-        if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+        if (!this.canControlProjectSessions(context.chat_id, projectContext.projectAlias)) {
           await this.sendTextReply(
             context.chat_id,
             `当前 chat_id 无权为项目 ${projectContext.projectAlias} 新开会话。至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -983,7 +1009,7 @@ export class CodexFeishuService {
         return;
       }
       case 'drop': {
-        if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+        if (!this.canControlProjectSessions(context.chat_id, projectContext.projectAlias)) {
           await this.sendTextReply(
             context.chat_id,
             `当前 chat_id 无权删除项目 ${projectContext.projectAlias} 的会话。至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -1002,7 +1028,7 @@ export class CodexFeishuService {
         return;
       }
       case 'adopt': {
-        if (!canAccessProject(this.config, projectContext.projectAlias, context.chat_id, 'operator')) {
+        if (!this.canControlProjectSessions(context.chat_id, projectContext.projectAlias)) {
           await this.sendTextReply(
             context.chat_id,
             `当前 chat_id 无权接管项目 ${projectContext.projectAlias} 的会话。至少需要 ${describeMinimumRole('operator')} 权限。`,
@@ -1025,11 +1051,18 @@ export class CodexFeishuService {
     const runtimeConfigPath = this.runtimeControl?.configPath;
     const currentProjectAlias = await this.resolveProjectAlias(selectionKey);
     const globalAdmin = this.isAdminChat(context.chat_id);
+    const globalConfigAdmin = this.canMutateRuntimeConfig(context.chat_id);
+    const serviceObserver = this.canObserveService(context.chat_id) || this.canObserveRuns(context.chat_id);
+    const serviceRestarter = this.canRestartService(context.chat_id);
     const projectAdminAliases = this.getAuthorizedProjectAliases(context.chat_id, 'admin');
     const projectOperatorAliases = this.getAuthorizedProjectAliases(context.chat_id, 'operator');
     const canAccess =
       globalAdmin ||
-      this.canAccessAdminCommand(command, currentProjectAlias, projectAdminAliases, projectOperatorAliases);
+      this.canAccessAdminCommand(command, currentProjectAlias, projectAdminAliases, projectOperatorAliases, {
+        globalConfigAdmin,
+        serviceObserver,
+        serviceRestarter,
+      });
 
     if (!canAccess) {
       await this.sendTextReply(
@@ -1050,13 +1083,17 @@ export class CodexFeishuService {
       if (command.action === 'runs') {
         await this.sendTextReply(
           context.chat_id,
-          await this.buildAdminRunsText(globalAdmin ? undefined : new Set(projectOperatorAliases)),
+          await this.buildAdminRunsText(globalAdmin || serviceObserver ? undefined : new Set(projectOperatorAliases)),
           context.message_id,
           context.text,
         );
         return;
       }
       if (command.action === 'restart') {
+        if (!(globalAdmin || serviceRestarter)) {
+          await this.sendTextReply(context.chat_id, '当前 chat_id 无权重启服务。', context.message_id, context.text);
+          return;
+        }
         await this.sendTextReply(context.chat_id, '配置已保存，正在重启服务。预计数秒内恢复。', context.message_id, context.text);
         this.logger.warn({ chatId: context.chat_id, actorId: context.actor_id }, 'Restart requested by Feishu admin');
         await this.appendAdminAudit({
@@ -1081,13 +1118,17 @@ export class CodexFeishuService {
       if (command.action === 'list') {
         await this.sendTextReply(
           context.chat_id,
-          this.buildProjectsAdminText(globalAdmin ? undefined : new Set(projectOperatorAliases)),
+          this.buildProjectsAdminText(globalAdmin || serviceObserver ? undefined : new Set(projectOperatorAliases)),
           context.message_id,
           context.text,
         );
         return;
       }
       if (command.action === 'add') {
+        if (!(globalAdmin || globalConfigAdmin)) {
+          await this.sendTextReply(context.chat_id, '当前 chat_id 无权动态接入项目。', context.message_id, context.text);
+          return;
+        }
         if (!command.alias || !command.value) {
           await this.sendTextReply(context.chat_id, '用法: /admin project add <alias> <root>', context.message_id, context.text);
           return;
@@ -1103,6 +1144,9 @@ export class CodexFeishuService {
           viewer_chat_ids: [],
           operator_chat_ids: [],
           admin_chat_ids: [],
+          session_operator_chat_ids: [],
+          run_operator_chat_ids: [],
+          config_admin_chat_ids: [],
           chat_rate_limit_window_seconds: 60,
           chat_rate_limit_max_runs: 20,
         };
@@ -1119,6 +1163,10 @@ export class CodexFeishuService {
         return;
       }
       if (command.action === 'remove') {
+        if (!(globalAdmin || globalConfigAdmin)) {
+          await this.sendTextReply(context.chat_id, '当前 chat_id 无权移除项目。', context.message_id, context.text);
+          return;
+        }
         if (!command.alias) {
           await this.sendTextReply(context.chat_id, '用法: /admin project remove <alias>', context.message_id, context.text);
           return;
@@ -1145,7 +1193,7 @@ export class CodexFeishuService {
         await this.sendTextReply(context.chat_id, '用法: /admin project set <alias> <field> <value>', context.message_id, context.text);
         return;
       }
-      if (!globalAdmin && !this.isProjectAdminChat(context.chat_id, command.alias)) {
+      if (!(globalAdmin || globalConfigAdmin) && !this.isProjectAdminChat(context.chat_id, command.alias)) {
         await this.sendTextReply(context.chat_id, `当前 chat_id 无权修改项目 ${command.alias}。`, context.message_id, context.text);
         return;
       }
@@ -1153,7 +1201,7 @@ export class CodexFeishuService {
       if (!patch) {
         await this.sendTextReply(
           context.chat_id,
-          '支持字段: root, profile, sandbox, session_scope, mention_required, description, viewer_chat_ids, operator_chat_ids, admin_chat_ids, download_dir, temp_dir, chat_rate_limit_window_seconds, chat_rate_limit_max_runs',
+          '支持字段: root, profile, sandbox, session_scope, mention_required, description, viewer_chat_ids, operator_chat_ids, admin_chat_ids, session_operator_chat_ids, run_operator_chat_ids, config_admin_chat_ids, download_dir, temp_dir, cache_dir, log_dir, chat_rate_limit_window_seconds, chat_rate_limit_max_runs',
           context.message_id,
           context.text,
         );
@@ -2506,6 +2554,9 @@ export class CodexFeishuService {
       `viewer chat_id 数: ${this.config.security.viewer_chat_ids?.length ?? 0}`,
       `operator chat_id 数: ${this.config.security.operator_chat_ids?.length ?? 0}`,
       `管理员 chat_id 数: ${this.config.security.admin_chat_ids.length}`,
+      `service observer chat_id 数: ${this.config.security.service_observer_chat_ids?.length ?? 0}`,
+      `service restart chat_id 数: ${this.config.security.service_restart_chat_ids?.length ?? 0}`,
+      `config admin chat_id 数: ${this.config.security.config_admin_chat_ids?.length ?? 0}`,
       `允许私聊数: ${this.config.feishu.allowed_chat_ids.length}`,
       `允许群聊数: ${this.config.feishu.allowed_group_ids.length}`,
       `项目数: ${Object.keys(this.config.projects).length}`,
@@ -2516,12 +2567,18 @@ export class CodexFeishuService {
     ].join('\n');
   }
 
-  private buildAdminListText(resource: 'viewer' | 'operator' | 'admin' | 'group' | 'chat'): string {
+  private buildAdminListText(resource: 'viewer' | 'operator' | 'admin' | 'service-observer' | 'service-restart' | 'config-admin' | 'group' | 'chat'): string {
     const items =
       resource === 'viewer'
         ? (this.config.security.viewer_chat_ids ?? [])
         : resource === 'operator'
           ? (this.config.security.operator_chat_ids ?? [])
+          : resource === 'service-observer'
+            ? (this.config.security.service_observer_chat_ids ?? [])
+            : resource === 'service-restart'
+              ? (this.config.security.service_restart_chat_ids ?? [])
+              : resource === 'config-admin'
+                ? (this.config.security.config_admin_chat_ids ?? [])
           : resource === 'admin'
         ? this.config.security.admin_chat_ids
         : resource === 'group'
@@ -2534,7 +2591,14 @@ export class CodexFeishuService {
     const entries = Object.entries(this.config.projects).filter(([alias]) => !allowedAliases || allowedAliases.has(alias));
     const lines = entries.map(([alias, project]) => {
       const flags = [`scope=${project.session_scope}`, `mention=${project.mention_required ? 'on' : 'off'}`].join(' ');
-      const roles = [`viewer=${project.viewer_chat_ids?.length ?? 0}`, `operator=${project.operator_chat_ids?.length ?? 0}`, `admin=${project.admin_chat_ids.length}`].join(' ');
+      const roles = [
+        `viewer=${project.viewer_chat_ids?.length ?? 0}`,
+        `operator=${project.operator_chat_ids?.length ?? 0}`,
+        `admin=${project.admin_chat_ids.length}`,
+        `session_operator=${project.session_operator_chat_ids?.length ?? 0}`,
+        `run_operator=${project.run_operator_chat_ids?.length ?? 0}`,
+        `config_admin=${project.config_admin_chat_ids?.length ?? 0}`,
+      ].join(' ');
       return `- ${alias}: ${project.root} | ${flags} | ${roles}`;
     });
     return ['当前项目列表:', ...(lines.length > 0 ? lines : ['(empty)'])].join('\n');
@@ -2578,7 +2642,39 @@ export class CodexFeishuService {
   }
 
   private isProjectAdminChat(chatId: string, projectAlias: string): boolean {
-    return canAccessProject(this.config, projectAlias, chatId, 'admin');
+    return canAccessProjectCapability(this.config, projectAlias, chatId, 'project:mutate');
+  }
+
+  private canControlProjectSessions(chatId: string, projectAlias: string): boolean {
+    return canAccessProjectCapability(this.config, projectAlias, chatId, 'session:control');
+  }
+
+  private canExecuteProjectRuns(chatId: string, projectAlias: string): boolean {
+    return canAccessProjectCapability(this.config, projectAlias, chatId, 'run:execute');
+  }
+
+  private canCancelProjectRuns(chatId: string, projectAlias: string): boolean {
+    return canAccessProjectCapability(this.config, projectAlias, chatId, 'run:cancel');
+  }
+
+  private canObserveService(chatId: string): boolean {
+    return canAccessGlobalCapability(this.config, chatId, 'service:status');
+  }
+
+  private canObserveRuns(chatId: string): boolean {
+    return canAccessGlobalCapability(this.config, chatId, 'service:runs');
+  }
+
+  private canRestartService(chatId: string): boolean {
+    return canAccessGlobalCapability(this.config, chatId, 'service:restart');
+  }
+
+  private canMutateRuntimeConfig(chatId: string): boolean {
+    return canAccessGlobalCapability(this.config, chatId, 'config:mutate');
+  }
+
+  private canReadConfigHistory(chatId: string): boolean {
+    return canAccessGlobalCapability(this.config, chatId, 'config:history') || this.canMutateRuntimeConfig(chatId);
   }
 
   private canAccessAdminCommand(
@@ -2586,22 +2682,31 @@ export class CodexFeishuService {
     currentProjectAlias: string,
     authorizedProjectAliases: string[],
     operatorProjectAliases: string[],
+    globalCapabilities: {
+      globalConfigAdmin: boolean;
+      serviceObserver: boolean;
+      serviceRestarter: boolean;
+    },
   ): boolean {
     if (command.resource === 'project') {
       if (command.action === 'list') {
-        return operatorProjectAliases.length > 0;
+        return globalCapabilities.serviceObserver || operatorProjectAliases.length > 0;
       }
       if (command.action === 'set' && command.alias) {
-        return authorizedProjectAliases.includes(command.alias);
+        return globalCapabilities.globalConfigAdmin || authorizedProjectAliases.includes(command.alias);
       }
-      return false;
+      return globalCapabilities.globalConfigAdmin;
     }
 
     if (command.resource === 'service') {
       if (command.action === 'restart') {
-        return authorizedProjectAliases.length > 0;
+        return globalCapabilities.serviceRestarter;
       }
-      return operatorProjectAliases.length > 0;
+      return globalCapabilities.serviceObserver || operatorProjectAliases.length > 0;
+    }
+
+    if (command.resource === 'config') {
+      return globalCapabilities.globalConfigAdmin;
     }
 
     return authorizedProjectAliases.includes(currentProjectAlias);
@@ -2618,6 +2723,14 @@ export class CodexFeishuService {
     context: IncomingMessageContext,
     command: { kind: 'admin'; resource: 'config'; action: 'history' | 'rollback'; value?: string },
   ): Promise<void> {
+    if (command.action === 'history' && !this.canReadConfigHistory(context.chat_id)) {
+      await this.sendTextReply(context.chat_id, '当前 chat_id 无权查看配置历史。', context.message_id, context.text);
+      return;
+    }
+    if (command.action === 'rollback' && !this.canMutateRuntimeConfig(context.chat_id)) {
+      await this.sendTextReply(context.chat_id, '当前 chat_id 无权回滚配置。', context.message_id, context.text);
+      return;
+    }
     if (!this.runtimeControl?.configPath) {
       await this.sendTextReply(context.chat_id, '当前运行实例没有可写配置路径，无法执行配置历史操作。', context.message_id, context.text);
       return;
@@ -2730,10 +2843,20 @@ export class CodexFeishuService {
         return { operator_chat_ids: splitCommaSeparatedValues(value) };
       case 'admin_chat_ids':
         return { admin_chat_ids: splitCommaSeparatedValues(value) };
+      case 'session_operator_chat_ids':
+        return { session_operator_chat_ids: splitCommaSeparatedValues(value) };
+      case 'run_operator_chat_ids':
+        return { run_operator_chat_ids: splitCommaSeparatedValues(value) };
+      case 'config_admin_chat_ids':
+        return { config_admin_chat_ids: splitCommaSeparatedValues(value) };
       case 'download_dir':
         return { download_dir: value };
       case 'temp_dir':
         return { temp_dir: value };
+      case 'cache_dir':
+        return { cache_dir: value };
+      case 'log_dir':
+        return { log_dir: value };
       case 'chat_rate_limit_window_seconds': {
         const parsed = Number(value);
         return Number.isInteger(parsed) && parsed > 0 ? { chat_rate_limit_window_seconds: parsed } : null;
@@ -2747,8 +2870,21 @@ export class CodexFeishuService {
     }
   }
 
-  private resolveProjectDownloadDir(project: ProjectConfig): string {
-    return project.download_dir ? path.resolve(project.download_dir) : this.config.storage.dir;
+  private resolveProjectDownloadDir(projectAlias: string, project: ProjectConfig): string {
+    return getProjectDownloadsDir(this.config.storage.dir, projectAlias, project);
+  }
+
+  private resolveProjectTempDir(projectAlias: string, project: ProjectConfig): string {
+    return getProjectTempDir(this.config.storage.dir, projectAlias, project);
+  }
+
+  private resolveProjectCacheDir(projectAlias: string, project: ProjectConfig): string {
+    return getProjectCacheDir(this.config.storage.dir, projectAlias, project);
+  }
+
+  private async appendProjectAuditEvent(projectAlias: string, project: ProjectConfig, event: { type: string; [key: string]: unknown }): Promise<void> {
+    const auditLog = new AuditLog(getProjectAuditDir(this.config.storage.dir, projectAlias, project), 'project-audit.jsonl');
+    await auditLog.append(event);
   }
 
   private checkAndConsumeChatRateLimit(projectAlias: string, project: ProjectConfig, chatId: string): string | null {
@@ -2839,13 +2975,25 @@ export class CodexFeishuService {
     }
   }
 
-  private applyAdminListValues(resource: 'viewer' | 'operator' | 'admin' | 'group' | 'chat', values: string[]): void {
+  private applyAdminListValues(resource: 'viewer' | 'operator' | 'admin' | 'service-observer' | 'service-restart' | 'config-admin' | 'group' | 'chat', values: string[]): void {
     if (resource === 'viewer') {
       this.config.security.viewer_chat_ids = values;
       return;
     }
     if (resource === 'operator') {
       this.config.security.operator_chat_ids = values;
+      return;
+    }
+    if (resource === 'service-observer') {
+      this.config.security.service_observer_chat_ids = values;
+      return;
+    }
+    if (resource === 'service-restart') {
+      this.config.security.service_restart_chat_ids = values;
+      return;
+    }
+    if (resource === 'config-admin') {
+      this.config.security.config_admin_chat_ids = values;
       return;
     }
     if (resource === 'admin') {
@@ -3224,7 +3372,7 @@ function splitCommaSeparatedValues(value: string): string[] {
     .filter(Boolean);
 }
 
-function resolveAdminListTarget(resource: 'viewer' | 'operator' | 'admin' | 'group' | 'chat'): { section: 'security' | 'feishu'; key: string } {
+function resolveAdminListTarget(resource: 'viewer' | 'operator' | 'admin' | 'service-observer' | 'service-restart' | 'config-admin' | 'group' | 'chat'): { section: 'security' | 'feishu'; key: string } {
   switch (resource) {
     case 'viewer':
       return { section: 'security', key: 'viewer_chat_ids' };
@@ -3232,6 +3380,12 @@ function resolveAdminListTarget(resource: 'viewer' | 'operator' | 'admin' | 'gro
       return { section: 'security', key: 'operator_chat_ids' };
     case 'admin':
       return { section: 'security', key: 'admin_chat_ids' };
+    case 'service-observer':
+      return { section: 'security', key: 'service_observer_chat_ids' };
+    case 'service-restart':
+      return { section: 'security', key: 'service_restart_chat_ids' };
+    case 'config-admin':
+      return { section: 'security', key: 'config_admin_chat_ids' };
     case 'group':
       return { section: 'feishu', key: 'allowed_group_ids' };
     case 'chat':

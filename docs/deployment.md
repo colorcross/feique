@@ -42,7 +42,9 @@ codex-feishu start
 - `codex-feishu restart`：重启 bridge
 - `codex-feishu doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志
 - `codex-feishu upgrade --check`：检查 npm 最新版本
-- `codex-feishu mcp`：暴露 stdio MCP 服务给 OpenClaw 等外部工具
+- `codex-feishu mcp`：暴露 MCP 服务给 OpenClaw 等外部工具
+  - `stdio` 适合本机 agent
+  - `http` 适合远端或多客户端接入
   - 包含项目切换、会话接管和自然语言控制命令解释 / 执行入口
 
 优点：
@@ -84,6 +86,8 @@ npm run demo:down
 - 对不同项目使用不同的 Codex profile
 - 保持单实例运行；如果做主备切换，先释放旧实例锁再拉起新实例
 - 在共享部署中显式配置 `service.metrics_port`，接入 Prometheus 或探针系统
+- 对外暴露 MCP HTTP/SSE 时，始终配置 `mcp.auth_token`
+- 项目下载、临时文件、缓存和项目审计默认放在 `storage.dir/projects/<alias>/...`
 
 补充：
 
@@ -143,6 +147,29 @@ Webhook 模式建议暴露：
 - `/healthz`：进程和 HTTP 面正常，返回 `ok/service/stage/timestamp/startupWarnings/startupErrors`
 - `/readyz`：服务当前可接收流量，返回 `ok/ready/service/stage/timestamp/startupWarnings/startupErrors`
 - `/metrics`：Prometheus 文本格式指标
+
+## MCP HTTP/SSE
+
+如果 OpenClaw 或其他客户端无法直接消费 `stdio`，可启用 MCP HTTP：
+
+```toml
+[mcp]
+transport = "http"
+host = "127.0.0.1"
+port = 8765
+path = "/mcp"
+sse_path = "/mcp/sse"
+message_path = "/mcp/message"
+auth_token = "env:MCP_AUTH_TOKEN"
+```
+
+推荐暴露方式：
+
+- `POST /mcp`：同步 JSON-RPC
+- `GET /mcp/sse`：建立 SSE 会话
+- `POST /mcp/message?sessionId=...`：向该 SSE 会话提交 JSON-RPC 请求
+
+建议只对内网或反向代理后暴露，并始终开启 Bearer token。
 
 补充：
 

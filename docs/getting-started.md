@@ -152,6 +152,14 @@ project_switch_auto_adopt_latest = true
 - `operator`：可切项目、接管会话、取消运行、查看 `/admin runs`
 - `admin`：可修改配置、增删项目、回滚配置、重启服务
 
+细粒度能力名单：
+
+- `session_operator_chat_ids`：只授予会话接管 / 切换，不放开运行
+- `run_operator_chat_ids`：只授予运行 / 取消运行
+- `config_admin_chat_ids`：只授予单项目配置修改
+- `service_observer_chat_ids`：只授予全局运行观察和服务状态查看
+- `service_restart_chat_ids`：只授予服务重启
+
 可在全局或项目级配置：
 
 ```toml
@@ -165,6 +173,9 @@ root = "/srv/repos/repo-a"
 viewer_chat_ids = ["oc_repo_viewer_1"]
 operator_chat_ids = ["oc_repo_operator_1"]
 admin_chat_ids = ["oc_repo_admin_1"]
+session_operator_chat_ids = ["oc_repo_session_operator_1"]
+run_operator_chat_ids = ["oc_repo_run_operator_1"]
+config_admin_chat_ids = ["oc_repo_config_admin_1"]
 ```
 
 默认规则：
@@ -219,9 +230,10 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 - `codex-feishu doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志
 - `codex-feishu upgrade --check`：检查 npm 是否有新版本
 - `codex-feishu upgrade --yes`：从 npm 全局升级到最新版本
-- `codex-feishu mcp`：启动 stdio MCP 服务，供 OpenClaw 等外部工具接入
+- `codex-feishu mcp`：启动 MCP 服务，供 OpenClaw 等外部工具接入
   - 可通过 `project.switch` / `session.adopt` 做项目切换和本地会话接管
   - 可通过 `command.interpret` / `command.execute` 安全解释并执行自然语言控制命令
+  - `--transport http --auth-token ...` 可直接暴露 HTTP/SSE MCP 入口
 
 常用飞书端运维命令：
 
@@ -235,6 +247,53 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 - `/healthz`：进程活性和 HTTP 面是否正常
 - `/readyz`：当前是否 ready，可用于流量接入和启动探针
 - `/metrics`：Prometheus 文本格式指标，包含 readiness / live / startup warning / startup error
+
+## MCP HTTP/SSE
+
+如果外部客户端不方便走 `stdio`，可直接启 HTTP：
+
+```bash
+codex-feishu mcp --transport http --host 127.0.0.1 --port 8765 --auth-token "$MCP_AUTH_TOKEN"
+```
+
+对应配置：
+
+```toml
+[mcp]
+transport = "http"
+host = "127.0.0.1"
+port = 8765
+path = "/mcp"
+sse_path = "/mcp/sse"
+message_path = "/mcp/message"
+auth_token = "env:MCP_AUTH_TOKEN"
+```
+
+建议：
+
+- `POST /mcp`：同步 JSON-RPC
+- `GET /mcp/sse` + `POST /mcp/message?sessionId=...`：SSE 会话
+- HTTP 模式下始终配置 `auth_token`
+
+## 项目隔离目录
+
+未显式设置时，每个项目默认会在 `storage.dir` 下落到独立目录：
+
+- 下载文件：`state/projects/<alias>/downloads`
+- 临时文件：`state/projects/<alias>/tmp`
+- 缓存：`state/projects/<alias>/cache`
+- 项目审计：`state/projects/<alias>/logs/project-audit.jsonl`
+
+也可以单独覆盖：
+
+```toml
+[projects.repo-a]
+root = "/srv/repos/repo-a"
+download_dir = "/srv/codex-feishu/downloads/repo-a"
+temp_dir = "/srv/codex-feishu/tmp/repo-a"
+cache_dir = "/srv/codex-feishu/cache/repo-a"
+log_dir = "/srv/codex-feishu/logs/repo-a"
+```
 
 ## 回复模式
 
