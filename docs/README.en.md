@@ -9,9 +9,10 @@ Chinese is still the primary documentation language for this project. This page 
 3. [Deployment](deployment.md)
 4. [Security and operations](security.md)
 5. [FAQ](faq.md)
-6. [Community and support](community.md)
-7. [Feishu roadmap](feishu-roadmap.md)
-8. [Website](website.md)
+6. [Memory design](memory-design.md)
+7. [Community and support](community.md)
+8. [Feishu roadmap](feishu-roadmap.md)
+9. [Website](website.md)
 
 ## What each document is for
 
@@ -23,6 +24,8 @@ Chinese is still the primary documentation language for this project. This page 
   - credentials, project root guardrails, group-chat risk, metrics exposure
 - [faq.md](faq.md)
   - sessions, project binding, chat allow-lists, `proxy_on`
+- [memory-design.md](memory-design.md)
+  - thread summaries, project memory, retrieval order, storage model
 - [community.md](community.md)
   - discussions, issues, and support expectations
 - [feishu-roadmap.md](feishu-roadmap.md)

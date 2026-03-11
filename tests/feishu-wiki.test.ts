@@ -174,4 +174,162 @@ describe('feishu wiki client', () => {
       },
     });
   });
+
+  it('copies and moves wiki nodes', async () => {
+    const copy = vi.fn().mockResolvedValue({
+      code: 0,
+      data: {
+        node: {
+          title: '副本',
+          space_id: 'space-dst',
+          node_token: 'wikcn-copy',
+          obj_token: 'doxcn-copy',
+          obj_type: 'docx',
+        },
+      },
+    });
+    const move = vi.fn().mockResolvedValue({
+      code: 0,
+      data: {
+        node: {
+          title: '已移动',
+          space_id: 'space-dst',
+          node_token: 'wikcn123',
+          obj_token: 'doxcn123',
+          obj_type: 'docx',
+        },
+      },
+    });
+    const client = new FeishuWikiClient({
+      wiki: {
+        v2: {
+          spaceNode: {
+            copy,
+            move,
+          },
+        },
+      },
+    } as any);
+
+    const copied = await client.copyNode('wikcn123', 'space-dst', 'space-src');
+    expect(copied).toEqual({
+      title: '副本',
+      spaceId: 'space-dst',
+      nodeToken: 'wikcn-copy',
+      objToken: 'doxcn-copy',
+      objType: 'docx',
+    });
+
+    const moved = await client.moveNode('space-src', 'wikcn123', 'space-dst');
+    expect(moved).toEqual({
+      title: '已移动',
+      spaceId: 'space-dst',
+      nodeToken: 'wikcn123',
+      objToken: 'doxcn123',
+      objType: 'docx',
+    });
+  });
+
+  it('lists, grants, and revokes wiki space members', async () => {
+    const list = vi.fn().mockResolvedValue({
+      code: 0,
+      data: {
+        members: [
+          {
+            member_type: 'open_id',
+            member_id: 'ou_123',
+            member_role: 'admin',
+            type: 'user',
+          },
+        ],
+        has_more: false,
+      },
+    });
+    const create = vi.fn().mockResolvedValue({
+      code: 0,
+      data: {
+        member: {
+          member_type: 'open_id',
+          member_id: 'ou_123',
+          member_role: 'member',
+          type: 'user',
+        },
+      },
+    });
+    const remove = vi.fn().mockResolvedValue({
+      code: 0,
+      data: {
+        member: {
+          member_type: 'open_id',
+          member_id: 'ou_123',
+          member_role: 'member',
+          type: 'user',
+        },
+      },
+    });
+    const client = new FeishuWikiClient({
+      wiki: {
+        v2: {
+          spaceMember: {
+            list,
+            create,
+            delete: remove,
+          },
+        },
+      },
+    } as any);
+
+    await expect(client.listMembers('space-1')).resolves.toEqual([
+      {
+        memberType: 'open_id',
+        memberId: 'ou_123',
+        memberRole: 'admin',
+        type: 'user',
+      },
+    ]);
+    await expect(client.addMember('space-1', 'open_id', 'ou_123')).resolves.toEqual({
+      memberType: 'open_id',
+      memberId: 'ou_123',
+      memberRole: 'member',
+      type: 'user',
+    });
+    await expect(client.removeMember('space-1', 'open_id', 'ou_123')).resolves.toEqual({
+      memberType: 'open_id',
+      memberId: 'ou_123',
+      memberRole: 'member',
+      type: 'user',
+    });
+
+    expect(list).toHaveBeenCalledWith({
+      path: {
+        space_id: 'space-1',
+      },
+      params: {
+        page_size: 20,
+      },
+    });
+    expect(create).toHaveBeenCalledWith({
+      path: {
+        space_id: 'space-1',
+      },
+      params: {
+        need_notification: false,
+      },
+      data: {
+        member_type: 'open_id',
+        member_id: 'ou_123',
+        member_role: 'member',
+      },
+    });
+    expect(remove).toHaveBeenCalledWith({
+      path: {
+        space_id: 'space-1',
+        member_id: 'ou_123',
+      },
+      data: {
+        member_type: 'open_id',
+        member_role: 'member',
+      },
+    });
+  });
 });

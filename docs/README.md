@@ -14,9 +14,10 @@
 3. [安全与运维](security.md)
 4. [架构设计](architecture.md)
 5. [FAQ](faq.md)
-6. [社区与支持](community.md)
-7. [飞书交互路线图](feishu-roadmap.md)
-8. [官网部署说明](website.md)
+6. [记忆设计](memory-design.md)
+7. [社区与支持](community.md)
+8. [飞书交互路线图](feishu-roadmap.md)
+9. [官网部署说明](website.md)
 
 ## 文档地图
 
@@ -41,6 +42,11 @@
   - 多媒体沟通
   - 审批与工作流
   - 阶段里程碑
+- [记忆设计](memory-design.md)
+  - thread summary
+  - project memory
+  - 检索与注入顺序
+  - 存储模型与任务拆分
 
 ### 部署与运维
 

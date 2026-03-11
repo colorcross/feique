@@ -4,6 +4,8 @@ export const sandboxSchema = z.enum(['read-only', 'workspace-write', 'danger-ful
 export const sessionScopeSchema = z.enum(['chat', 'chat-user']);
 export const transportSchema = z.enum(['long-connection', 'webhook']);
 export const replyModeSchema = z.enum(['text', 'card']);
+export const memoryPinOverflowStrategySchema = z.enum(['reject', 'age-out']);
+export const memoryPinAgeBasisSchema = z.enum(['updated_at', 'last_accessed_at']);
 
 export const projectSchema = z.object({
   root: z.string(),
@@ -33,6 +35,22 @@ export const bridgeConfigSchema = z.object({
       log_tail_lines: z.number().int().positive().default(100),
       reply_quote_user_message: z.boolean().default(true),
       reply_quote_max_chars: z.number().int().positive().default(120),
+      download_message_resources: z.boolean().default(false),
+      transcribe_audio_messages: z.boolean().default(false),
+      transcribe_cli_path: z.string().optional(),
+      describe_image_messages: z.boolean().default(false),
+      openai_image_model: z.string().default('gpt-4.1-mini'),
+      memory_enabled: z.boolean().default(true),
+      memory_search_limit: z.number().int().positive().default(3),
+      memory_recent_limit: z.number().int().positive().default(5),
+      memory_prompt_max_chars: z.number().int().positive().default(1600),
+      thread_summary_max_chars: z.number().int().positive().default(1200),
+      memory_group_enabled: z.boolean().default(false),
+      memory_default_ttl_days: z.number().int().positive().optional(),
+      memory_cleanup_interval_seconds: z.number().int().positive().default(1800),
+      memory_max_pinned_per_scope: z.number().int().positive().default(5),
+      memory_pin_overflow_strategy: memoryPinOverflowStrategySchema.default('age-out'),
+      memory_pin_age_basis: memoryPinAgeBasisSchema.default('updated_at'),
     })
     .default({
       name: 'codex-feishu',
@@ -45,6 +63,20 @@ export const bridgeConfigSchema = z.object({
       log_tail_lines: 100,
       reply_quote_user_message: true,
       reply_quote_max_chars: 120,
+      download_message_resources: false,
+      transcribe_audio_messages: false,
+      describe_image_messages: false,
+      openai_image_model: 'gpt-4.1-mini',
+      memory_enabled: true,
+      memory_search_limit: 3,
+      memory_recent_limit: 5,
+      memory_prompt_max_chars: 1600,
+      thread_summary_max_chars: 1200,
+      memory_group_enabled: false,
+      memory_cleanup_interval_seconds: 1800,
+      memory_max_pinned_per_scope: 5,
+      memory_pin_overflow_strategy: 'age-out',
+      memory_pin_age_basis: 'updated_at',
     }),
   codex: z
     .object({
@@ -106,3 +138,5 @@ export type SandboxMode = z.infer<typeof sandboxSchema>;
 export type SessionScope = z.infer<typeof sessionScopeSchema>;
 export type BridgeTransport = z.infer<typeof transportSchema>;
 export type ReplyMode = z.infer<typeof replyModeSchema>;
+export type MemoryPinOverflowStrategy = z.infer<typeof memoryPinOverflowStrategySchema>;
+export type MemoryPinAgeBasis = z.infer<typeof memoryPinAgeBasisSchema>;

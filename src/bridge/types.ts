@@ -10,6 +10,10 @@ export interface MessageAttachment {
   mime_type?: string;
   duration_ms?: number;
   size_bytes?: number;
+  downloaded_path?: string;
+  transcript_text?: string;
+  content_excerpt?: string;
+  image_description?: string;
   summary: string;
 }
 

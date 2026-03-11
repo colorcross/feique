@@ -80,6 +80,55 @@ export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> 
     findings.push({ level: 'warn', message: 'codex.run_timeout_ms is very low; Codex runs may abort before producing output.' });
   }
 
+  if (config.service.transcribe_audio_messages && !config.service.download_message_resources) {
+    findings.push({
+      level: 'warn',
+      message: 'service.transcribe_audio_messages is enabled but download_message_resources is disabled; audio files cannot be transcribed.',
+    });
+  }
+
+  if (config.service.transcribe_audio_messages && !process.env.OPENAI_API_KEY) {
+    findings.push({
+      level: 'warn',
+      message: 'service.transcribe_audio_messages is enabled but OPENAI_API_KEY is missing; audio transcription will be skipped.',
+    });
+  }
+
+  if (config.service.describe_image_messages && !config.service.download_message_resources) {
+    findings.push({
+      level: 'warn',
+      message: 'service.describe_image_messages is enabled but download_message_resources is disabled; images cannot be described.',
+    });
+  }
+
+  if (config.service.describe_image_messages && !process.env.OPENAI_API_KEY) {
+    findings.push({
+      level: 'warn',
+      message: 'service.describe_image_messages is enabled but OPENAI_API_KEY is missing; image descriptions will be skipped.',
+    });
+  }
+
+  if (config.service.memory_group_enabled && config.feishu.allowed_group_ids.length === 0) {
+    findings.push({
+      level: 'warn',
+      message: 'service.memory_group_enabled is enabled while feishu.allowed_group_ids is empty; group shared memory will be available in every group.',
+    });
+  }
+
+  if (config.service.memory_group_enabled && !config.security.require_group_mentions) {
+    findings.push({
+      level: 'warn',
+      message: 'service.memory_group_enabled is enabled while security.require_group_mentions=false; group memory can be influenced by non-@ messages if the project also disables mention_required.',
+    });
+  }
+
+  if (config.service.memory_cleanup_interval_seconds < 60) {
+    findings.push({
+      level: 'warn',
+      message: 'service.memory_cleanup_interval_seconds is very low; background memory cleanup may generate unnecessary churn.',
+    });
+  }
+
   try {
     await ensureDir(config.storage.dir);
     findings.push({ level: 'info', message: `Storage directory ready: ${config.storage.dir}` });
@@ -103,7 +152,7 @@ export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> 
         findings.push({ level: 'error', message: `Project ${alias} root is outside security.allowed_project_roots: ${resolvedRoot}` });
       }
 
-      if (!project.mention_required && config.security.require_group_mentions) {
+      if (!project.mention_required && !config.security.require_group_mentions) {
         findings.push({ level: 'warn', message: `Project ${alias} has mention_required=false; group chats can trigger runs without @mention.` });
       }
 

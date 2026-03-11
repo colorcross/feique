@@ -41,10 +41,12 @@ Codex Feishu 让飞书消息直接进入可续接的 Codex 会话。项目可路
 - Codex 会话续接：新会话走 `codex exec`，续会话走 `codex exec resume`
 - 飞书命令控制：`/status`、`/new`、`/cancel`、`/session list|use|new|drop`
 - 项目知识库搜索：`/kb status`、`/kb search <query>`
-- 多媒体上下文透传：图片、文件、音频、富文本消息会带元数据进入 Codex 提示词
+- 多媒体上下文透传：图片、文件、音频、富文本消息会带元数据进入 Codex 提示词；下载文本类附件和 `doc/docx/odt/rtf` 后会自动摘录内容片段；图片可选生成简短视觉说明
 - 飞书知识库接入：`/wiki spaces`、`/wiki search <query>`、`/wiki read <url|token>`
 - 飞书知识库创建：`/wiki create <title>`、`/wiki create <space_id> <title>`
 - 飞书知识库节点改名：`/wiki rename <node_token> <title>`
+- 飞书知识库节点复制/移动：`/wiki copy <node_token> [target_space_id]`、`/wiki move <source_space_id> <node_token> [target_space_id]`
+- 飞书知识空间成员管理：`/wiki members [space_id]`、`/wiki grant <space_id> <member_type> <member_id> [member|admin]`、`/wiki revoke <space_id> <member_type> <member_id> [member|admin]`
 - 多会话历史和当前激活 session 持久化
 - 消息幂等去重，避免飞书重投或自激回环
 - 原生飞书消息回复 UI，优先 reply 触发消息
@@ -136,11 +138,37 @@ codex-feishu serve --detach
 - `/cancel`
 - `/kb status`
 - `/kb search <query>`
+- `/memory status`
+- `/memory stats`
+- `/memory status group`
+- `/memory stats group`
+- `/memory recent`
+- `/memory recent group`
+- `/memory recent --tag <tag>`
+- `/memory recent --source <source>`
+- `/memory recent --created-by <actor_id>`
+- `/memory search <query>`
+- `/memory search --tag <tag> <query>`
+- `/memory search --source <source> <query>`
+- `/memory search --created-by <actor_id> <query>`
+- `/memory search group <query>`
+- `/memory save <text>`
+- `/memory save group <text>`
+- `/memory pin <id>`
+- `/memory unpin <id>`
+- `/memory forget <id>`
+- `/memory forget all-expired`
+- `/memory restore <id>`
 - `/wiki spaces`
 - `/wiki search <query>`
 - `/wiki read <url|token>`
 - `/wiki create <title>`
 - `/wiki rename <node_token> <title>`
+- `/wiki copy <node_token> [target_space_id]`
+- `/wiki move <source_space_id> <node_token> [target_space_id]`
+- `/wiki members [space_id]`
+- `/wiki grant <space_id> <member_type> <member_id> [member|admin]`
+- `/wiki revoke <space_id> <member_type> <member_id> [member|admin]`
 - `/session list`
 - `/session use <thread_id>`
 
@@ -154,6 +182,14 @@ default_project = "default"
 reply_mode = "text"
 reply_quote_user_message = true
 metrics_host = "127.0.0.1"
+memory_enabled = true
+memory_group_enabled = false
+memory_cleanup_interval_seconds = 1800
+memory_recent_limit = 5
+memory_max_pinned_per_scope = 5
+memory_pin_overflow_strategy = "age-out"
+memory_pin_age_basis = "updated_at"
+# memory_default_ttl_days = 30
 
 [codex]
 bin = "codex"
@@ -189,6 +225,14 @@ wiki_space_ids = ["space_xxx"]
 /wiki create 发布手册
 ```
 
+知识空间成员管理示例：
+
+```text
+/wiki members
+/wiki grant space_xxx open_id ou_xxx admin
+/wiki revoke space_xxx open_id ou_xxx admin
+```
+
 ## 飞书端交互模型
 
 ### 项目路由
@@ -204,6 +248,41 @@ wiki_space_ids = ["space_xxx"]
 - 群聊默认必须 `@机器人` 才会触发
 - 你也可以通过配置放开
 - `allowed_group_ids` 可以限制只有白名单群可用
+
+## 记忆设计
+
+- `thread summary`：每个项目会话在每轮执行后都会更新压缩摘要，用于下一轮 prompt 注入
+- `project memory`：支持显式保存、最近查看、搜索、置顶、归档、恢复项目级长期记忆
+- `group shared memory`：可显式开启，仅在群聊内按 `project + chat_id` 生效，不跨群复用
+- 检索：项目记忆默认走 SQLite + FTS5，中文等查询自动回退到 LIKE 搜索
+- 生命周期：可通过 `memory_default_ttl_days` 给新记忆设置默认过期时间，并通过自动清理删除过期项
+- 治理：支持按 `tag/source/created_by` 筛选 recent，也支持在 `/memory search` 上使用 `--tag` 和 `--source`
+- 搜索治理：`/memory search` 支持 `--tag`、`--source`、`--created-by`
+- 过期治理：支持 `/memory forget all-expired` 批量归档当前作用域下的过期项
+- 统计治理：`/memory stats` 可直接查看 active / expired / pinned / archived / 最近访问时间
+- 置顶治理：`memory_max_pinned_per_scope` 约束每个作用域的 pinned 数量，`memory_pin_overflow_strategy = "age-out"` 时会自动老化最旧 pinned 项；`memory_pin_age_basis` 可切换按 `updated_at` 或 `last_accessed_at` 决定淘汰对象
+- 后台治理：`memory_cleanup_interval_seconds` 会定时清理过期记忆，不再只依赖用户命令或 prompt 注入
+- 飞书命令：
+  - `/memory status`
+  - `/memory stats`
+  - `/memory status group`
+  - `/memory stats group`
+  - `/memory recent` / `/memory recent group`
+  - `/memory recent --tag <tag>`
+  - `/memory recent --source <source>`
+  - `/memory recent --created-by <actor_id>`
+  - `/memory search <query>`
+  - `/memory search --tag <tag> <query>`
+  - `/memory search --source <source> <query>`
+  - `/memory search --created-by <actor_id> <query>`
+  - `/memory search group <query>`
+  - `/memory save <text>`
+  - `/memory save group <text>`
+  - `/memory pin <id>` / `/memory unpin <id>`
+  - `/memory forget <id>`
+  - `/memory forget all-expired`
+  - `/memory restore <id>`
+- 详细设计见：[docs/memory-design.md](docs/memory-design.md)
 
 ### 回复行为
 

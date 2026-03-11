@@ -34,6 +34,13 @@ export interface FeishuWikiCreateResult {
   objType?: string;
 }
 
+export interface FeishuWikiSpaceMember {
+  memberType: string;
+  memberId: string;
+  memberRole: string;
+  type?: string;
+}
+
 export class FeishuWikiClient {
   public constructor(private readonly client: lark.Client) {}
 
@@ -184,6 +191,130 @@ export class FeishuWikiClient {
       },
     });
     ensureSuccess(response);
+  }
+
+  public async copyNode(nodeToken: string, targetSpaceId: string, sourceSpaceId?: string): Promise<FeishuWikiCreateResult> {
+    const response = await this.client.wiki.v2.spaceNode.copy({
+      path: {
+        ...(sourceSpaceId ? { space_id: sourceSpaceId } : {}),
+        node_token: nodeToken,
+      },
+      data: {
+        target_space_id: targetSpaceId,
+      },
+    });
+    ensureSuccess(response);
+    const node = response.data?.node;
+    return {
+      title: node?.title,
+      spaceId: node?.space_id ?? targetSpaceId,
+      nodeToken: node?.node_token,
+      objToken: node?.obj_token,
+      objType: node?.obj_type,
+    };
+  }
+
+  public async moveNode(sourceSpaceId: string, nodeToken: string, targetSpaceId: string): Promise<FeishuWikiCreateResult> {
+    const response = await this.client.wiki.v2.spaceNode.move({
+      path: {
+        space_id: sourceSpaceId,
+        node_token: nodeToken,
+      },
+      data: {
+        target_space_id: targetSpaceId,
+      },
+    });
+    ensureSuccess(response);
+    const node = response.data?.node;
+    return {
+      title: node?.title,
+      spaceId: node?.space_id ?? targetSpaceId,
+      nodeToken: node?.node_token,
+      objToken: node?.obj_token,
+      objType: node?.obj_type,
+    };
+  }
+
+  public async listMembers(spaceId: string, limit: number = 20): Promise<FeishuWikiSpaceMember[]> {
+    const results: FeishuWikiSpaceMember[] = [];
+    let pageToken: string | undefined;
+
+    while (results.length < limit) {
+      const response = await this.client.wiki.v2.spaceMember.list({
+        path: {
+          space_id: spaceId,
+        },
+        params: {
+          page_size: Math.min(50, limit - results.length),
+          ...(pageToken ? { page_token: pageToken } : {}),
+        },
+      });
+      ensureSuccess(response);
+      const members = response.data?.members ?? [];
+      for (const member of members) {
+        if (!member.member_id || !member.member_type || !member.member_role) {
+          continue;
+        }
+        results.push({
+          memberId: member.member_id,
+          memberType: member.member_type,
+          memberRole: member.member_role,
+          type: member.type,
+        });
+      }
+
+      if (!response.data?.has_more || !response.data.page_token) {
+        break;
+      }
+      pageToken = response.data.page_token;
+    }
+
+    return results;
+  }
+
+  public async addMember(spaceId: string, memberType: string, memberId: string, memberRole: string = 'member', needNotification: boolean = false): Promise<FeishuWikiSpaceMember> {
+    const response = await this.client.wiki.v2.spaceMember.create({
+      path: {
+        space_id: spaceId,
+      },
+      params: {
+        need_notification: needNotification,
+      },
+      data: {
+        member_type: memberType,
+        member_id: memberId,
+        member_role: memberRole,
+      },
+    });
+    ensureSuccess(response);
+    const member = response.data?.member;
+    return {
+      memberId: member?.member_id ?? memberId,
+      memberType: member?.member_type ?? memberType,
+      memberRole: member?.member_role ?? memberRole,
+      type: member?.type,
+    };
+  }
+
+  public async removeMember(spaceId: string, memberType: string, memberId: string, memberRole: string = 'member'): Promise<FeishuWikiSpaceMember> {
+    const response = await this.client.wiki.v2.spaceMember.delete({
+      path: {
+        space_id: spaceId,
+        member_id: memberId,
+      },
+      data: {
+        member_type: memberType,
+        member_role: memberRole,
+      },
+    });
+    ensureSuccess(response);
+    const member = response.data?.member;
+    return {
+      memberId: member?.member_id ?? memberId,
+      memberType: member?.member_type ?? memberType,
+      memberRole: member?.member_role ?? memberRole,
+      type: member?.type,
+    };
   }
 
   private async readDocx(documentId: string): Promise<FeishuWikiReadResult> {

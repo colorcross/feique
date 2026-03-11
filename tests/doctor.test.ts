@@ -54,6 +54,20 @@ describe('doctor', () => {
         log_tail_lines: 100,
         reply_quote_user_message: false,
         reply_quote_max_chars: 120,
+        download_message_resources: false,
+        transcribe_audio_messages: true,
+        describe_image_messages: true,
+        openai_image_model: 'gpt-4.1-mini',
+        memory_enabled: true,
+        memory_search_limit: 3,
+        memory_recent_limit: 5,
+        memory_prompt_max_chars: 1600,
+        thread_summary_max_chars: 1200,
+        memory_group_enabled: true,
+        memory_cleanup_interval_seconds: 30,
+        memory_max_pinned_per_scope: 5,
+        memory_pin_overflow_strategy: 'age-out',
+        memory_pin_age_basis: 'updated_at',
       },
       codex: {
         bin: 'codex',
@@ -68,7 +82,7 @@ describe('doctor', () => {
       },
       security: {
         allowed_project_roots: [workspace],
-        require_group_mentions: true,
+        require_group_mentions: false,
       },
       feishu: {
         app_id: 'app-id',
@@ -105,6 +119,13 @@ describe('doctor', () => {
     expect(messages).toContain('[warn] feishu.allowed_group_ids is empty; all groups are allowed.');
     expect(messages).toContain('[warn] service.idempotency_ttl_seconds is very low; duplicate message suppression may be ineffective.');
     expect(messages).toContain('[warn] codex.run_timeout_ms is very low; Codex runs may abort before producing output.');
+    expect(messages).toContain('[warn] service.transcribe_audio_messages is enabled but download_message_resources is disabled; audio files cannot be transcribed.');
+    expect(messages).toContain('[warn] service.transcribe_audio_messages is enabled but OPENAI_API_KEY is missing; audio transcription will be skipped.');
+    expect(messages).toContain('[warn] service.describe_image_messages is enabled but download_message_resources is disabled; images cannot be described.');
+    expect(messages).toContain('[warn] service.describe_image_messages is enabled but OPENAI_API_KEY is missing; image descriptions will be skipped.');
+    expect(messages).toContain('[warn] service.memory_group_enabled is enabled while feishu.allowed_group_ids is empty; group shared memory will be available in every group.');
+    expect(messages).toContain('[warn] service.memory_group_enabled is enabled while security.require_group_mentions=false; group memory can be influenced by non-@ messages if the project also disables mention_required.');
+    expect(messages).toContain('[warn] service.memory_cleanup_interval_seconds is very low; background memory cleanup may generate unnecessary churn.');
     expect(messages).toContain('[error] feishu.event_path and feishu.card_path must not be identical.');
     expect(messages).toContain(`[info] Storage directory ready: ${path.join(workspace, 'state')}`);
     expect(messages).toContain(`[info] Project repo-a root found: ${projectRoot}`);

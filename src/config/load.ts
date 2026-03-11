@@ -149,6 +149,11 @@ function resolveLayerPaths(raw: Record<string, unknown>, baseDir: string): Recor
     storage.dir = resolveMaybeRelative(storage.dir, baseDir);
   }
 
+  const service = asObject(cloned.service);
+  if (service?.transcribe_cli_path && typeof service.transcribe_cli_path === 'string') {
+    service.transcribe_cli_path = resolveMaybeRelative(service.transcribe_cli_path, baseDir);
+  }
+
   const projects = asObject(cloned.projects);
   if (projects) {
     for (const projectValue of Object.values(projects)) {

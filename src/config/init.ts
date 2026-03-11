@@ -22,6 +22,22 @@ session_history_limit = 20
 log_tail_lines = 100
 reply_quote_user_message = true
 reply_quote_max_chars = 120
+download_message_resources = false
+transcribe_audio_messages = false
+describe_image_messages = false
+# openai_image_model = "gpt-4.1-mini"
+memory_enabled = true
+memory_search_limit = 3
+memory_recent_limit = 5
+memory_prompt_max_chars = 1600
+thread_summary_max_chars = 1200
+memory_group_enabled = false
+memory_cleanup_interval_seconds = 1800
+memory_max_pinned_per_scope = 5
+memory_pin_overflow_strategy = "age-out"
+memory_pin_age_basis = "updated_at"
+# memory_default_ttl_days = 30
+# transcribe_cli_path = "~/.codex/skills/transcribe/scripts/transcribe_diarize.py"
 # metrics_port = 9464
 
 [codex]

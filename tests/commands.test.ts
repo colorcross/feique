@@ -14,6 +14,42 @@ describe('bridge commands', () => {
     expect(parseBridgeCommand('/cancel')).toEqual({ kind: 'cancel' });
     expect(parseBridgeCommand('/kb status')).toEqual({ kind: 'kb', action: 'status' });
     expect(parseBridgeCommand('/kb search install')).toEqual({ kind: 'kb', action: 'search', query: 'install' });
+    expect(parseBridgeCommand('/memory status')).toEqual({ kind: 'memory', action: 'status' });
+    expect(parseBridgeCommand('/memory stats')).toEqual({ kind: 'memory', action: 'stats' });
+    expect(parseBridgeCommand('/memory status group')).toEqual({ kind: 'memory', action: 'status', scope: 'group' });
+    expect(parseBridgeCommand('/memory stats group')).toEqual({ kind: 'memory', action: 'stats', scope: 'group' });
+    expect(parseBridgeCommand('/memory recent')).toEqual({ kind: 'memory', action: 'recent' });
+    expect(parseBridgeCommand('/memory recent group')).toEqual({ kind: 'memory', action: 'recent', scope: 'group' });
+    expect(parseBridgeCommand('/memory recent --tag release')).toEqual({ kind: 'memory', action: 'recent', filters: { tag: 'release' } });
+    expect(parseBridgeCommand('/memory recent --created-by ou_123')).toEqual({ kind: 'memory', action: 'recent', filters: { created_by: 'ou_123' } });
+    expect(parseBridgeCommand('/memory recent group --source wiki')).toEqual({
+      kind: 'memory',
+      action: 'recent',
+      scope: 'group',
+      filters: { source: 'wiki' },
+    });
+    expect(parseBridgeCommand('/memory search 发布')).toEqual({ kind: 'memory', action: 'search', value: '发布' });
+    expect(parseBridgeCommand('/memory search --tag release --source wiki 发布')).toEqual({
+      kind: 'memory',
+      action: 'search',
+      value: '发布',
+      filters: { tag: 'release', source: 'wiki' },
+    });
+    expect(parseBridgeCommand('/memory search --created-by ou_123 发布')).toEqual({
+      kind: 'memory',
+      action: 'search',
+      value: '发布',
+      filters: { created_by: 'ou_123' },
+    });
+    expect(parseBridgeCommand('/memory search group 发布')).toEqual({ kind: 'memory', action: 'search', scope: 'group', value: '发布' });
+    expect(parseBridgeCommand('/memory save 发布前必须先 pnpm build')).toEqual({ kind: 'memory', action: 'save', value: '发布前必须先 pnpm build' });
+    expect(parseBridgeCommand('/memory save group 发布窗口在周五 20:00')).toEqual({ kind: 'memory', action: 'save', scope: 'group', value: '发布窗口在周五 20:00' });
+    expect(parseBridgeCommand('/memory pin 123')).toEqual({ kind: 'memory', action: 'pin', value: '123' });
+    expect(parseBridgeCommand('/memory pin group 123')).toEqual({ kind: 'memory', action: 'pin', scope: 'group', value: '123' });
+    expect(parseBridgeCommand('/memory unpin group 123')).toEqual({ kind: 'memory', action: 'unpin', scope: 'group', value: '123' });
+    expect(parseBridgeCommand('/memory forget 123')).toEqual({ kind: 'memory', action: 'forget', value: '123' });
+    expect(parseBridgeCommand('/memory forget all-expired')).toEqual({ kind: 'memory', action: 'forget', value: 'all-expired' });
+    expect(parseBridgeCommand('/memory restore 123')).toEqual({ kind: 'memory', action: 'restore', value: '123' });
     expect(parseBridgeCommand('/wiki spaces')).toEqual({ kind: 'wiki', action: 'spaces' });
     expect(parseBridgeCommand('/wiki search 发布流程')).toEqual({ kind: 'wiki', action: 'search', value: '发布流程' });
     expect(parseBridgeCommand('/wiki read https://example.feishu.cn/docx/doxcn123')).toEqual({
@@ -38,6 +74,51 @@ describe('bridge commands', () => {
       value: '新标题',
       extra: 'wikcn123',
     });
+    expect(parseBridgeCommand('/wiki copy wikcn123')).toEqual({
+      kind: 'wiki',
+      action: 'copy',
+      value: 'wikcn123',
+      extra: undefined,
+    });
+    expect(parseBridgeCommand('/wiki copy wikcn123 space_xxx')).toEqual({
+      kind: 'wiki',
+      action: 'copy',
+      value: 'wikcn123',
+      extra: 'space_xxx',
+    });
+    expect(parseBridgeCommand('/wiki move space_src wikcn123 space_dst')).toEqual({
+      kind: 'wiki',
+      action: 'move',
+      value: 'wikcn123',
+      extra: 'space_src',
+      target: 'space_dst',
+    });
+    expect(parseBridgeCommand('/wiki members')).toEqual({
+      kind: 'wiki',
+      action: 'members',
+      value: undefined,
+    });
+    expect(parseBridgeCommand('/wiki members space_xxx')).toEqual({
+      kind: 'wiki',
+      action: 'members',
+      value: 'space_xxx',
+    });
+    expect(parseBridgeCommand('/wiki grant space_xxx open_id ou_123 admin')).toEqual({
+      kind: 'wiki',
+      action: 'grant',
+      extra: 'space_xxx',
+      target: 'open_id',
+      value: 'ou_123',
+      role: 'admin',
+    });
+    expect(parseBridgeCommand('/wiki revoke space_xxx open_id ou_123')).toEqual({
+      kind: 'wiki',
+      action: 'revoke',
+      extra: 'space_xxx',
+      target: 'open_id',
+      value: 'ou_123',
+      role: undefined,
+    });
   });
 
   it('treats unknown slash commands as prompts', () => {
@@ -55,8 +136,27 @@ describe('bridge commands', () => {
     expect(helpText).toContain('/session list');
     expect(helpText).toContain('/cancel');
     expect(helpText).toContain('/kb search');
+    expect(helpText).toContain('/memory status');
+    expect(helpText).toContain('/memory stats');
+    expect(helpText).toContain('/memory status group');
+    expect(helpText).toContain('/memory recent');
+    expect(helpText).toContain('--tag <tag>');
+    expect(helpText).toContain('--created-by <actor_id>');
+    expect(helpText).toContain('/memory search --created-by <actor_id> <query>');
+    expect(helpText).toContain('all-expired');
+    expect(helpText).toContain('/memory search');
+    expect(helpText).toContain('/memory save');
+    expect(helpText).toContain('/memory pin');
+    expect(helpText).toContain('/memory unpin');
+    expect(helpText).toContain('/memory forget');
+    expect(helpText).toContain('/memory restore');
     expect(helpText).toContain('/wiki search');
     expect(helpText).toContain('/wiki create');
     expect(helpText).toContain('/wiki rename');
+    expect(helpText).toContain('/wiki copy');
+    expect(helpText).toContain('/wiki move');
+    expect(helpText).toContain('/wiki members');
+    expect(helpText).toContain('/wiki grant');
+    expect(helpText).toContain('/wiki revoke');
   });
 });

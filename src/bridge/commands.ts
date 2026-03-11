@@ -1,3 +1,10 @@
+export type MemoryScopeTarget = 'project' | 'group';
+export interface MemoryCommandFilters {
+  tag?: string;
+  source?: string;
+  created_by?: string;
+}
+
 export type BridgeCommand =
   | { kind: 'help' }
   | { kind: 'status' }
@@ -5,7 +12,8 @@ export type BridgeCommand =
   | { kind: 'new' }
   | { kind: 'cancel' }
   | { kind: 'kb'; action: 'search' | 'status'; query?: string }
-  | { kind: 'wiki'; action: 'spaces' | 'search' | 'read' | 'create' | 'rename'; value?: string; extra?: string }
+  | { kind: 'memory'; action: 'status' | 'stats' | 'search' | 'recent' | 'save' | 'pin' | 'unpin' | 'forget' | 'restore'; scope?: MemoryScopeTarget; value?: string; filters?: MemoryCommandFilters }
+  | { kind: 'wiki'; action: 'spaces' | 'search' | 'read' | 'create' | 'rename' | 'copy' | 'move' | 'members' | 'grant' | 'revoke'; value?: string; extra?: string; target?: string; role?: string }
   | { kind: 'project'; alias?: string }
   | { kind: 'session'; action: 'list' | 'use' | 'new' | 'drop'; threadId?: string }
   | { kind: 'prompt'; prompt: string };
@@ -33,6 +41,8 @@ export function parseBridgeCommand(input: string): BridgeCommand {
       return { kind: 'cancel' };
     case '/kb':
       return parseKnowledgeCommand(argument);
+    case '/memory':
+      return parseMemoryCommand(argument);
     case '/wiki':
       return parseWikiCommand(argument);
     case '/project':
@@ -64,12 +74,41 @@ export function buildHelpText(): string {
     '/cancel 取消当前项目正在运行的任务',
     '/kb status 查看当前项目知识库目录',
     '/kb search <query> 搜索项目文档/知识库',
+    '/memory status 查看当前项目记忆状态',
+    '/memory stats 查看当前项目记忆统计',
+    '/memory status group 查看当前群共享记忆状态',
+    '/memory stats group 查看当前群共享记忆统计',
+    '/memory recent 查看最近保存的项目记忆',
+    '/memory recent group 查看最近保存的群共享记忆',
+    '/memory recent --tag <tag> 按标签筛选最近项目记忆',
+    '/memory recent --source <source> 按来源筛选最近项目记忆',
+    '/memory recent --created-by <actor_id> 按创建者筛选最近项目记忆',
+    '/memory search <query> 搜索当前项目记忆',
+    '/memory search --tag <tag> <query> 按标签筛选项目记忆',
+    '/memory search --source <source> <query> 按来源筛选项目记忆',
+    '/memory search --created-by <actor_id> <query> 按创建者筛选项目记忆',
+    '/memory search group <query> 搜索当前群共享记忆',
+    '/memory save <text> 保存一条项目记忆',
+    '/memory save group <text> 保存一条群共享记忆',
+    '/memory pin <id> 置顶一条项目记忆',
+    '/memory pin group <id> 置顶一条群共享记忆',
+    '/memory unpin <id> 取消置顶项目记忆',
+    '/memory forget <id> 归档一条项目记忆',
+    '/memory forget all-expired 归档当前作用域下已过期记忆',
+    '/memory forget group <id> 归档一条群共享记忆',
+    '/memory restore <id> 恢复一条已归档项目记忆',
+    '/memory restore group <id> 恢复一条已归档群共享记忆',
     '/wiki spaces 列出可访问的飞书知识空间',
     '/wiki search <query> 搜索飞书知识库',
     '/wiki read <url|token> 读取飞书文档纯文本摘要',
     '/wiki create <title> 在默认知识空间创建文档',
     '/wiki create <space_id> <title> 在指定知识空间创建文档',
     '/wiki rename <node_token> <title> 更新知识库节点标题',
+    '/wiki copy <node_token> [target_space_id] 复制节点到默认或指定知识空间',
+    '/wiki move <source_space_id> <node_token> [target_space_id] 移动节点到默认或指定知识空间',
+    '/wiki members [space_id] 查看知识空间成员',
+    '/wiki grant <space_id> <member_type> <member_id> [member|admin] 添加知识空间成员',
+    '/wiki revoke <space_id> <member_type> <member_id> [member|admin] 移除知识空间成员',
     '/session list 列出当前项目保存过的会话',
     '/session use <thread_id> 切换到指定会话',
     '/session new 让下一条消息新开会话',
@@ -111,6 +150,81 @@ function parseKnowledgeCommand(argument: string): BridgeCommand {
   }
 }
 
+function parseMemoryCommand(argument: string): BridgeCommand {
+  const parts = argument.split(/\s+/).filter(Boolean);
+  const subcommand = parts[0];
+  const possibleScope = parts[1] === 'group' ? 'group' : undefined;
+  const scope = possibleScope as MemoryScopeTarget | undefined;
+  const payloadStart = scope ? 2 : 1;
+  const payload = parts.slice(payloadStart);
+  const { value, filters } = parseMemoryPayload(payload);
+
+  switch (subcommand) {
+    case 'status':
+      return { kind: 'memory', action: 'status', scope };
+    case 'stats':
+      return { kind: 'memory', action: 'stats', scope };
+    case 'search':
+      return { kind: 'memory', action: 'search', scope, value, filters };
+    case 'recent':
+      return { kind: 'memory', action: 'recent', scope, filters };
+    case 'save':
+      return { kind: 'memory', action: 'save', scope, value, filters };
+    case 'pin':
+      return { kind: 'memory', action: 'pin', scope, value };
+    case 'unpin':
+      return { kind: 'memory', action: 'unpin', scope, value };
+    case 'forget':
+      return { kind: 'memory', action: 'forget', scope, value };
+    case 'restore':
+      return { kind: 'memory', action: 'restore', scope, value };
+    default:
+      return { kind: 'prompt', prompt: `/memory${argument ? ` ${argument}` : ''}`.trim() };
+  }
+}
+
+function parseMemoryPayload(parts: string[]): { value?: string; filters?: MemoryCommandFilters } {
+  const filters: MemoryCommandFilters = {};
+  const positional: string[] = [];
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (!part) {
+      continue;
+    }
+    if (part === '--tag') {
+      const tag = parts[index + 1];
+      if (tag) {
+        filters.tag = tag;
+        index += 1;
+      }
+      continue;
+    }
+    if (part === '--source') {
+      const source = parts[index + 1];
+      if (source) {
+        filters.source = source;
+        index += 1;
+      }
+      continue;
+    }
+    if (part === '--created-by') {
+      const createdBy = parts[index + 1];
+      if (createdBy) {
+        filters.created_by = createdBy;
+        index += 1;
+      }
+      continue;
+    }
+    positional.push(part);
+  }
+
+  return {
+    value: positional.join(' ').trim() || undefined,
+    filters: Object.keys(filters).length > 0 ? filters : undefined,
+  };
+}
+
 function parseWikiCommand(argument: string): BridgeCommand {
   const [subcommand, ...rest] = argument.split(/\s+/).filter(Boolean);
   const value = rest.join(' ').trim() || undefined;
@@ -132,6 +246,33 @@ function parseWikiCommand(argument: string): BridgeCommand {
       const token = rest[0];
       const title = rest.slice(1).join(' ').trim() || undefined;
       return { kind: 'wiki', action: 'rename', value: title, extra: token };
+    }
+    case 'copy': {
+      const token = rest[0];
+      const targetSpaceId = rest[1];
+      return { kind: 'wiki', action: 'copy', value: token, extra: targetSpaceId };
+    }
+    case 'move': {
+      const sourceSpaceId = rest[0];
+      const token = rest[1];
+      const targetSpaceId = rest[2];
+      return { kind: 'wiki', action: 'move', value: token, extra: sourceSpaceId, target: targetSpaceId };
+    }
+    case 'members':
+      return { kind: 'wiki', action: 'members', value };
+    case 'grant': {
+      const spaceId = rest[0];
+      const memberType = rest[1];
+      const memberId = rest[2];
+      const role = rest[3];
+      return { kind: 'wiki', action: 'grant', extra: spaceId, target: memberType, value: memberId, role };
+    }
+    case 'revoke': {
+      const spaceId = rest[0];
+      const memberType = rest[1];
+      const memberId = rest[2];
+      const role = rest[3];
+      return { kind: 'wiki', action: 'revoke', extra: spaceId, target: memberType, value: memberId, role };
     }
     default:
       return { kind: 'prompt', prompt: `/wiki${argument ? ` ${argument}` : ''}`.trim() };

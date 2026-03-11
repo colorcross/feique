@@ -143,13 +143,17 @@ pnpm demo:down
 支持第一版：
 
 - 图片、文件、音频、富文本消息会被解析成结构化元数据，并带进 Codex 提示词
+- 如果开启 `download_message_resources = true`，文本类附件会额外抽取内容摘要带进上下文
+- `doc/docx/odt/rtf` 这类文档附件也会尝试抽取正文摘要
+- 如果同时开启 `transcribe_audio_messages = true`，音频附件会尝试走转写脚本生成 transcript
+- 如果同时开启 `describe_image_messages = true`，图片附件会尝试生成简短视觉说明
 - 项目内文档可以用 `/kb status` 和 `/kb search <query>` 搜索
 - 默认搜索项目根下的 `docs/`、`README.md`、`README.en.md`、`CHANGELOG.md`
 - 也可以在项目配置里用 `knowledge_paths` 自定义知识库目录
 
 边界也要明确：
 
-- 当前是“把多媒体元数据带进上下文”，不是直接把二进制文件上传给 Codex
+- 当前仍然不是“把任意二进制原样上传给 Codex”；增强的是元数据、文本摘要和音频转写
 - 如果你要更深入的文档 / 知识库管理，下一步应该接飞书文档、知识库或外部检索后端，而不是继续堆 prompt
 
 ## 13. 飞书知识库为什么搜不到结果？
@@ -193,3 +197,83 @@ pnpm demo:down
 ```text
 /wiki rename wikcn123 发布手册（正式版）
 ```
+
+复制和移动也支持最小版本：
+
+```text
+/wiki copy wikcn123
+/wiki copy wikcn123 space_target
+/wiki move space_src wikcn123 space_target
+```
+
+知识空间成员管理也已经接入：
+
+```text
+/wiki members
+/wiki members space_xxx
+/wiki grant space_xxx open_id ou_xxx member
+/wiki grant space_xxx open_id ou_xxx admin
+/wiki revoke space_xxx open_id ou_xxx admin
+```
+
+注意：
+
+- `member_type` 需要和你提供的成员 ID 对应，常见值是 `open_id` 或 `user_id`
+- 写操作要求机器人或当前身份是该知识空间管理员
+
+## 15. 记忆会一直保留吗？怎么治理？
+
+默认不会无限失控，但也不是自动全知。现在有三层治理手段：
+
+- 查看最近记忆：
+
+```text
+/memory stats
+/memory stats group
+/memory recent
+/memory recent group
+/memory recent --tag release
+/memory recent --source wiki
+/memory recent --created-by ou_123
+/memory search --tag release 发布
+/memory search --source wiki 发布
+/memory search --created-by ou_123 发布
+```
+
+- 手动治理：
+
+```text
+/memory pin <id>
+/memory unpin <id>
+/memory forget <id>
+/memory forget all-expired
+/memory restore <id>
+```
+
+- 配置治理：
+
+```toml
+[service]
+memory_cleanup_interval_seconds = 1800
+memory_recent_limit = 5
+memory_max_pinned_per_scope = 5
+memory_pin_overflow_strategy = "age-out"
+memory_pin_age_basis = "updated_at"
+# memory_default_ttl_days = 30
+```
+
+说明：
+
+- `memory_default_ttl_days` 打开后，新保存的记忆会带默认过期时间
+- 过期记忆会在后续检索和执行前被自动清理
+- `/memory stats` 可直接看 active / expired / pinned / archived / 最近访问时间
+- `/memory forget` 现在默认是归档，不是物理删除
+- `/memory forget all-expired` 会把当前作用域下已过期的记忆批量归档
+- `/memory restore <id>` 可把已归档的记忆恢复回来
+- `/memory recent --tag`、`--source`、`--created-by` 可快速筛选最近记忆
+- `/memory search --tag`、`--source`、`--created-by` 可把搜索范围压到指定标签、来源或创建者
+- `memory_max_pinned_per_scope` 可以限制项目记忆或群共享记忆的 pinned 数量
+- `memory_pin_overflow_strategy = "age-out"` 时，新 pin 会自动老化最旧的 pinned 项，而不是直接拒绝
+- `memory_pin_age_basis = "last_accessed_at"` 时，系统会优先淘汰最久未被访问的 pinned 项
+- `memory_cleanup_interval_seconds` 会在后台定时清理过期记忆
+- 群共享记忆建议只在白名单群、且默认要求 `@机器人` 的前提下开启

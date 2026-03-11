@@ -154,6 +154,8 @@ const serveCommand = program
     const feishuClient = new FeishuClient(config.feishu, logger, metrics);
     const service = new CodexFeishuService(config, feishuClient, sessionStore, auditLog, logger, metrics);
     const recoveredRuns = await service.recoverRuntimeState();
+    await service.runMemoryMaintenance();
+    service.startMaintenanceLoop();
     const metricsServer =
       config.service.metrics_port !== undefined
         ? await startMetricsServer({
@@ -186,6 +188,7 @@ const serveCommand = program
         await auditLog.append({ type: 'service.stop', transport: config.feishu.transport, signal: stopSignal ?? 'unknown' });
       }
     } finally {
+      service.stopMaintenanceLoop();
       if (metricsServer) {
         await metricsServer.close();
       }
