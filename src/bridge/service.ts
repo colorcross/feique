@@ -2834,7 +2834,7 @@ export class CodexFeishuService {
   }
 
   private buildAcknowledgedRunReply(projectAlias: string, status: 'queued' | 'running', detail: string): string {
-    return [`消息接收: success`, `处理状态: ${status}`, `项目: ${projectAlias}`, '', detail].join('\n');
+    return [`处理状态: ${status}`, `项目: ${projectAlias}`, '', detail].join('\n');
   }
 
   private shouldRequireCommandConfirmation(command: ReturnType<typeof parseBridgeCommand>, isNaturalLanguageCommand: boolean): boolean {
@@ -3463,19 +3463,36 @@ export class CodexFeishuService {
     replyToMessageId?: string;
     originalText?: string;
   }): Promise<FeishuMessageResponse> {
-    if (this.config.service.reply_mode === 'card') {
+    const lifecycleMode = this.resolveRunLifecycleReplyMode();
+    if (lifecycleMode === 'card') {
       const response = await this.sendCardReply(
         input.chatId,
-        buildStatusCard({
+        this.buildRunLifecycleCard({
           title: input.title,
-          summary: truncateForFeishuCard(this.sanitizeUserVisibleReply(input.body)),
+          body: input.body,
           projectAlias: input.projectAlias,
           runStatus: input.runStatus,
           runPhase: input.runPhase,
-          includeActions: false,
         }),
         input.replyToMessageId,
       );
+      await this.auditLog.append({
+        type: 'codex.run.replied',
+        chat_id: input.chatId,
+        project_alias: input.projectAlias,
+        run_status: input.runStatus,
+        run_phase: input.runPhase,
+        ...(input.runId ? { run_id: input.runId } : {}),
+      });
+      return response;
+    }
+    if (lifecycleMode === 'post') {
+      const postBody = this.sanitizeUserVisibleReply(this.formatQuotedReply(input.body, input.originalText));
+      const title = this.buildReplyTitle(postBody);
+      const post = buildFeishuPost(title, postBody);
+      const response = this.config.service.reply_quote_user_message && input.replyToMessageId
+        ? await this.feishuClient.sendPost(input.chatId, post, { replyToMessageId: input.replyToMessageId })
+        : await this.feishuClient.sendPost(input.chatId, post);
       await this.auditLog.append({
         type: 'codex.run.replied',
         chat_id: input.chatId,
@@ -3498,10 +3515,14 @@ export class CodexFeishuService {
     return response;
   }
 
-  private async rememberRunReplyTarget(runId: string, response: FeishuMessageResponse): Promise<void> {
+  private async rememberRunReplyTarget(
+    runId: string,
+    response: FeishuMessageResponse,
+    mode: BridgeConfig['service']['reply_mode'] = this.resolveRunLifecycleReplyMode(),
+  ): Promise<void> {
     this.runReplyTargets.set(runId, {
       messageId: response.message_id,
-      mode: this.config.service.reply_mode,
+      mode,
     });
   }
 
@@ -3615,13 +3636,14 @@ export class CodexFeishuService {
       const includeActions = input.runStatus === 'success' && this.supportsInteractiveCardActions() && input.sessionKey !== undefined;
       await this.feishuClient.updateCard(
         target.messageId,
-        buildStatusCard({
+        this.buildRunLifecycleCard({
           title: input.title,
-          summary: input.cardSummary ?? truncateForFeishuCard(sanitizedBody),
+          body: input.body,
           projectAlias: input.projectAlias,
           sessionId: input.sessionId,
           runStatus: input.runStatus,
           runPhase: input.runPhase,
+          cardSummary: input.cardSummary,
           sessionCount: includeActions && input.sessionKey
             ? (await this.sessionStore.listProjectSessions(input.sessionKey, input.projectAlias)).length
             : undefined,
@@ -3709,6 +3731,64 @@ export class CodexFeishuService {
 
   private supportsInteractiveCardActions(): boolean {
     return this.config.feishu.transport === 'webhook';
+  }
+
+  private resolveRunLifecycleReplyMode(): BridgeConfig['service']['reply_mode'] {
+    if (this.config.service.reply_mode === 'post') {
+      return 'card';
+    }
+    return this.config.service.reply_mode;
+  }
+
+  private buildRunLifecycleCard(input: {
+    title: string;
+    body: string;
+    projectAlias: string;
+    sessionId?: string;
+    runStatus?: string;
+    runPhase?: string;
+    cardSummary?: string;
+    sessionCount?: number;
+    includeActions?: boolean;
+    rerunPayload?: Record<string, unknown>;
+    newSessionPayload?: Record<string, unknown>;
+    statusPayload?: Record<string, unknown>;
+    cancelPayload?: Record<string, unknown>;
+  }): Record<string, unknown> {
+    const sanitizedBody = this.sanitizeUserVisibleReply(input.body);
+    if (input.includeActions) {
+      return buildStatusCard({
+        title: input.title,
+        summary: input.cardSummary ?? truncateForFeishuCard(this.stripLifecycleMetadata(sanitizedBody)),
+        projectAlias: input.projectAlias,
+        sessionId: input.sessionId,
+        runStatus: input.runStatus,
+        runPhase: input.runPhase,
+        sessionCount: input.sessionCount,
+        includeActions: true,
+        rerunPayload: input.rerunPayload,
+        newSessionPayload: input.newSessionPayload,
+        statusPayload: input.statusPayload,
+        cancelPayload: input.cancelPayload,
+      });
+    }
+    return buildMessageCard({
+      title: input.title,
+      body: this.stripLifecycleMetadata(sanitizedBody),
+      status: input.runStatus,
+      phase: input.runPhase,
+      projectAlias: input.projectAlias,
+      sessionId: input.sessionId,
+    });
+  }
+
+  private stripLifecycleMetadata(body: string): string {
+    return body
+      .split(/\r?\n/)
+      .filter((line) => !/^(项目|处理状态):/.test(line.trim()))
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 }
 

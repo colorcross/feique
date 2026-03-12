@@ -140,6 +140,30 @@ describe('bridge service', () => {
     expect(setup.sendText).not.toHaveBeenCalled();
   });
 
+  it('uses updateable cards for run lifecycle replies when reply_mode=post', async () => {
+    const setup = await createService({
+      service: {
+        reply_mode: 'post',
+      },
+    });
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-1',
+      finalMessage: '最终结果',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('执行一次', { message_id: 'm-post-lifecycle' }));
+
+    expect(setup.sendCard).toHaveBeenCalledTimes(1);
+    expect(setup.updateCard).toHaveBeenCalled();
+    expect(setup.sendPost).not.toHaveBeenCalled();
+    expect(setup.updatePost).not.toHaveBeenCalled();
+    expect(JSON.stringify(setup.sendCard.mock.calls[0]?.[1] ?? {})).not.toContain('消息接收: success');
+    expect(JSON.stringify(setup.updateCard.mock.calls.at(-1)?.[1] ?? {})).toContain('最终结果');
+  });
+
   it('updates the original Feishu reply message instead of sending a second final text', async () => {
     const setup = await createService();
     runCodexTurnMock.mockResolvedValue({
@@ -153,6 +177,7 @@ describe('bridge service', () => {
     await setup.service.handleIncomingMessage(buildMessage('执行一次', { message_id: 'm-update-reply' }));
 
     expect(setup.sendText).toHaveBeenCalledTimes(1);
+    expect(setup.sendText.mock.calls[0]?.[1]).not.toContain('消息接收: success');
     expect(setup.updateText).toHaveBeenCalled();
     expect(setup.updateText.mock.calls.at(-1)?.[1]).toContain('最终结果');
   });
