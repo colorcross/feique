@@ -36,6 +36,7 @@ describe('status card', () => {
     expect(JSON.stringify(card)).toContain('第一段');
     expect(JSON.stringify(card)).toContain('第二段');
     expect(JSON.stringify(card)).toContain('已完成');
+    expect(JSON.stringify(card)).toContain('**状态**: 已完成');
     expect(JSON.stringify(card)).toContain('"tag":"hr"');
   });
 });

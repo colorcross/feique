@@ -59,7 +59,7 @@ export function buildStatusCard(input: {
 
   const metadata = [
     `**项目**: ${input.projectAlias}`,
-    input.runStatus ? `**状态**: ${input.runStatus}` : null,
+    input.runStatus ? `**状态**: ${formatDisplayStatus(input.runStatus)}` : null,
     input.runPhase ? `**阶段**: ${input.runPhase}` : null,
   ]
     .filter(Boolean)
@@ -97,7 +97,7 @@ export function buildMessageCard(input: {
 }): Record<string, unknown> {
   const metadata = [
     input.projectAlias ? `**项目**: ${input.projectAlias}` : null,
-    input.status ? `**状态**: ${input.status}` : null,
+    input.status ? `**状态**: ${formatDisplayStatus(input.status)}` : null,
     input.phase ? `**阶段**: ${input.phase}` : null,
   ]
     .filter(Boolean)
@@ -139,6 +139,23 @@ function resolveCardTemplate(status?: string): string {
       return 'grey';
     default:
       return 'blue';
+  }
+}
+
+function formatDisplayStatus(status?: string): string {
+  switch (status) {
+    case 'success':
+      return '已完成';
+    case 'failure':
+      return '失败';
+    case 'queued':
+      return '排队中';
+    case 'cancelled':
+      return '已取消';
+    case 'running':
+      return '执行中';
+    default:
+      return status ?? '';
   }
 }
 

@@ -100,7 +100,7 @@ describe('bridge service', () => {
     await setup.service.handleIncomingMessage(buildMessage('请帮我看下当前路径', { message_id: 'm-reply' }));
     expect(setup.sendText).toHaveBeenCalledWith(
       'chat',
-      expect.stringContaining('项目: default'),
+      expect.stringContaining('done'),
       expect.objectContaining({ replyToMessageId: 'm-reply' }),
     );
   });
@@ -117,7 +117,8 @@ describe('bridge service', () => {
 
     await setup.service.handleIncomingMessage(buildMessage('检查输出', { message_id: 'm-no-run-id' }));
     const replyBody = setup.sendText.mock.calls.at(-1)?.[1] as string;
-    expect(replyBody).toContain('项目: default');
+    expect(replyBody).toContain('done');
+    expect(replyBody).not.toContain('引用:');
     expect(replyBody).not.toContain('运行:');
   });
 
@@ -269,9 +270,9 @@ describe('bridge service', () => {
     expect(setup.updateCard).not.toHaveBeenCalled();
     const payload = JSON.stringify(setup.sendCard.mock.calls[0]?.[1] ?? {});
     expect(payload).toContain('最终结果');
-    expect(payload).toContain('**项目**: default');
-    expect(payload).toContain('**状态**: success');
-    expect(payload).toContain('**阶段**: 已完成');
+    expect(payload).not.toContain('**项目**: default');
+    expect(payload).toContain('**状态**: 已完成');
+    expect(payload).not.toContain('**阶段**: 已完成');
   });
 
   it('lets admin chats add a group id and project dynamically', async () => {
@@ -614,12 +615,20 @@ describe('bridge service', () => {
 
     const second = setup.service.handleIncomingMessage(buildMessage('run shared b', { chat_id: 'chat-b', message_id: 'm-root-queue-b' }));
 
-    await waitFor(async () => {
+    let sawQueuedStatus = false;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
       await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: 'm-root-queue-status' }));
       const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
-      expect(statusReply).toContain('当前运行状态: queued');
-      expect(statusReply).toContain('当前仓库正在被其他会话操作，已进入排队。');
-    });
+      if (
+        statusReply.includes('当前运行状态: queued') &&
+        statusReply.includes('当前仓库正在被其他会话操作，已进入排队。')
+      ) {
+        sawQueuedStatus = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    expect(sawQueuedStatus).toBe(true);
 
     resolvers.shift()?.({ sessionId: 'thread-shared-a', finalMessage: 'done-a', stderr: '', exitCode: 0, capabilities: { version: 'v', exec: {}, resume: {} } });
     await waitFor(() => expect(runCodexTurnMock).toHaveBeenCalledTimes(2));

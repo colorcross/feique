@@ -679,12 +679,11 @@ export class CodexFeishuService {
       });
       this.metrics?.recordCodexTurn('success', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
 
-      const durationSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
       await this.sendOrUpdateRunOutcome({
         input,
         runId,
         title: 'Codex 已完成',
-        body: [`项目: ${input.projectAlias}`, `耗时: ${durationSeconds}s`, '', excerpt || 'Codex 已完成，但没有返回可显示文本。'].join('\n'),
+        body: excerpt || 'Codex 已完成，但没有返回可显示文本。',
         runStatus: 'success',
         runPhase: '已完成',
         cardSummary,
@@ -760,7 +759,7 @@ export class CodexFeishuService {
         input,
         runId,
         title: cancelled ? '运行已取消' : '执行失败',
-        body: cancelled ? [`项目: ${input.projectAlias}`, '当前运行已取消。'].join('\n') : [`项目: ${input.projectAlias}`, '执行失败。', '', message].join('\n'),
+        body: cancelled ? '当前运行已取消。' : ['执行失败。', '', message].join('\n'),
         runStatus: cancelled ? 'cancelled' : 'failure',
         runPhase: cancelled ? '已取消' : '失败',
         cardSummary: truncateForFeishuCard(cancelled ? '当前运行已取消。' : message),
@@ -3552,8 +3551,6 @@ export class CodexFeishuService {
       input.input.prompt,
       {
         status: input.runStatus,
-        phase: input.runPhase,
-        projectAlias: input.input.projectAlias,
       },
     );
     await this.auditLog.append({
@@ -3651,13 +3648,7 @@ export class CodexFeishuService {
   }
 
   private formatQuotedReply(body: string, originalText?: string): string {
-    if (!this.config.service.reply_quote_user_message || !originalText?.trim()) {
-      return body;
-    }
-
-    const normalized = originalText.replace(/\s+/g, ' ').trim();
-    const quoted = truncateExcerpt(normalized, this.config.service.reply_quote_max_chars);
-    return [`引用: ${quoted}`, '', body].join('\n');
+    return body;
   }
 
   private buildReplyTitle(body: string): string {
