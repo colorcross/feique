@@ -133,6 +133,13 @@ export class RunStateStore {
       const now = new Date().toISOString();
 
       for (const run of Object.values(state.runs)) {
+        if (run.status === 'queued') {
+          run.status = 'stale';
+          run.finished_at = now;
+          run.updated_at = now;
+          recovered.push({ ...run });
+          continue;
+        }
         if (run.status !== 'running') {
           continue;
         }

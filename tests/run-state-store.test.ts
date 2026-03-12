@@ -64,4 +64,26 @@ describe('run state store', () => {
     expect((await store.getLatestVisibleRun('queue-b'))?.run_id).toBe('run-queued');
     expect((await store.getExecutionRunByProjectRoot('/tmp/repo-a'))?.run_id).toBe('run-running');
   });
+
+  it('marks queued runs stale during recovery because queue state cannot survive a restart', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-runs-'));
+    tempDirs.push(dir);
+    const store = new RunStateStore(dir);
+
+    await store.upsertRun('run-queued', {
+      queue_key: 'queue-a',
+      conversation_key: 'conv-a',
+      project_alias: 'repo-a',
+      chat_id: 'chat-a',
+      prompt_excerpt: 'queued',
+      status: 'queued',
+      status_detail: '当前仓库正在被其他会话操作，已进入排队。',
+    });
+
+    const recovered = await store.recoverOrphanedRuns();
+    expect(recovered).toHaveLength(1);
+    expect(recovered[0]?.status).toBe('stale');
+    expect((await store.getRun('run-queued'))?.status).toBe('stale');
+    expect(await store.listActiveRuns()).toEqual([]);
+  });
 });
