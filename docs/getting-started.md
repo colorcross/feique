@@ -328,7 +328,7 @@ log_dir = "/srv/codex-feishu/logs/repo-a"
 
 ```toml
 [service]
-reply_mode = "text"
+reply_mode = "card"
 ```
 
 可选值：
@@ -339,7 +339,8 @@ reply_mode = "text"
 
 建议：
 
-- 本机 long-connection 优先用 `post`
+- 本机 long-connection 如果希望回复更像工作台卡片，优先用 `card`
+- 如果只想保留轻量富文本、减少卡片视觉密度，再退回 `post`
 - 共享 webhook 服务如果需要按钮交互，再切到 `card`
 
 补充：

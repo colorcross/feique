@@ -83,7 +83,7 @@ npm run demo:down
 - 将配置和状态目录挂载到持久卷
 - 把项目根目录映射为只允许访问的工作区
 - 配置 `security.allowed_project_roots`
-- 默认把 `reply_mode = "post"` 作为共享服务起点；只有需要卡片展示或按钮交互时再切到 `reply_mode = "card"`
+- 如果你希望回复更接近飞书插件式工作台体验，默认把 `reply_mode = "card"` 作为共享服务起点；只有在你明确想保留更轻量的富文本消息时再退回 `reply_mode = "post"`
 - 对不同项目使用不同的 Codex profile
 - 保持单实例运行；如果做主备切换，先释放旧实例锁再拉起新实例
 - 在共享部署中显式配置 `service.metrics_port`，接入 Prometheus 或探针系统
@@ -93,7 +93,7 @@ npm run demo:down
 
 补充：
 
-- `reply_mode = "card"` 在 long-connection 模式下也能展示卡片，但按钮回调仍需要 webhook
+- `reply_mode = "card"` 在 long-connection 模式下也能展示卡片，普通回答会带更清晰的标题、分段和状态元信息，但按钮回调仍需要 webhook
 - 飞书用户发消息后，会在同一条回复里直接看到当前是 `running` 还是 `queued`
 - 同一轮运行的排队、进度和完成结果会优先回写到同一条回复或卡片
 - 自然语言命令和斜杠命令会直接执行，不再追加确认消息

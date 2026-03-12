@@ -3,9 +3,9 @@ version = 1
 [service]
 default_project = "repo-a"
 project_switch_auto_adopt_latest = false
-reply_mode = "text"
-# reply_mode = "post"   # richer Feishu reply formatting
-# reply_mode = "card"   # requires webhook transport for card callbacks
+reply_mode = "card"
+# reply_mode = "post"   # lighter rich-text Feishu replies
+# reply_mode = "text"   # fallback plain text only
 emit_progress_updates = false
 progress_update_interval_ms = 4000
 idempotency_ttl_seconds = 86400

@@ -117,7 +117,7 @@ version = 1
 
 [service]
 default_project = "default"
-reply_mode = "post"  # text | post | card
+reply_mode = "card"  # text | post | card
 
 [codex]
 bin = "codex"

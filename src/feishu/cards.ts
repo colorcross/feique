@@ -14,6 +14,10 @@ export function buildStatusCard(input: {
   statusPayload?: Record<string, unknown>;
   cancelPayload?: Record<string, unknown>;
 }): Record<string, unknown> {
+  const summarySections = splitMarkdownForFeishuCard(input.summary).map((chunk) => ({
+    tag: 'markdown',
+    content: chunk,
+  }));
   const actions = input.includeActions
     ? [
         {
@@ -64,19 +68,20 @@ export function buildStatusCard(input: {
   return {
     config: {
       wide_screen_mode: true,
+      enable_forward: true,
     },
     header: {
-      template: 'blue',
+      template: resolveCardTemplate(input.runStatus),
       title: {
         tag: 'plain_text',
         content: input.title,
       },
     },
     elements: [
-      {
-        tag: 'markdown',
-        content: [metadata, '', input.summary].filter(Boolean).join('\n'),
-      },
+      ...(metadata ? [{ tag: 'markdown', content: metadata }] : []),
+      ...(metadata && summarySections.length > 0 ? [{ tag: 'hr' }] : []),
+      ...interleaveWithDividers(summarySections),
+      ...(actions.length > 0 && (metadata || summarySections.length > 0) ? [{ tag: 'hr' }] : []),
       ...actions,
     ],
   };
@@ -105,9 +110,10 @@ export function buildMessageCard(input: {
   return {
     config: {
       wide_screen_mode: true,
+      enable_forward: true,
     },
     header: {
-      template: input.status === 'failure' ? 'red' : input.status === 'queued' ? 'orange' : 'blue',
+      template: resolveCardTemplate(input.status),
       title: {
         tag: 'plain_text',
         content: input.title,
@@ -115,7 +121,34 @@ export function buildMessageCard(input: {
     },
     elements: [
       ...(metadata ? [{ tag: 'markdown', content: metadata }] : []),
-      ...sections,
+      ...(metadata && sections.length > 0 ? [{ tag: 'hr' }] : []),
+      ...interleaveWithDividers(sections),
     ],
   };
+}
+
+function resolveCardTemplate(status?: string): string {
+  switch (status) {
+    case 'success':
+      return 'green';
+    case 'failure':
+      return 'red';
+    case 'queued':
+      return 'orange';
+    case 'cancelled':
+      return 'grey';
+    default:
+      return 'blue';
+  }
+}
+
+function interleaveWithDividers<T extends Record<string, unknown>>(elements: T[]): Array<T | { tag: 'hr' }> {
+  const output: Array<T | { tag: 'hr' }> = [];
+  elements.forEach((element, index) => {
+    if (index > 0) {
+      output.push({ tag: 'hr' });
+    }
+    output.push(element);
+  });
+  return output;
 }

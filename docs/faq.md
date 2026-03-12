@@ -97,19 +97,19 @@ codex-feishu audit tail --limit 20
 
 - `text`：最简单的纯文本回复
 - `post`：富文本回复，自动保留标题、列表、链接，适合大多数长连接和 webhook 回复场景
-- `card`：卡片展示；long-connection 也能显示卡片，但卡片按钮回调仍需要 `transport = "webhook"`
+- `card`：卡片展示；long-connection 也能显示卡片，普通回复和结构化状态会更接近飞书工作台体验，卡片按钮回调仍需要 `transport = "webhook"`
 
 补充：
 
-- 收到消息后会在同一条回复里直接显示当前 `处理状态`
-- 同一轮运行的进度和完成结果会优先回写到同一条飞书回复或卡片
+- 普通回答在 `card` 模式下会带标题、分段、状态/阶段元信息，更适合长答案和结构化结果
+- `post` 仍适合想保留轻量富文本、但不需要卡片外观的场景
 - 变更类自然语言命令会直接执行，不再追加确认消息
 
-如果没有明确的卡片交互需求，推荐优先用：
+如果你希望回复更接近 `openclaw-lark` 这种工作台风格，推荐优先用：
 
 ```toml
 [service]
-reply_mode = "post"
+reply_mode = "card"
 ```
 
 ## 8. `security.allowed_project_roots` 应该怎么配？

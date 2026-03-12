@@ -3322,13 +3322,22 @@ export class CodexFeishuService {
     }
   }
 
-  private async sendTextReply(chatId: string, body: string, replyToMessageId?: string, originalText?: string): Promise<FeishuMessageResponse> {
+  private async sendTextReply(
+    chatId: string,
+    body: string,
+    replyToMessageId?: string,
+    originalText?: string,
+    presentation?: { status?: string; phase?: string; projectAlias?: string },
+  ): Promise<FeishuMessageResponse> {
     const title = this.buildReplyTitle(this.sanitizeUserVisibleReply(body));
     const formattedBody = this.sanitizeUserVisibleReply(this.formatQuotedReply(body, originalText));
     if (this.config.service.reply_mode === 'card') {
       const card = buildMessageCard({
         title,
         body: formattedBody,
+        status: presentation?.status,
+        phase: presentation?.phase,
+        projectAlias: presentation?.projectAlias,
       });
       const response = await this.sendCardReply(chatId, card, replyToMessageId);
       await this.auditLog.append({
@@ -3541,6 +3550,11 @@ export class CodexFeishuService {
       input.body,
       input.input.replyToMessageId,
       input.input.prompt,
+      {
+        status: input.runStatus,
+        phase: input.runPhase,
+        projectAlias: input.input.projectAlias,
+      },
     );
     await this.auditLog.append({
       type: 'codex.run.replied',

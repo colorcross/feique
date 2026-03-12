@@ -246,6 +246,34 @@ describe('bridge service', () => {
     expect(setup.sendText).not.toHaveBeenCalled();
   });
 
+  it('uses status-aware cards for final Codex replies when reply_mode=card', async () => {
+    const setup = await createService({
+      service: {
+        reply_mode: 'card',
+      },
+      feishu: {
+        transport: 'long-connection',
+      },
+    });
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-card-final',
+      finalMessage: '最终结果',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('执行一次', { message_id: 'm-card-final' }));
+
+    expect(setup.sendCard).toHaveBeenCalledTimes(1);
+    expect(setup.updateCard).not.toHaveBeenCalled();
+    const payload = JSON.stringify(setup.sendCard.mock.calls[0]?.[1] ?? {});
+    expect(payload).toContain('最终结果');
+    expect(payload).toContain('**项目**: default');
+    expect(payload).toContain('**状态**: success');
+    expect(payload).toContain('**阶段**: 已完成');
+  });
+
   it('lets admin chats add a group id and project dynamically', async () => {
     const setup = await createService({
       security: {
@@ -586,10 +614,12 @@ describe('bridge service', () => {
 
     const second = setup.service.handleIncomingMessage(buildMessage('run shared b', { chat_id: 'chat-b', message_id: 'm-root-queue-b' }));
 
-    await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: 'm-root-queue-status' }));
-    const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
-    expect(statusReply).toContain('当前运行状态: queued');
-    expect(statusReply).toContain('当前仓库正在被其他会话操作，已进入排队。');
+    await waitFor(async () => {
+      await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: 'm-root-queue-status' }));
+      const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
+      expect(statusReply).toContain('当前运行状态: queued');
+      expect(statusReply).toContain('当前仓库正在被其他会话操作，已进入排队。');
+    });
 
     resolvers.shift()?.({ sessionId: 'thread-shared-a', finalMessage: 'done-a', stderr: '', exitCode: 0, capabilities: { version: 'v', exec: {}, resume: {} } });
     await waitFor(() => expect(runCodexTurnMock).toHaveBeenCalledTimes(2));

@@ -25,13 +25,17 @@ describe('status card', () => {
     const card = buildMessageCard({
       title: 'Reply',
       body: '第一段\n\n第二段',
-      status: 'running',
+      status: 'success',
+      phase: '已完成',
       projectAlias: 'repo-a',
     });
 
     expect(card.header).toBeTruthy();
+    expect((card.header as { template?: string }).template).toBe('green');
     expect(JSON.stringify(card)).toContain('repo-a');
     expect(JSON.stringify(card)).toContain('第一段');
     expect(JSON.stringify(card)).toContain('第二段');
+    expect(JSON.stringify(card)).toContain('已完成');
+    expect(JSON.stringify(card)).toContain('"tag":"hr"');
   });
 });
