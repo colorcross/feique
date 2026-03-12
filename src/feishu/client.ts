@@ -41,18 +41,21 @@ const RETRYABLE_NETWORK_CODES = new Set(['ECONNABORTED', 'ECONNRESET', 'ECONNREF
 
 export class FeishuClient {
   private readonly client: lark.Client;
+  private readonly sdkHttpInstance: AxiosInstance;
 
   public constructor(
     private readonly config: BridgeConfig['feishu'],
     private readonly logger: Logger,
     private readonly metrics?: MetricsRegistry,
   ) {
+    this.sdkHttpInstance = this.createSdkHttpInstance();
     this.client = new lark.Client({
       appId: config.app_id,
       appSecret: config.app_secret,
       domain: lark.Domain.Feishu,
       appType: lark.AppType.SelfBuild,
       loggerLevel: lark.LoggerLevel.warn,
+      httpInstance: this.sdkHttpInstance,
     });
   }
 
@@ -258,9 +261,12 @@ export class FeishuClient {
       return undefined;
     }
 
+    return this.createSdkHttpInstance(agent);
+  }
+
+  private createSdkHttpInstance(agent?: HttpsProxyAgent<string>): AxiosInstance {
     const httpInstance = axios.create({
-      httpAgent: agent,
-      httpsAgent: agent,
+      ...(agent ? { httpAgent: agent, httpsAgent: agent } : {}),
       proxy: false,
     });
 

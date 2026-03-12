@@ -185,6 +185,17 @@ describe('FeishuClient', () => {
     expect(options.httpInstance).toBeTruthy();
   });
 
+  it('creates the SDK client with a direct httpInstance so Feishu APIs bypass system proxy env', () => {
+    process.env.HTTPS_PROXY = 'http://127.0.0.1:1087';
+    process.env.HTTP_PROXY = 'http://127.0.0.1:1087';
+
+    new FeishuClient(config, logger);
+
+    expect(clientCtorMock).toHaveBeenCalledTimes(1);
+    const options = clientCtorMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(options.httpInstance).toBeTruthy();
+  });
+
   it('creates WSClient without agent when no proxy env is configured', () => {
     delete process.env.HTTPS_PROXY;
     delete process.env.HTTP_PROXY;
