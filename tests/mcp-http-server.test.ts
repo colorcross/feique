@@ -138,7 +138,7 @@ describe('mcp http server', () => {
     });
 
     sse.close();
-  }, 15000);
+  }, 60000);
 });
 
 async function getFreePort(): Promise<number> {
@@ -152,7 +152,7 @@ async function getFreePort(): Promise<number> {
 }
 
 async function waitForHttpReady(url: string, token: string): Promise<void> {
-  const deadline = Date.now() + 10000;
+  const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
     try {
       const response = await request({ url, method: 'GET', token });

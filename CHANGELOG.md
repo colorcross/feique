@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## v0.1.13 - 2026-03-12
+
+### Highlights
+
+- 飞书回复从“处理中 + 最终结果”两条消息，收敛为单条最终回复，减少噪音。
+- 回复展示升级为更适合飞书插件场景的富卡片，普通回答和最终结果都支持更清晰的标题、分段和中文状态。
+- 用户侧回复去掉了 `引用 / 项目 / 耗时` 等工程化头部信息，前台只保留真正需要读的结果。
+
+### Included
+
+- 单条最终回复与元数据精简：
+  - `src/bridge/service.ts`
+  - `tests/bridge-service.test.ts`
+- 富卡片回复模板：
+  - `src/feishu/cards.ts`
+  - `tests/cards.test.ts`
+- 文档与示例配置：
+  - `README.md`
+  - `README.en.md`
+  - `docs/faq.md`
+  - `docs/getting-started.md`
+  - `docs/deployment.md`
+  - `examples/config.global.toml`
+  - `website/index.html`
+
 ## v0.1.12 - 2026-03-12
 
 ### Highlights

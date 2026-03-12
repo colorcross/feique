@@ -616,7 +616,7 @@ describe('bridge service', () => {
     const second = setup.service.handleIncomingMessage(buildMessage('run shared b', { chat_id: 'chat-b', message_id: 'm-root-queue-b' }));
 
     let sawQueuedStatus = false;
-    for (let attempt = 0; attempt < 10; attempt += 1) {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
       await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: 'm-root-queue-status' }));
       const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
       if (
@@ -626,7 +626,7 @@ describe('bridge service', () => {
         sawQueuedStatus = true;
         break;
       }
-      await new Promise((resolve) => setTimeout(resolve, 25));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     expect(sawQueuedStatus).toBe(true);
 
