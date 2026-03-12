@@ -17,7 +17,7 @@
 
 Codex Feishu is a Feishu (Lark) bridge designed for the Codex CLI. It is not just a message forwarding tool, but a **control plane with project awareness, session adoption, and concurrency protection**.
 
-It routes Feishu messages directly into resumable Codex CLI sessions. Project bindings are persisted by `chat_id`, local sessions can be adopted, shared repositories are automatically serialized, and queued runtime states are directly visible within Feishu, with in-place rich-text/card status updates.
+It routes Feishu messages directly into resumable Codex CLI sessions. Project bindings are persisted by `chat_id`, local sessions can be adopted, shared repositories are automatically serialized, and queued runtime states are directly visible within Feishu. Final replies support rich text and cards, and are intentionally collapsed into a cleaner single result message instead of exposing bridge-style `quote / project / duration` metadata.
 
 ## 🌟 Core Features
 
