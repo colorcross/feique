@@ -3355,7 +3355,13 @@ export class CodexFeishuService {
     }
   }
 
-  private async sendTextReply(chatId: string, body: string, replyToMessageId?: string, originalText?: string): Promise<FeishuMessageResponse> {
+  private async sendTextReply(
+    chatId: string,
+    body: string,
+    replyToMessageId?: string,
+    originalText?: string,
+    forceReply: boolean = false,
+  ): Promise<FeishuMessageResponse> {
     const title = this.buildReplyTitle(this.sanitizeUserVisibleReply(body));
     const formattedBody = this.sanitizeUserVisibleReply(this.formatQuotedReply(body, originalText));
     if (this.config.service.reply_mode === 'card') {
@@ -3363,7 +3369,7 @@ export class CodexFeishuService {
         title,
         body: formattedBody,
       });
-      const response = await this.sendCardReply(chatId, card, replyToMessageId);
+      const response = await this.sendCardReply(chatId, card, replyToMessageId, forceReply);
       await this.auditLog.append({
         type: 'message.replied',
         chat_id: chatId,
@@ -3375,7 +3381,7 @@ export class CodexFeishuService {
     }
     if (this.config.service.reply_mode === 'post') {
       const post = buildFeishuPost(title, formattedBody);
-      if (this.config.service.reply_quote_user_message && replyToMessageId) {
+      if ((forceReply || this.config.service.reply_quote_user_message) && replyToMessageId) {
         const response = await this.feishuClient.sendPost(chatId, post, { replyToMessageId });
         await this.auditLog.append({
           type: 'message.replied',
@@ -3395,7 +3401,7 @@ export class CodexFeishuService {
       });
       return response;
     }
-    if (this.config.service.reply_quote_user_message && replyToMessageId) {
+    if ((forceReply || this.config.service.reply_quote_user_message) && replyToMessageId) {
       const response = await this.feishuClient.sendText(chatId, this.sanitizeUserVisibleReply(body), { replyToMessageId });
       await this.auditLog.append({
         type: 'message.replied',
@@ -3416,8 +3422,13 @@ export class CodexFeishuService {
     return response;
   }
 
-  private async sendCardReply(chatId: string, card: Record<string, unknown>, replyToMessageId?: string): Promise<FeishuMessageResponse> {
-    if (this.config.service.reply_quote_user_message && replyToMessageId) {
+  private async sendCardReply(
+    chatId: string,
+    card: Record<string, unknown>,
+    replyToMessageId?: string,
+    forceReply: boolean = false,
+  ): Promise<FeishuMessageResponse> {
+    if ((forceReply || this.config.service.reply_quote_user_message) && replyToMessageId) {
       return this.feishuClient.sendCard(chatId, card, { replyToMessageId });
     }
     return this.feishuClient.sendCard(chatId, card);
@@ -3575,6 +3586,13 @@ export class CodexFeishuService {
       cardSummary: input.cardSummary,
     });
     if (updated) {
+      await this.sendTextReply(
+        input.input.chatId,
+        input.body,
+        input.input.replyToMessageId,
+        input.input.prompt,
+        true,
+      );
       return;
     }
     const response = await this.sendRunLifecycleReply({
