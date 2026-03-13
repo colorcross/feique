@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## v0.1.15 - 2026-03-13
+
+### Highlights
+
+- 修复 `/status` 在“会话尚未落盘但运行已排队”场景下看不到排队状态的问题，队列状态展示与真实运行态重新对齐。
+- 修复 release 链路中的队列状态回归测试，避免幂等消息 ID 和并发回复竞争导致 GitHub Actions 偶发失败。
+
+### Included
+
+- 状态查询兼容 queued 运行：
+  - `src/bridge/service.ts`
+- 排队状态回归测试稳定性：
+  - `tests/bridge-service.test.ts`
+
 ## v0.1.14 - 2026-03-13
 
 ### Highlights
