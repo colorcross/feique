@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## v0.1.14 - 2026-03-13
+
+### Highlights
+
+- 飞书文本请求恢复为“先有一条可更新的运行态回复，再原地更新到完成/失败”，用户发送后能立刻看到系统已经接单。
+- 运行态回复会在排队、处理中、完成、失败之间切换，减少“消息发出去后像黑盒”的感受。
+- `/admin config rollback latest` 重新按单文件配置回滚，避免被全局配置层污染。
+
+### Included
+
+- 飞书运行态状态回复：
+  - `src/bridge/service.ts`
+  - `tests/bridge-service.test.ts`
+- 配置文件单独加载：
+  - `src/config/load.ts`
+- 文档：
+  - `README.md`
+
 ## v0.1.13 - 2026-03-12
 
 ### Highlights
