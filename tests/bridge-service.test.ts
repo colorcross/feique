@@ -586,10 +586,14 @@ describe('bridge service', () => {
     await waitFor(() => expect(runCodexTurnMock).toHaveBeenCalledTimes(1));
 
     const second = setup.service.handleIncomingMessage(buildMessage('run second', { message_id: 'm-queue-project-2' }));
+    const statusCallStart = setup.sendText.mock.calls.length;
     await setup.service.handleIncomingMessage(buildMessage('/status', { message_id: 'm-queue-project-status' }));
-    const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
-    expect(statusReply).toContain('当前运行状态: queued');
-    expect(statusReply).toContain('当前项目 default 已有任务在处理，已进入排队。');
+    const statusReplies = setup.sendText.mock.calls.slice(statusCallStart).map((call) => call[1] as string);
+    expect(
+      statusReplies.some(
+        (reply) => reply.includes('当前会话:') && reply.includes('当前项目 default 已有任务在处理，已进入排队。'),
+      ),
+    ).toBe(true);
 
     resolvers.shift()?.({ sessionId: 'thread-first', finalMessage: 'done-first', stderr: '', exitCode: 0, capabilities: { version: 'v', exec: {}, resume: {} } });
     await waitFor(() => expect(runCodexTurnMock).toHaveBeenCalledTimes(2));
@@ -620,11 +624,13 @@ describe('bridge service', () => {
 
     let sawQueuedStatus = false;
     for (let attempt = 0; attempt < 60; attempt += 1) {
-      await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: 'm-root-queue-status' }));
-      const statusReply = setup.sendText.mock.calls.at(-1)?.[1] as string;
+      const statusCallStart = setup.sendText.mock.calls.length;
+      await setup.service.handleIncomingMessage(buildMessage('/status', { chat_id: 'chat-b', message_id: `m-root-queue-status-${attempt}` }));
+      const statusReplies = setup.sendText.mock.calls.slice(statusCallStart).map((call) => call[1] as string);
       if (
-        statusReply.includes('当前运行状态: queued') &&
-        statusReply.includes('当前仓库正在被其他会话操作，已进入排队。')
+        statusReplies.some(
+          (reply) => reply.includes('当前会话:') && reply.includes('当前仓库正在被其他会话操作，已进入排队。'),
+        )
       ) {
         sawQueuedStatus = true;
         break;

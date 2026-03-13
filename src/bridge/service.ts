@@ -987,17 +987,16 @@ export class CodexFeishuService {
 
   private async handleStatusCommand(context: IncomingMessageContext, selectionKey: string, detail: boolean = false): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
+    const activeRun = await this.runStateStore.getLatestVisibleRun(projectContext.queueKey);
     const conversation = await this.sessionStore.getConversation(projectContext.sessionKey);
-    if (!conversation) {
+    if (!conversation && !activeRun) {
       await this.sendTextReply(context.chat_id, `项目 ${projectContext.projectAlias} 还没有会话。发送任意文本即可开始。`, context.message_id, context.text);
       return;
     }
-
-    const activeRun = await this.runStateStore.getLatestVisibleRun(projectContext.queueKey);
     if (this.config.service.reply_mode === 'card') {
       await this.sendCardReply(
         context.chat_id,
-        this.buildStatusCardFromConversation(projectContext.projectAlias, projectContext.sessionKey, conversation, activeRun),
+        this.buildStatusCardFromConversation(projectContext.projectAlias, projectContext.sessionKey, conversation, activeRun, context.chat_id),
         context.message_id,
       );
       return;
@@ -2460,20 +2459,20 @@ export class CodexFeishuService {
     return ['可用项目:', ...(lines.length > 0 ? lines : ['(empty)'])].join('\n');
   }
 
-  private async buildStatusText(projectAlias: string, conversation: ConversationState, activeRun?: RunState | null): Promise<string> {
-    const session = conversation.projects[projectAlias];
-    const sessions = await this.sessionStore.listProjectSessions(buildConversationKeyForConversation(conversation), projectAlias);
+  private async buildStatusText(projectAlias: string, conversation: ConversationState | null, activeRun?: RunState | null): Promise<string> {
+    const session = conversation?.projects[projectAlias];
+    const sessions = conversation ? await this.sessionStore.listProjectSessions(buildConversationKeyForConversation(conversation), projectAlias) : [];
     const memoryCount = this.config.service.memory_enabled ? await this.memoryStore.countProjectMemories(projectAlias) : 0;
     const threadSummary =
-      this.config.service.memory_enabled && session?.thread_id
+      this.config.service.memory_enabled && conversation && session?.thread_id
         ? await this.memoryStore.getThreadSummary(buildConversationKeyForConversation(conversation), projectAlias, session.thread_id)
         : null;
     return [
       `项目: ${projectAlias}`,
-      `当前会话: ${session?.thread_id ?? '未开始'}`,
+      `当前会话: ${session?.thread_id ?? activeRun?.session_id ?? '未开始'}`,
       `已保存会话数: ${sessions.length}`,
       `项目记忆数: ${memoryCount}`,
-      `最近更新时间: ${session?.updated_at ?? conversation.updated_at}`,
+      `最近更新时间: ${session?.updated_at ?? conversation?.updated_at ?? activeRun?.updated_at ?? '无'}`,
       `当前运行状态: ${activeRun?.status ?? '无'}`,
       ...(activeRun?.status === 'queued' && activeRun.status_detail ? ['', activeRun.status_detail] : []),
       '',
@@ -2484,10 +2483,10 @@ export class CodexFeishuService {
   private async buildDetailedStatusText(
     projectAlias: string,
     sessionKey: string,
-    conversation: ConversationState,
+    conversation: ConversationState | null,
     activeRun?: RunState | null,
   ): Promise<string> {
-    const session = conversation.projects[projectAlias];
+    const session = conversation?.projects[projectAlias];
     const runs = await this.runStateStore.listRuns();
     const currentProjectRuns = runs.filter((run) => run.queue_key === buildQueueKey(sessionKey, projectAlias));
     const recentFailure = currentProjectRuns.find((run) => run.status === 'failure' || run.status === 'cancelled' || run.status === 'stale');
@@ -2510,11 +2509,18 @@ export class CodexFeishuService {
     return lines.filter(Boolean).join('\n');
   }
 
-  private buildStatusCardFromConversation(projectAlias: string, sessionKey: string, conversation: ConversationState, activeRun?: RunState | null): Record<string, unknown> {
-    const session = conversation.projects[projectAlias];
+  private buildStatusCardFromConversation(
+    projectAlias: string,
+    sessionKey: string,
+    conversation: ConversationState | null,
+    activeRun?: RunState | null,
+    fallbackChatId?: string,
+  ): Record<string, unknown> {
+    const session = conversation?.projects[projectAlias];
     const sessionCount = Object.keys(session?.sessions ?? {}).length;
     const isExecutableRun = activeRun ? isExecutionRunStatus(activeRun.status) : false;
     const includeActions = this.supportsInteractiveCardActions();
+    const actionChatId = conversation?.chat_id ?? activeRun?.chat_id ?? fallbackChatId;
     return buildStatusCard({
       title: '当前会话状态',
       summary: this.buildRunStatusSummary(session?.last_response_excerpt, activeRun),
@@ -2529,7 +2535,7 @@ export class CodexFeishuService {
             action: 'rerun',
             conversation_key: sessionKey,
             project_alias: projectAlias,
-            chat_id: conversation.chat_id,
+            chat_id: actionChatId ?? '',
           }
         : undefined,
       newSessionPayload: includeActions
@@ -2537,7 +2543,7 @@ export class CodexFeishuService {
             action: 'new',
             conversation_key: sessionKey,
             project_alias: projectAlias,
-            chat_id: conversation.chat_id,
+            chat_id: actionChatId ?? '',
           }
         : undefined,
       cancelPayload: includeActions && isExecutableRun
@@ -2545,7 +2551,7 @@ export class CodexFeishuService {
             action: 'cancel',
             conversation_key: sessionKey,
             project_alias: projectAlias,
-            chat_id: conversation.chat_id,
+            chat_id: actionChatId ?? '',
           }
         : undefined,
       statusPayload: includeActions
@@ -2553,7 +2559,7 @@ export class CodexFeishuService {
             action: 'status',
             conversation_key: sessionKey,
             project_alias: projectAlias,
-            chat_id: conversation.chat_id,
+            chat_id: actionChatId ?? '',
           }
         : undefined,
     });
