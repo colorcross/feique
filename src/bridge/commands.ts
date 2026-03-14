@@ -345,16 +345,18 @@ function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
   }
 
   const projectWithPromptMatch = normalized.match(
-    /^(?:把)?(?:当前)?(?:项目)?(?:切换到|切到|切换至|转到|进入|使用|换到|改到)\s*([^，,。；;：:\s]+?)(?:项目)?(?:[，,。；;：:]\s*|\s*(?:然后|并且|并|再)\s*)(.+)$/,
+    /^(?:把)?(?:当前)?(?:项目)?(?:切换到|切到|切换至|转到|进入|使用|换到|改到)\s*([^，,。；;：:\s]+?)\s*(?:项目)?(?:[，,。；;：:]\s*|\s*(?:然后|并且|并|再)\s*)(.+)$/,
   );
   if (projectWithPromptMatch) {
     const [, alias, followupPrompt] = projectWithPromptMatch;
     if (alias && followupPrompt) {
-      return { kind: 'project', alias, followupPrompt: followupPrompt.trim() };
+      return { kind: 'project', alias, followupPrompt: followupPrompt.replace(/^(?:然后|并且|并|再)\s*/u, '').trim() };
     }
   }
 
-  const projectMatch = normalized.match(/^(?:把)?(?:当前)?(?:项目)?(?:切换到项目|切到项目|使用项目|切换到|切到|切换至|转到|进入|使用|换到|改到)\s+(\S+)$/);
+  const projectMatch = normalized.match(
+    /^(?:把)?(?:当前)?(?:项目)?(?:切换到项目|切到项目|使用项目|切换到|切到|切换至|转到|进入|使用|换到|改到)\s+(\S+?)(?:\s*项目)?$/,
+  );
   if (projectMatch) {
     return { kind: 'project', alias: projectMatch[1] };
   }
