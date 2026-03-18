@@ -32,8 +32,8 @@ import { MemoryStore } from '../state/memory-store.js';
 import { retrieveMemoryContext, type MemoryContext } from '../memory/retrieve.js';
 import { summarizeThreadTurn } from '../memory/summarize.js';
 import { CodexSessionIndex } from '../codex/session-index.js';
-import type { Backend, BackendEvent } from '../backend/types.js';
-import { resolveProjectBackend } from '../backend/factory.js';
+import type { Backend, BackendEvent, BackendName } from '../backend/types.js';
+import { resolveProjectBackendWithOverride, resolveProjectBackendName } from '../backend/factory.js';
 import { bindProjectAlias, createProjectAlias, removeProjectAlias, updateProjectConfig, updateStringList } from '../config/mutate.js';
 import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
 import { ConfigHistoryStore, type ConfigSnapshot } from '../state/config-history-store.js';
@@ -282,6 +282,9 @@ export class CodexFeishuService {
           return;
         case 'wiki':
           await this.handleWikiCommand(context, selectionKey, command.action, command.value, command.extra, command.target, command.role);
+          return;
+        case 'backend':
+          await this.handleBackendCommand(context, selectionKey, command.name);
           return;
         case 'session':
           const sessionArgument = command.action === 'adopt' ? command.target : command.threadId;
@@ -546,7 +549,8 @@ export class CodexFeishuService {
     this.metrics?.recordCodexTurnStarted(input.projectAlias, runId);
 
     try {
-      const backend = this.resolveBackend(input.projectAlias);
+      const sessionBackendOverride = await this.sessionStore.getProjectBackend(input.sessionKey, input.projectAlias);
+      const backend = this.resolveBackendByName(input.projectAlias, sessionBackendOverride);
       const backendLabel = backend.name === 'claude' ? 'Claude' : 'Codex';
       const outputTokenLimit = backend.name === 'claude'
         ? (this.config.claude?.output_token_limit ?? this.config.codex.output_token_limit)
@@ -901,6 +905,9 @@ export class CodexFeishuService {
         return;
       case 'wiki':
         await this.handleWikiCommand(context, selectionKey, command.action, command.value, command.extra, command.target, command.role);
+        return;
+      case 'backend':
+        await this.handleBackendCommand(context, selectionKey, command.name);
         return;
       case 'session': {
         const sessionArgument = command.action === 'adopt' ? command.target : command.threadId;
@@ -1413,6 +1420,60 @@ export class CodexFeishuService {
       });
     }
     await this.sendTextReply(context.chat_id, adoption.text, context.message_id, context.text);
+  }
+
+  private async handleBackendCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    name?: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+
+    if (!name) {
+      const sessionOverride = await this.sessionStore.getProjectBackend(projectContext.sessionKey, projectContext.projectAlias);
+      const effectiveName = resolveProjectBackendName(this.config, projectContext.projectAlias, sessionOverride);
+      const source = sessionOverride
+        ? '会话级覆盖'
+        : this.config.projects[projectContext.projectAlias]?.backend
+          ? '项目配置'
+          : '全局默认';
+      await this.sendTextReply(
+        context.chat_id,
+        `项目: ${projectContext.projectAlias}\n当前后端: ${effectiveName} (${source})`,
+        context.message_id,
+        context.text,
+      );
+      return;
+    }
+
+    const normalized = name.toLowerCase();
+    if (normalized !== 'codex' && normalized !== 'claude') {
+      await this.sendTextReply(
+        context.chat_id,
+        `未知后端: ${name}\n可选值: codex | claude`,
+        context.message_id,
+        context.text,
+      );
+      return;
+    }
+
+    const backendName = normalized as BackendName;
+    await this.sessionStore.setProjectBackend(projectContext.sessionKey, projectContext.projectAlias, backendName);
+    await this.auditLog.append({
+      type: 'backend.switched',
+      chat_id: context.chat_id,
+      actor_id: context.actor_id,
+      project_alias: projectContext.projectAlias,
+      conversation_key: projectContext.sessionKey,
+      backend: backendName,
+    });
+    const label = backendName === 'claude' ? 'Claude Code' : 'Codex';
+    await this.sendTextReply(
+      context.chat_id,
+      `项目 ${projectContext.projectAlias} 已切换到 ${label} 后端。\n下一条消息将使用 ${label} 执行。`,
+      context.message_id,
+      context.text,
+    );
   }
 
   private async handleMemoryCommand(
@@ -3380,8 +3441,8 @@ export class CodexFeishuService {
     return path.resolve(project.root);
   }
 
-  private resolveBackend(projectAlias: string): Backend {
-    return resolveProjectBackend(this.config, projectAlias, this.codexSessionIndex);
+  private resolveBackendByName(projectAlias: string, sessionOverride?: BackendName): Backend {
+    return resolveProjectBackendWithOverride(this.config, projectAlias, sessionOverride, this.codexSessionIndex);
   }
 
   private async enforceSessionHistoryLimit(conversationKey: string, projectAlias: string): Promise<void> {

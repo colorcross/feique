@@ -29,6 +29,7 @@ export type BridgeCommand =
   | { kind: 'admin'; resource: 'project'; action: AdminProjectAction; alias?: string; field?: string; value?: string }
   | { kind: 'admin'; resource: 'service'; action: 'status' | 'restart' | 'runs' }
   | { kind: 'admin'; resource: 'config'; action: AdminConfigAction; value?: string }
+  | { kind: 'backend'; name?: string }
   | { kind: 'prompt'; prompt: string };
 
 export function parseBridgeCommand(input: string): BridgeCommand {
@@ -74,6 +75,8 @@ export function parseBridgeCommand(input: string): BridgeCommand {
       return parseSessionCommand(argument);
     case '/admin':
       return parseAdminCommand(argument);
+    case '/backend':
+      return { kind: 'backend', name: argument || undefined };
     default:
       return { kind: 'prompt', prompt: trimmed };
   }
@@ -100,14 +103,19 @@ export function buildHelpText(): string {
     '/new 为当前项目新开会话',
     '/cancel 取消当前项目正在运行的任务',
     '',
+    '后端切换',
+    '/backend 查看当前项目的活跃后端',
+    '/backend codex 切换当前项目到 Codex 后端',
+    '/backend claude 切换当前项目到 Claude Code 后端',
+    '',
     '会话管理',
     '/session list 列出当前项目保存过的会话',
     '/session use <thread_id> 切换到指定会话',
     '/session new 让下一条消息新开会话',
     '/session drop [thread_id] 删除指定或当前会话',
-    '/session adopt latest 接管当前项目最近的本地 Codex 会话',
-    '/session adopt list 列出当前项目可接管的本地 Codex 会话',
-    '/session adopt <thread_id> 接管指定本地 Codex 会话',
+    '/session adopt latest 接管当前项目最近的本地会话',
+    '/session adopt list 列出当前项目可接管的本地会话',
+    '/session adopt <thread_id> 接管指定本地会话',
     '',
     '知识与记忆',
     '/kb status 查看当前项目知识库目录',
@@ -247,6 +255,8 @@ export function describeBridgeCommand(command: BridgeCommand): string {
         return `配置操作: ${command.action}${command.value ? ` ${command.value}` : ''}`;
       }
       return `管理员操作: ${command.resource} ${command.action}${'value' in command && command.value ? ` ${command.value}` : ''}`;
+    case 'backend':
+      return command.name ? `切换后端到 ${command.name}` : '查看当前后端';
     case 'prompt':
       return truncateForDescription(command.prompt);
   }
@@ -274,6 +284,8 @@ export function isReadOnlyCommand(command: BridgeCommand): boolean {
       return command.action === 'spaces' || command.action === 'search' || command.action === 'read' || command.action === 'members';
     case 'session':
       return command.action === 'list';
+    case 'backend':
+      return !command.name;
     case 'admin':
       if (command.resource === 'service') {
         return command.action === 'status' || command.action === 'runs';
@@ -370,6 +382,14 @@ function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
   const adoptSessionMatch = normalized.match(/^(?:接管会话|使用会话|接上会话|恢复会话|续上会话)\s+(\S+)$/);
   if (adoptSessionMatch) {
     return { kind: 'session', action: 'adopt', target: adoptSessionMatch[1] };
+  }
+
+  const backendMatch = normalized.match(/^(?:切换(?:到|为)?|使用|换(?:到|成)?|改(?:到|为)?)?\s*(?:后端(?:(?:切换)?(?:到|为)?)?)\s*(codex|claude)\s*(?:后端)?$/i);
+  if (backendMatch) {
+    return { kind: 'backend', name: backendMatch[1]!.toLowerCase() };
+  }
+  if (/^(?:(?:查看|看|查)(?:一下|下)?|看看)?(?:当前)?后端(?:是什么|是哪个)?$/.test(normalized)) {
+    return { kind: 'backend' };
   }
 
   if (/^(管理员状态|查看管理员状态|看一下管理员状态)$/.test(normalized)) {

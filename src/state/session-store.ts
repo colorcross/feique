@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileExists, readUtf8, writeUtf8Atomic } from '../utils/fs.js';
-import type { SessionScope } from '../config/schema.js';
+import type { BackendName, SessionScope } from '../config/schema.js';
 import { SerialExecutor } from '../utils/serial-executor.js';
 
 export interface SessionHistoryEntry {
@@ -14,6 +14,7 @@ export interface SessionHistoryEntry {
 export interface ProjectSessionState {
   thread_id?: string;
   active_thread_id?: string;
+  active_backend?: BackendName;
   last_prompt?: string;
   last_response_excerpt?: string;
   updated_at: string;
@@ -203,6 +204,31 @@ export class SessionStore {
       await this.writeState(state);
       return normalizeProjectSession(next);
     });
+  }
+
+  public async setProjectBackend(conversationKey: string, projectAlias: string, backendName: BackendName): Promise<void> {
+    await this.serial.run(async () => {
+      const state = await this.readState();
+      const conversation = state.conversations[conversationKey];
+      if (!conversation) {
+        throw new Error(`Conversation not found: ${conversationKey}`);
+      }
+      const current = normalizeProjectSession(conversation.projects[projectAlias]);
+      conversation.projects[projectAlias] = {
+        ...current,
+        active_backend: backendName,
+        updated_at: new Date().toISOString(),
+      };
+      conversation.updated_at = new Date().toISOString();
+      await this.writeState(state);
+    });
+  }
+
+  public async getProjectBackend(conversationKey: string, projectAlias: string): Promise<BackendName | undefined> {
+    await this.serial.wait();
+    const state = await this.readState();
+    const conversation = state.conversations[conversationKey];
+    return conversation?.projects[projectAlias]?.active_backend;
   }
 
   public async dropProjectSession(conversationKey: string, projectAlias: string, threadId: string): Promise<ProjectSessionState | null> {

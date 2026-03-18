@@ -50,3 +50,21 @@ export function resolveProjectBackend(config: BridgeConfig, projectAlias: string
   const backendName: BackendName = project?.backend ?? resolveDefaultBackend(config);
   return createBackendByName(backendName, config, codexSessionIndex);
 }
+
+export function resolveProjectBackendWithOverride(
+  config: BridgeConfig,
+  projectAlias: string,
+  sessionOverride?: BackendName,
+  codexSessionIndex?: CodexSessionIndex,
+): Backend {
+  if (sessionOverride) {
+    return createBackendByName(sessionOverride, config, codexSessionIndex);
+  }
+  return resolveProjectBackend(config, projectAlias, codexSessionIndex);
+}
+
+export function resolveProjectBackendName(config: BridgeConfig, projectAlias: string, sessionOverride?: BackendName): BackendName {
+  if (sessionOverride) return sessionOverride;
+  const project = config.projects[projectAlias];
+  return project?.backend ?? resolveDefaultBackend(config);
+}
