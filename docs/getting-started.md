@@ -2,12 +2,12 @@
 
 ## 目标
 
-在 10 分钟内把飞书消息接到 Codex CLI，并让机器人能在飞书里回复你。
+在 10 分钟内把飞书消息接到 Codex CLI 或 Claude Code，并让机器人能在飞书里回复你。
 
 ## 前置条件
 
 - Node.js `>= 24`
-- `codex` 已安装并可执行
+- `codex` 或 `claude` (Claude Code) 已安装并可执行
 - 已创建飞书自建应用，并开启机器人能力
 - 飞书应用已配置事件订阅
 
@@ -423,6 +423,34 @@ pre_exec = "proxy_on"
 ```
 
 长连接模式会继承当前 shell 的 `HTTP_PROXY` / `HTTPS_PROXY`，所以飞书 WebSocket 也会走代理，不需要再单独给事件通道做一份代理配置。
+
+### 4. 使用 Claude Code 后端
+
+如果你想用 Claude Code 替代 Codex：
+
+```toml
+[backend]
+default = "claude"
+
+[claude]
+bin = "claude"
+default_permission_mode = "auto"
+default_model = "sonnet"
+# max_budget_usd = 5.0
+# allowed_tools = ["Bash", "Read", "Edit", "Write"]
+```
+
+也可以只在特定项目上使用 Claude：
+
+```toml
+[projects.my-claude-project]
+root = "/path/to/project"
+backend = "claude"
+claude_model = "opus"
+claude_permission_mode = "auto"
+```
+
+Claude 后端会自动调用 `claude -p --output-format stream-json`，并支持 `--resume` 续接会话。
 
 ### 3. 想看实际生效配置
 

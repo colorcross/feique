@@ -4,6 +4,7 @@ import type { BridgeConfig } from './schema.js';
 import { ensureDir } from '../utils/fs.js';
 import { inspectFeishuEnvironment, type FeishuInspectResult } from '../feishu/diagnostics.js';
 import { detectCodexCliCapabilities } from '../codex/capabilities.js';
+import { spawnSync } from 'node:child_process';
 import { getProjectCacheDir, getProjectDownloadsDir, getProjectLogDir, getProjectTempDir } from '../projects/paths.js';
 
 export interface DoctorFinding {
@@ -22,6 +23,9 @@ export function formatDoctorFinding(finding: DoctorFinding): string {
 export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> {
   const findings: DoctorFinding[] = [];
 
+  const defaultBackend = config.backend?.default ?? 'codex';
+  findings.push({ level: 'info', message: `Default backend: ${defaultBackend}` });
+
   try {
     const capabilities = detectCodexCliCapabilities(config.codex.bin);
     findings.push({ level: 'info', message: `Codex detected: ${capabilities.version}` });
@@ -30,7 +34,27 @@ export async function runDoctor(config: BridgeConfig): Promise<DoctorFinding[]> 
       message: `Codex resume capabilities: json=${capabilities.resume.supportsJson} output_last_message=${capabilities.resume.supportsOutputLastMessage} cd=${capabilities.resume.supportsCd}`,
     });
   } catch {
-    findings.push({ level: 'error', message: `Codex binary not runnable: ${config.codex.bin}` });
+    const level = defaultBackend === 'codex' ? 'error' : 'warn';
+    findings.push({ level, message: `Codex binary not runnable: ${config.codex.bin}` });
+  }
+
+  const claudeBin = config.claude?.bin ?? 'claude';
+  try {
+    const claudeVersion = spawnSync(claudeBin, ['--version'], { encoding: 'utf8' });
+    if (claudeVersion.status === 0) {
+      findings.push({ level: 'info', message: `Claude CLI detected: ${claudeVersion.stdout.trim()}` });
+    } else {
+      const level = defaultBackend === 'claude' ? 'error' : 'info';
+      findings.push({ level, message: `Claude CLI not available: ${claudeBin}` });
+    }
+  } catch {
+    const level = defaultBackend === 'claude' ? 'error' : 'info';
+    findings.push({ level, message: `Claude CLI not found: ${claudeBin}` });
+  }
+
+  const projectsUsingClaude = Object.entries(config.projects).filter(([, p]) => p.backend === 'claude');
+  if (projectsUsingClaude.length > 0) {
+    findings.push({ level: 'info', message: `Projects using Claude backend: ${projectsUsingClaude.map(([a]) => a).join(', ')}` });
   }
 
   if (!config.service.default_project) {

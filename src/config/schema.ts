@@ -7,9 +7,12 @@ export const replyModeSchema = z.enum(['text', 'post', 'card']);
 export const mcpTransportSchema = z.enum(['stdio', 'http']);
 export const memoryPinOverflowStrategySchema = z.enum(['reject', 'age-out']);
 export const memoryPinAgeBasisSchema = z.enum(['updated_at', 'last_accessed_at']);
+export const backendNameSchema = z.enum(['codex', 'claude']);
+export const claudePermissionModeSchema = z.enum(['acceptEdits', 'bypassPermissions', 'default', 'dontAsk', 'plan', 'auto']);
 
 export const projectSchema = z.object({
   root: z.string(),
+  backend: backendNameSchema.optional(),
   profile: z.string().optional(),
   sandbox: sandboxSchema.optional(),
   session_scope: sessionScopeSchema.default('chat'),
@@ -31,6 +34,11 @@ export const projectSchema = z.object({
   run_priority: z.number().int().min(1).max(1000).default(100),
   chat_rate_limit_window_seconds: z.number().int().positive().default(60),
   chat_rate_limit_max_runs: z.number().int().positive().default(20),
+  claude_permission_mode: claudePermissionModeSchema.optional(),
+  claude_model: z.string().optional(),
+  claude_max_budget_usd: z.number().positive().optional(),
+  claude_allowed_tools: z.array(z.string()).optional(),
+  claude_system_prompt_append: z.string().optional(),
 });
 
 export const bridgeConfigSchema = z.object({
@@ -179,6 +187,31 @@ export const bridgeConfigSchema = z.object({
       message_path: '/mcp/message',
       auth_tokens: [],
     }),
+  backend: z
+    .object({
+      default: backendNameSchema.default('codex'),
+    })
+    .optional()
+    .default({ default: 'codex' }),
+  claude: z
+    .object({
+      bin: z.string().default('claude'),
+      shell: z.string().optional(),
+      pre_exec: z.string().optional(),
+      default_permission_mode: claudePermissionModeSchema.default('auto'),
+      default_model: z.string().optional(),
+      max_budget_usd: z.number().positive().optional(),
+      allowed_tools: z.array(z.string()).optional(),
+      system_prompt_append: z.string().optional(),
+      run_timeout_ms: z.number().int().positive().optional(),
+      output_token_limit: z.number().int().positive().default(4000),
+    })
+    .optional()
+    .default({
+      bin: 'claude',
+      default_permission_mode: 'auto',
+      output_token_limit: 4000,
+    }),
   feishu: z.object({
     app_id: z.string(),
     app_secret: z.string(),
@@ -206,3 +239,5 @@ export type ReplyMode = z.infer<typeof replyModeSchema>;
 export type McpTransport = z.infer<typeof mcpTransportSchema>;
 export type MemoryPinOverflowStrategy = z.infer<typeof memoryPinOverflowStrategySchema>;
 export type MemoryPinAgeBasis = z.infer<typeof memoryPinAgeBasisSchema>;
+export type BackendName = z.infer<typeof backendNameSchema>;
+export type ClaudePermissionMode = z.infer<typeof claudePermissionModeSchema>;

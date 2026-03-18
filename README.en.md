@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Route Feishu into Codex's control plane.**
+**Route Feishu into Codex / Claude Code's control plane.**
 
 [![npm version](https://img.shields.io/npm/v/codex-feishu.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/codex-feishu)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=d4845a)](LICENSE)
@@ -15,16 +15,16 @@
 
 ---
 
-Codex Feishu is a Feishu (Lark) bridge designed for the Codex CLI. It is not just a message forwarding tool, but a **control plane with project awareness, session adoption, and concurrency protection**.
+Codex Feishu is a Feishu (Lark) bridge designed for Codex CLI and Claude Code (Claude CLI). It is not just a message forwarding tool, but a **control plane with project awareness, session adoption, and concurrency protection**. Through its Backend abstraction layer, the same Feishu interaction experience seamlessly supports both Codex and Claude Code backends.
 
-It routes Feishu messages directly into resumable Codex CLI sessions. Project bindings are persisted by `chat_id`, local sessions can be adopted, shared repositories are automatically serialized, and queued runtime states are directly visible within Feishu. Final replies support rich text and cards, and are intentionally collapsed into a cleaner single result message instead of exposing bridge-style `quote / project / duration` metadata.
+It routes Feishu messages directly into resumable Codex CLI or Claude Code sessions. Project bindings are persisted by `chat_id`, local sessions can be adopted, shared repositories are automatically serialized, and queued runtime states are directly visible within Feishu. Final replies support rich text and cards, and are intentionally collapsed into a cleaner single result message instead of exposing bridge-style `quote / project / duration` metadata.
 
 ## 🌟 Core Features
 
 | Feature | Description |
 | :--- | :--- |
 | **Sticky Routing** | Project selection is remembered by `chat_id`. Switch once in a group, and the entire group inherits it; DMs also remember their own current project. |
-| **Session Adoption** | Can resume the bridge's own sessions, or directly adopt native local sessions from `~/.codex/sessions` via `/session adopt`. |
+| **Session Adoption** | Can resume the bridge's own sessions, or directly adopt native local sessions from `~/.codex/sessions` or `~/.claude/sessions` via `/session adopt`. |
 | **Runtime Guard** | Dual-layer serialization with `queue key` + `project.root`. Threads in the same project won't conflict, and concurrent operations on the same repository across different chats are automatically queued with visible status. |
 | **Docs / Base / Tasks** | Beyond `/wiki` and `/kb search`, the bridge can read/create Feishu Docs, list/create/complete Tasks, and list/write Base records. |
 | **Media Aware** | Images, files, audio, and rich text messages are parsed into structured metadata and injected into Codex prompts. |
@@ -33,6 +33,7 @@ It routes Feishu messages directly into resumable Codex CLI sessions. Project bi
 | **Memory System** | Supports project memory and group shared memory, SQLite + FTS5 retrieval, configurable TTL, pin strategies, and background cleanup. |
 | **Project Isolation** | Downloads, temp files, cache, and project audit logs default to `state/projects/<alias>/...`, with per-project overrides available. |
 | **Observability** | Built-in `/healthz`, `/readyz`, and `/metrics`, plus structured audit trails and Prometheus / Alertmanager / Grafana integration. |
+| **Multi-Backend** | A single bridge can manage both Codex and Claude Code backends, configurable globally via `[backend]` or per-project. The Claude backend supports `--model`, `--permission-mode`, `--max-budget-usd`, and other advanced options. |
 
 ## 🚀 Quick Start
 

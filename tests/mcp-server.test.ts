@@ -196,7 +196,7 @@ describe('mcp server', () => {
       },
       { cwd, configPath },
     );
-    expect((adoptCandidates?.result as { structuredContent?: { candidates: Array<{ threadId: string }> } }).structuredContent?.candidates?.[0]?.threadId).toBe('thread-repo-b');
+    expect((adoptCandidates?.result as { structuredContent?: { candidates: Array<{ sessionId: string }> } }).structuredContent?.candidates?.[0]?.sessionId).toBe('thread-repo-b');
 
     const statusDetail = await handleMcpRequest(
       {

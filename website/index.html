@@ -95,17 +95,17 @@
         <section class="hero fade-in delay-1">
           <div class="hero-content">
             <div class="hero-eyebrow">
-              <span class="eyebrow-chip">Feishu × Codex CLI</span>
+              <span class="eyebrow-chip">Feishu × Codex CLI / Claude Code</span>
               <span class="eyebrow-sep" aria-hidden="true">/</span>
               <span class="eyebrow-sub">Project-aware control plane</span>
             </div>
             <h1 class="hero-title">
-              <span class="title-line">把飞书</span>
-              <span class="title-line">接到 Codex</span>
+              <span class="title-line">把飞书接到</span>
+              <span class="title-line">Codex / Claude Code</span>
               <span class="title-line title-accent">的控制面。</span>
             </h1>
             <p class="hero-desc">
-              Codex Feishu 让飞书消息直接进入可续接的 Codex CLI 会话。项目绑定按 <code>chat_id</code> 持久化，本地会话可接管，同仓库自动串行，排队和运行态在飞书里直接可见；最终回复支持富文本和卡片，并默认收口成更干净的单条结果消息，再配合自然语言命令和 MCP 接口完成真实协作。
+              Codex Feishu 让飞书消息直接进入可续接的 Codex CLI 或 Claude Code 会话。后端可在配置中切换，项目绑定按 <code>chat_id</code> 持久化，本地会话可接管，同仓库自动串行，排队和运行态在飞书里直接可见；最终回复支持富文本和卡片，并默认收口成更干净的单条结果消息，再配合自然语言命令和 MCP 接口完成真实协作。
             </p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="https://www.npmjs.com/package/codex-feishu">
@@ -121,6 +121,7 @@
               <span class="tag">project.root 锁</span>
               <span class="tag">queued 可见状态</span>
               <span class="tag">HTTP/SSE MCP</span>
+              <span class="tag">多后端支持</span>
               <span class="tag">单条最终结果卡片</span>
               <span class="tag">能力级权限</span>
             </div>
@@ -240,9 +241,9 @@
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-card">
               <div class="flow-num">04</div>
-              <h3 class="flow-title">Codex 在明确边界内运行</h3>
-              <p class="flow-desc">项目根目录、sandbox、shell、pre-exec 和超时策略都在桥接层内显式管理。</p>
-              <div class="flow-tag">Codex Runner</div>
+              <h3 class="flow-title">后端在明确边界内运行</h3>
+              <p class="flow-desc">无论使用 Codex CLI 还是 Claude Code，项目根目录、sandbox、shell、pre-exec 和超时策略都在桥接层内显式管理。</p>
+              <div class="flow-tag">Backend Runner</div>
             </div>
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-card">
@@ -413,6 +414,18 @@
               <span class="cap-label">Admin Control</span>
               <h3 class="cap-title">管理员控制面与动态配置</h3>
               <p class="cap-desc">通过 <code>/admin</code> 命令动态维护管理员、群聊白名单、项目配置，支持配置历史快照和一键回滚。</p>
+            </div>
+            <div class="cap-card">
+              <div class="cap-icon cap-icon-teal" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="2" y="6" width="7" height="8" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <rect x="11" y="6" width="7" height="8" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M9 10h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="cap-label">Multi-Backend</span>
+              <h3 class="cap-title">多后端支持：Codex CLI 与 Claude Code</h3>
+              <p class="cap-desc">在配置中选择 <code>codex</code> 或 <code>claude-code</code> 后端，项目路由、会话续接、排队和权限体系对两种后端统一生效。</p>
             </div>
           </div>
         </section>

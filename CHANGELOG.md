@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+## v0.1.17 - 2026-03-19
+
+### Highlights
+
+- 新增 Claude Code (Claude CLI) 后端支持。通过 Backend 抽象层，同一套飞书交互体验可以无缝对接 Codex 或 Claude Code 两种后端。
+- 新增 `[backend]` 和 `[claude]` 配置段，支持全局默认后端选择和项目级后端覆盖。
+- Claude 后端支持 `--model`、`--permission-mode`、`--max-budget-usd`、`--allowed-tools`、`--append-system-prompt` 等高级选项。
+- `/session adopt` 可接管 `~/.claude/sessions` 中的 Claude Code 本地会话。
+- `doctor` 命令同时检测 Codex 和 Claude CLI 可用性。
+
+### Included
+
+- Backend 抽象层：
+  - `src/backend/types.ts`
+  - `src/backend/codex.ts`
+  - `src/backend/claude.ts`
+  - `src/backend/factory.ts`
+- 配置层扩展：
+  - `src/config/schema.ts`
+  - `src/config/doctor.ts`
+- Service 适配：
+  - `src/bridge/service.ts`
+  - `src/control-plane/project-session.ts`
+  - `src/mcp/server.ts`
+  - `src/index.ts`
+- 测试更新：
+  - `tests/access-control.test.ts`
+  - `tests/bridge-service.test.ts`
+  - `tests/doctor.test.ts`
+  - `tests/webhook-bridge.test.ts`
+  - `tests/mcp-server.test.ts`
+- 文档与官网：
+  - `README.md`
+  - `README.en.md`
+  - `CHANGELOG.md`
+  - `docs/getting-started.md`
+  - `website/index.html`
+  - `website/en.html`
+
 ## v0.1.16 - 2026-03-14
 
 ### Highlights

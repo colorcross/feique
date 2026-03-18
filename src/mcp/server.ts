@@ -131,7 +131,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'session.adopt',
-    description: 'Adopt the latest or a specific local Codex CLI session for one MCP conversation. Use target=list to inspect candidates.',
+    description: 'Adopt the latest or a specific local CLI session (Codex or Claude) for one MCP conversation. Use target=list to inspect candidates.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,

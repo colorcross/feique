@@ -16,7 +16,6 @@ import { SessionStore, buildConversationKey, type ConversationState } from '../s
 import type { Logger } from '../logging.js';
 import { FeishuClient, type FeishuMessageResponse } from '../feishu/client.js';
 import { buildMessageCard, buildStatusCard } from '../feishu/cards.js';
-import { runCodexTurn, summarizeCodexEvent } from '../codex/runner.js';
 import { TaskQueue } from './task-queue.js';
 import { AuditLog } from '../state/audit-log.js';
 import type { MetricsRegistry } from '../observability/metrics.js';
@@ -33,6 +32,8 @@ import { MemoryStore } from '../state/memory-store.js';
 import { retrieveMemoryContext, type MemoryContext } from '../memory/retrieve.js';
 import { summarizeThreadTurn } from '../memory/summarize.js';
 import { CodexSessionIndex } from '../codex/session-index.js';
+import type { Backend, BackendEvent } from '../backend/types.js';
+import { resolveProjectBackend } from '../backend/factory.js';
 import { bindProjectAlias, createProjectAlias, removeProjectAlias, updateProjectConfig, updateStringList } from '../config/mutate.js';
 import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
 import { ConfigHistoryStore, type ConfigSnapshot } from '../state/config-history-store.js';
@@ -545,21 +546,32 @@ export class CodexFeishuService {
     this.metrics?.recordCodexTurnStarted(input.projectAlias, runId);
 
     try {
-      const result = await runCodexTurn({
-        bin: this.config.codex.bin,
-        shell: this.config.codex.shell,
-        preExec: this.config.codex.pre_exec,
+      const backend = this.resolveBackend(input.projectAlias);
+      const backendLabel = backend.name === 'claude' ? 'Claude' : 'Codex';
+      const outputTokenLimit = backend.name === 'claude'
+        ? (this.config.claude?.output_token_limit ?? this.config.codex.output_token_limit)
+        : this.config.codex.output_token_limit;
+      const result = await backend.run({
         workdir: input.project.root,
         prompt: bridgePrompt,
         sessionId: currentSession?.thread_id,
-        profile: input.project.profile ?? this.config.codex.default_profile,
-        sandbox: input.project.sandbox ?? this.config.codex.default_sandbox,
-        tempDir: this.resolveProjectTempDir(input.projectAlias, input.project),
-        cacheDir: this.resolveProjectCacheDir(input.projectAlias, input.project),
-        skipGitRepoCheck: this.config.codex.skip_git_repo_check,
         timeoutMs: this.config.codex.run_timeout_ms,
         signal: activeRun.controller.signal,
         logger: this.logger,
+        projectConfig: backend.name === 'codex'
+          ? {
+              profile: input.project.profile ?? this.config.codex.default_profile,
+              sandbox: input.project.sandbox ?? this.config.codex.default_sandbox,
+              tempDir: this.resolveProjectTempDir(input.projectAlias, input.project),
+              cacheDir: this.resolveProjectCacheDir(input.projectAlias, input.project),
+            }
+          : {
+              permissionMode: input.project.claude_permission_mode ?? this.config.claude?.default_permission_mode,
+              model: input.project.claude_model ?? this.config.claude?.default_model,
+              maxBudgetUsd: input.project.claude_max_budget_usd ?? this.config.claude?.max_budget_usd,
+              allowedTools: input.project.claude_allowed_tools ?? this.config.claude?.allowed_tools,
+              systemPromptAppend: input.project.claude_system_prompt_append ?? this.config.claude?.system_prompt_append,
+            },
         onSpawn: async (pid) => {
           activeRun.pid = pid;
           await this.runStateStore.upsertRun(runId, {
@@ -576,11 +588,11 @@ export class CodexFeishuService {
             pid,
           });
         },
-        onEvent: async (event) => {
+        onEvent: async (event: BackendEvent) => {
           if (!this.config.service.emit_progress_updates) {
             return;
           }
-          const message = summarizeCodexEvent(event);
+          const message = backend.summarizeEvent(event);
           if (!message) {
             return;
           }
@@ -593,7 +605,7 @@ export class CodexFeishuService {
         },
       });
 
-      const excerpt = result.finalMessage.slice(0, this.config.codex.output_token_limit);
+      const excerpt = result.finalMessage.slice(0, outputTokenLimit);
       if (!excerpt.trim()) {
         this.logger.warn(
           {
@@ -607,7 +619,7 @@ export class CodexFeishuService {
           'Codex run completed without a displayable final message',
         );
       }
-      const cardSummary = truncateForFeishuCard(excerpt || 'Codex 已完成，但没有返回可显示文本。');
+      const cardSummary = truncateForFeishuCard(excerpt || `${backendLabel} 已完成，但没有返回可显示文本。`);
       await this.auditLog.append({
         type: 'codex.run.completed',
         run_id: runId,
@@ -691,8 +703,8 @@ export class CodexFeishuService {
       await this.sendOrUpdateRunOutcome({
         input,
         runId,
-        title: 'Codex 已完成',
-        body: excerpt || 'Codex 已完成，但没有返回可显示文本。',
+        title: `${backendLabel} 已完成`,
+        body: excerpt || `${backendLabel} 已完成，但没有返回可显示文本。`,
         runStatus: 'success',
         runPhase: '已完成',
         cardSummary,
@@ -833,10 +845,11 @@ export class CodexFeishuService {
         type: 'session.adopted',
         project_alias: alias,
         conversation_key: switched.structured.sessionKey,
-        thread_id: switched.structured.autoAdoption.session.threadId,
+        thread_id: switched.structured.autoAdoption.session.sessionId,
         source_cwd: switched.structured.autoAdoption.session.cwd,
         source: switched.structured.autoAdoption.session.source,
         match_kind: switched.structured.autoAdoption.session.matchKind,
+        backend: switched.structured.autoAdoption.session.backend,
         trigger: 'project-switch',
       });
     }
@@ -1392,10 +1405,11 @@ export class CodexFeishuService {
         actor_id: context.actor_id,
         project_alias: projectContext.projectAlias,
         conversation_key: projectContext.sessionKey,
-        thread_id: adoption.structured.adopted.threadId,
+        thread_id: adoption.structured.adopted.sessionId,
         source_cwd: adoption.structured.adopted.cwd,
         source: adoption.structured.adopted.source,
         match_kind: adoption.structured.adopted.matchKind,
+        backend: adoption.structured.adopted.backend,
       });
     }
     await this.sendTextReply(context.chat_id, adoption.text, context.message_id, context.text);
@@ -3364,6 +3378,10 @@ export class CodexFeishuService {
 
   private resolveProjectRoot(project: ProjectConfig): string {
     return path.resolve(project.root);
+  }
+
+  private resolveBackend(projectAlias: string): Backend {
+    return resolveProjectBackend(this.config, projectAlias, this.codexSessionIndex);
   }
 
   private async enforceSessionHistoryLimit(conversationKey: string, projectAlias: string): Promise<void> {

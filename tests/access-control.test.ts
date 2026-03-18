@@ -132,6 +132,8 @@ function buildConfig(overrides: Partial<BridgeConfig> = {}): BridgeConfig {
       run_timeout_ms: 1800000,
       ...(overrides.codex ?? {}),
     },
+    backend: { default: 'codex' },
+    claude: { bin: 'claude', default_permission_mode: 'auto', output_token_limit: 4000 },
     storage: {
       dir: '/tmp/codex-feishu-access-test',
       ...(overrides.storage ?? {}),

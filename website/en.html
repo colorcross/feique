@@ -95,17 +95,17 @@
         <section class="hero fade-in delay-1">
           <div class="hero-content">
             <div class="hero-eyebrow">
-              <span class="eyebrow-chip">Feishu × Codex CLI</span>
+              <span class="eyebrow-chip">Feishu × Codex CLI / Claude Code</span>
               <span class="eyebrow-sep" aria-hidden="true">/</span>
               <span class="eyebrow-sub">Project-aware control plane</span>
             </div>
             <h1 class="hero-title">
-              <span class="title-line">Route Feishu</span>
-              <span class="title-line">into Codex's</span>
+              <span class="title-line">Route Feishu into</span>
+              <span class="title-line">Codex / Claude Code's</span>
               <span class="title-line title-accent">control plane.</span>
             </h1>
             <p class="hero-desc">
-              Codex Feishu sends Feishu messages into resumable Codex CLI sessions. Project binding sticks by <code>chat_id</code>, local sessions can be adopted, shared repos are serialized safely, queued runtime state stays visible inside Feishu, and final replies now land as cleaner single-result rich text or cards, paired with direct natural-language commands and MCP access for external tools.
+              Codex Feishu sends Feishu messages into resumable Codex CLI or Claude Code sessions. The backend is switchable in config. Project binding sticks by <code>chat_id</code>, local sessions can be adopted, shared repos are serialized safely, queued runtime state stays visible inside Feishu, and final replies now land as cleaner single-result rich text or cards, paired with direct natural-language commands and MCP access for external tools.
             </p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="https://www.npmjs.com/package/codex-feishu">
@@ -121,6 +121,7 @@
               <span class="tag">project.root lock</span>
               <span class="tag">queued visibility</span>
               <span class="tag">HTTP/SSE MCP</span>
+              <span class="tag">multi-backend</span>
               <span class="tag">single-result reply cards</span>
               <span class="tag">capability ACLs</span>
             </div>
@@ -240,9 +241,9 @@ another chat. Queued with 1 task ahead.
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-card">
               <div class="flow-num">04</div>
-              <h3 class="flow-title">Codex runs inside explicit boundaries</h3>
-              <p class="flow-desc">Project root, sandbox, shell, pre-exec, timeout, and runtime policy remain visible and configurable.</p>
-              <div class="flow-tag">Codex Runner</div>
+              <h3 class="flow-title">The backend runs inside explicit boundaries</h3>
+              <p class="flow-desc">Whether using Codex CLI or Claude Code, project root, sandbox, shell, pre-exec, timeout, and runtime policy remain visible and configurable.</p>
+              <div class="flow-tag">Backend Runner</div>
             </div>
             <div class="flow-arrow" aria-hidden="true">→</div>
             <div class="flow-card">
@@ -413,6 +414,18 @@ another chat. Queued with 1 task ahead.
               <span class="cap-label">Admin Control</span>
               <h3 class="cap-title">Admin control plane and dynamic configuration</h3>
               <p class="cap-desc">Use <code>/admin</code> commands to dynamically manage admins, group allow-lists, project config, config history snapshots, and one-click rollback.</p>
+            </div>
+            <div class="cap-card">
+              <div class="cap-icon cap-icon-teal" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="2" y="6" width="7" height="8" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <rect x="11" y="6" width="7" height="8" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M9 10h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="cap-label">Multi-Backend</span>
+              <h3 class="cap-title">Multi-backend: Codex CLI and Claude Code</h3>
+              <p class="cap-desc">Choose <code>codex</code> or <code>claude-code</code> as the backend in config. Project routing, session continuity, queuing, and access control apply uniformly to both backends.</p>
             </div>
           </div>
         </section>

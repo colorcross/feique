@@ -2,6 +2,8 @@ import { CodexSessionIndex, renderSessionMatchLabel, type IndexedCodexSession } 
 import type { BridgeConfig, ProjectConfig } from '../config/schema.js';
 import { canAccessProject, canAccessProjectCapability, describeMinimumRole } from '../security/access.js';
 import { SessionStore, buildConversationKey } from '../state/session-store.js';
+import type { Backend, IndexedSession } from '../backend/types.js';
+import { resolveProjectBackend } from '../backend/factory.js';
 
 export interface ConversationRef {
   chatId: string;
@@ -88,7 +90,7 @@ export async function switchProjectBinding(
     autoAdoption:
       | { kind: 'disabled' }
       | { kind: 'existing'; threadId: string }
-      | { kind: 'adopted'; session: IndexedCodexSession }
+      | { kind: 'adopted'; session: IndexedSession }
       | { kind: 'missing' };
   };
 }> {
@@ -100,7 +102,7 @@ export async function switchProjectBinding(
     autoAdoption:
       | { kind: 'disabled' }
       | { kind: 'existing'; threadId: string }
-      | { kind: 'adopted'; session: IndexedCodexSession }
+      | { kind: 'adopted'; session: IndexedSession }
       | { kind: 'missing' };
   } = {
     projectAlias: resolved.projectAlias,
@@ -115,16 +117,18 @@ export async function switchProjectBinding(
   }
 
   if (config.service.project_switch_auto_adopt_latest) {
-    const adoption = await maybeAutoAdoptLatestSession(sessionStore, sessionIndex, resolved);
+    const backend = resolveProjectBackend(config, resolved.projectAlias, sessionIndex);
+    const adoption = await maybeAutoAdoptLatestSession(sessionStore, backend, resolved);
     structured.autoAdoption = adoption;
     if (adoption.kind === 'existing') {
       lines.push(`已保留当前项目会话: ${adoption.threadId}`);
     } else if (adoption.kind === 'adopted') {
-      lines.push(`已自动接管本地 Codex 会话: ${adoption.session.threadId}`);
-      lines.push(`match: ${renderSessionMatch(adoption.session)}`);
+      const backendLabel = adoption.session.backend === 'claude' ? 'Claude' : 'Codex';
+      lines.push(`已自动接管本地 ${backendLabel} 会话: ${adoption.session.sessionId}`);
+      lines.push(`match: ${renderUnifiedSessionMatch(adoption.session)}`);
       lines.push(`source cwd: ${adoption.session.cwd}`);
     } else if (adoption.kind === 'missing') {
-      lines.push('未找到可自动接管的本地 Codex 会话。下一条消息会新开会话。');
+      lines.push('未找到可自动接管的本地会话。下一条消息会新开会话。');
     }
   }
 
@@ -190,8 +194,8 @@ export async function adoptProjectSession(
     projectRoot: string;
     target?: string;
     sessionKey?: string;
-    candidates?: IndexedCodexSession[];
-    adopted: IndexedCodexSession | null;
+    candidates?: IndexedSession[];
+    adopted: IndexedSession | null;
   };
 }> {
   const resolved = await resolveProjectContext(config, sessionStore, conversation);
@@ -199,12 +203,14 @@ export async function adoptProjectSession(
     throw new Error(`当前 chat_id 无权接管项目 ${resolved.projectAlias} 的会话。至少需要 ${describeMinimumRole('operator')} 权限。`);
   }
   const normalizedTarget = target?.trim();
+  const backend = resolveProjectBackend(config, resolved.projectAlias, sessionIndex);
+  const backendLabel = backend.name === 'claude' ? 'Claude' : 'Codex';
 
   if (normalizedTarget === 'list') {
-    const candidates = await sessionIndex.listProjectSessions(resolved.project.root, 10);
+    const candidates = await backend.listProjectSessions(resolved.project.root, 10);
     if (candidates.length === 0) {
       return {
-        text: [`项目: ${resolved.projectAlias}`, `项目根: ${resolved.project.root}`, '未找到可接管的本地 Codex 会话。'].join('\n'),
+        text: [`项目: ${resolved.projectAlias}`, `项目根: ${resolved.project.root}`, `未找到可接管的本地 ${backendLabel} 会话。`].join('\n'),
         structured: {
           projectAlias: resolved.projectAlias,
           projectRoot: resolved.project.root,
@@ -216,15 +222,16 @@ export async function adoptProjectSession(
     }
     const lines = candidates.map((session, index) =>
       [
-        `${index + 1}. ${session.threadId}`,
+        `${index + 1}. ${session.sessionId}`,
         `   updated_at: ${session.updatedAt}`,
         `   cwd: ${session.cwd}`,
-        `   match: ${renderSessionMatch(session)}`,
+        `   match: ${renderUnifiedSessionMatch(session)}`,
         `   source: ${session.source}`,
+        `   backend: ${session.backend}`,
       ].join('\n'),
     );
     return {
-      text: [`项目: ${resolved.projectAlias}`, `项目根: ${resolved.project.root}`, '可接管的本地 Codex 会话:', '', ...lines].join('\n'),
+      text: [`项目: ${resolved.projectAlias}`, `项目根: ${resolved.project.root}`, `可接管的本地 ${backendLabel} 会话:`, '', ...lines].join('\n'),
       structured: {
         projectAlias: resolved.projectAlias,
         projectRoot: resolved.project.root,
@@ -236,14 +243,14 @@ export async function adoptProjectSession(
   }
 
   const adopted = !normalizedTarget || normalizedTarget === 'latest'
-    ? await sessionIndex.findLatestProjectSession(resolved.project.root)
-    : await sessionIndex.findProjectSessionById(resolved.project.root, normalizedTarget);
+    ? await backend.findLatestSession(resolved.project.root)
+    : await backend.findSessionById(resolved.project.root, normalizedTarget);
   if (!adopted) {
     return {
       text: [
         `项目: ${resolved.projectAlias}`,
-        normalizedTarget ? `未找到可接管的本地 Codex 会话: ${normalizedTarget}` : '未找到可接管的本地 Codex 会话。',
-        '用法: target=latest | target=list | target=<thread_id>',
+        normalizedTarget ? `未找到可接管的本地 ${backendLabel} 会话: ${normalizedTarget}` : `未找到可接管的本地 ${backendLabel} 会话。`,
+        '用法: target=latest | target=list | target=<session_id>',
       ].join('\n'),
       structured: {
         projectAlias: resolved.projectAlias,
@@ -256,13 +263,13 @@ export async function adoptProjectSession(
   }
 
   await sessionStore.upsertProjectSession(resolved.sessionKey, resolved.projectAlias, {
-    thread_id: adopted.threadId,
+    thread_id: adopted.sessionId,
   });
   return {
     text: [
       `项目: ${resolved.projectAlias}`,
-      `已接管本地 Codex 会话: ${adopted.threadId}`,
-      `match: ${renderSessionMatch(adopted)}`,
+      `已接管本地 ${backendLabel} 会话: ${adopted.sessionId}`,
+      `match: ${renderUnifiedSessionMatch(adopted)}`,
       `source cwd: ${adopted.cwd}`,
       `updated_at: ${adopted.updatedAt}`,
       '下一条消息会直接续接这个会话。',
@@ -279,11 +286,11 @@ export async function adoptProjectSession(
 
 export async function maybeAutoAdoptLatestSession(
   sessionStore: SessionStore,
-  sessionIndex: CodexSessionIndex,
+  backend: Backend,
   context: ResolvedProjectContext,
 ): Promise<
   | { kind: 'existing'; threadId: string }
-  | { kind: 'adopted'; session: IndexedCodexSession }
+  | { kind: 'adopted'; session: IndexedSession }
   | { kind: 'missing' }
 > {
   const conversation = await sessionStore.getConversation(context.sessionKey);
@@ -292,19 +299,24 @@ export async function maybeAutoAdoptLatestSession(
     return { kind: 'existing', threadId: existingThreadId };
   }
 
-  const adopted = await sessionIndex.findLatestProjectSession(context.project.root);
+  const adopted = await backend.findLatestSession(context.project.root);
   if (!adopted) {
     return { kind: 'missing' };
   }
 
   await sessionStore.upsertProjectSession(context.sessionKey, context.projectAlias, {
-    thread_id: adopted.threadId,
+    thread_id: adopted.sessionId,
   });
   return { kind: 'adopted', session: adopted };
 }
 
 export function renderSessionMatch(session: Pick<IndexedCodexSession, 'matchKind' | 'matchScore'>): string {
   const label = renderSessionMatchLabel(session);
+  return session.matchScore ? `${label} (${session.matchScore})` : label;
+}
+
+export function renderUnifiedSessionMatch(session: Pick<IndexedSession, 'matchKind' | 'matchScore'>): string {
+  const label = session.matchKind ?? 'unknown';
   return session.matchScore ? `${label} (${session.matchScore})` : label;
 }
 
