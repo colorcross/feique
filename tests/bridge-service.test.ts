@@ -11,7 +11,7 @@ vi.mock('../src/codex/runner.js', () => ({
 }));
 
 import type { BridgeConfig, ProjectConfig } from '../src/config/schema.js';
-import { FeishuBridgeService } from '../src/bridge/service.js';
+import { FeiqueService } from '../src/bridge/service.js';
 import { SessionStore, buildConversationKey } from '../src/state/session-store.js';
 import { AuditLog } from '../src/state/audit-log.js';
 import { IdempotencyStore } from '../src/state/idempotency-store.js';
@@ -396,7 +396,7 @@ describe('bridge service', () => {
   });
 
   it('adopts the latest matching local Codex session and resumes it on the next turn', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-codex-home-'));
     tempDirs.push(codexHome);
     process.env.CODEX_HOME = codexHome;
 
@@ -421,7 +421,7 @@ describe('bridge service', () => {
   });
 
   it('lists adoptable local Codex sessions for the current project', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-codex-home-'));
     tempDirs.push(codexHome);
     process.env.CODEX_HOME = codexHome;
 
@@ -438,7 +438,7 @@ describe('bridge service', () => {
   });
 
   it('auto adopts the latest local Codex session on project switch when enabled', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-codex-home-'));
     tempDirs.push(codexHome);
     process.env.CODEX_HOME = codexHome;
 
@@ -461,7 +461,7 @@ describe('bridge service', () => {
   });
 
   it('does not override the current chat project session when auto adopt is enabled', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-codex-home-'));
     tempDirs.push(codexHome);
     process.env.CODEX_HOME = codexHome;
 
@@ -1253,10 +1253,10 @@ describe('bridge service', () => {
   });
 
   it('searches project knowledge base through /kb search', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-kb-service-'));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-kb-service-'));
     tempDirs.push(root);
     await fs.mkdir(path.join(root, 'docs'), { recursive: true });
-    await fs.writeFile(path.join(root, 'docs', 'guide.md'), 'Use feishu-bridge init --mode global\n', 'utf8');
+    await fs.writeFile(path.join(root, 'docs', 'guide.md'), 'Use feique init --mode global\n', 'utf8');
 
     const setup = await createService({
       projects: {
@@ -1544,7 +1544,7 @@ interface TestConfigOverrides extends Partial<Omit<BridgeConfig, 'service' | 'co
 }
 
 async function createService(overrides: TestConfigOverrides = {}) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-service-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-service-'));
   tempDirs.push(dir);
 
   const config = buildConfig(dir, overrides);
@@ -1563,7 +1563,7 @@ async function createService(overrides: TestConfigOverrides = {}) {
   const createSdkClient = vi.fn(() => ({}));
   const restart = vi.fn().mockResolvedValue(undefined);
   const feishuClient = { sendText, sendCard, sendPost, updateText, updateCard, updatePost, createSdkClient } as any;
-  const service = new FeishuBridgeService(
+  const service = new FeiqueService(
     config,
     feishuClient,
     sessionStore,
@@ -1716,7 +1716,7 @@ function normalizeProjects(projects: Record<string, Partial<ProjectConfig> & Pic
   );
 }
 
-function buildMessage(text: string, overrides: Partial<Parameters<FeishuBridgeService['handleIncomingMessage']>[0]> = {}) {
+function buildMessage(text: string, overrides: Partial<Parameters<FeiqueService['handleIncomingMessage']>[0]> = {}) {
   return {
     tenant_key: 'tenant',
     chat_id: 'chat',

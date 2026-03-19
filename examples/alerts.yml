@@ -1,52 +1,52 @@
 groups:
-  - name: codex-feishu
+  - name: feique
     rules:
-      - alert: CodexFeishuBridgeDown
-        expr: up{job="codex-feishu"} == 0
+      - alert: FeiqueBridgeDown
+        expr: up{job="feique"} == 0
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: codex-feishu bridge is down
-          description: Prometheus 无法抓取 codex-feishu 的 /metrics，持续 2 分钟。
+          summary: feique bridge is down
+          description: Prometheus 无法抓取 feique 的 /metrics，持续 2 分钟。
 
-      - alert: CodexFeishuNoIncomingMessages
-        expr: time() - max(codex_feishu_last_incoming_message_timestamp_seconds) > 1800
+      - alert: FeiqueNoIncomingMessages
+        expr: time() - max(feique_last_incoming_message_timestamp_seconds) > 1800
         for: 15m
         labels:
           severity: warning
         annotations:
-          summary: codex-feishu has not received Feishu messages recently
+          summary: feique has not received Feishu messages recently
           description: 最近 30 分钟内没有新的飞书消息进入桥接器，请检查长连接或 webhook 配置。
 
-      - alert: CodexFeishuOutboundFailures
-        expr: increase(codex_feishu_outbound_messages_total{status="failure"}[10m]) > 0
+      - alert: FeiqueOutboundFailures
+        expr: increase(feique_outbound_messages_total{status="failure"}[10m]) > 0
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: codex-feishu outbound Feishu sends are failing
+          summary: feique outbound Feishu sends are failing
           description: 最近 10 分钟内发生飞书出站发送失败，请检查 token、配额或网络。
 
-      - alert: CodexFeishuCodexFailureRateHigh
+      - alert: FeiqueCodexFailureRateHigh
         expr: |
           (
-            sum(rate(codex_feishu_codex_turns_total{status="failure"}[15m]))
+            sum(rate(feique_codex_turns_total{status="failure"}[15m]))
             /
-            clamp_min(sum(rate(codex_feishu_codex_turns_total[15m])), 0.001)
+            clamp_min(sum(rate(feique_codex_turns_total[15m])), 0.001)
           ) > 0.2
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: codex-feishu Codex failure rate is high
+          summary: feique Codex failure rate is high
           description: 最近 15 分钟 Codex 执行失败率超过 20%，请检查 Codex CLI、工作区权限或上游服务。
 
-      - alert: CodexFeishuCodexRunStuck
-        expr: max(codex_feishu_active_codex_runs) > 0 and time() - max(codex_feishu_last_codex_success_timestamp_seconds) > 1800
+      - alert: FeiqueCodexRunStuck
+        expr: max(feique_active_codex_runs) > 0 and time() - max(feique_last_codex_success_timestamp_seconds) > 1800
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: codex-feishu has active Codex runs without recent success
+          summary: feique has active Codex runs without recent success
           description: 有正在运行的 Codex 会话且最近 30 分钟没有成功完成，请检查是否卡死在命令、审批或网络阶段。

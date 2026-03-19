@@ -14,13 +14,13 @@
 
 ## 支持入口
 
-- Discussions: <https://github.com/colorcross/feishu-bridge/discussions>
-- Issues: <https://github.com/colorcross/feishu-bridge/issues>
+- Discussions: <https://github.com/colorcross/feique/discussions>
+- Issues: <https://github.com/colorcross/feique/issues>
 - Support: [../SUPPORT.md](../SUPPORT.md)
-- Security: <https://github.com/colorcross/feishu-bridge/security/policy>
+- Security: <https://github.com/colorcross/feique/security/policy>
 
 ## 提问前建议
 
 1. 先看 [README](../README.md)
 2. 再看 [快速开始](getting-started.md)、[FAQ](faq.md)、[部署说明](deployment.md)
-3. 提问时带上 `feishu-bridge doctor`、`feishu-bridge feishu inspect`、相关日志和最小复现步骤
+3. 提问时带上 `feique doctor`、`feique feishu inspect`、相关日志和最小复现步骤

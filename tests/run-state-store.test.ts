@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('run state store', () => {
   it('tracks active runs and recovers stale ones', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-runs-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-runs-'));
     tempDirs.push(dir);
     const store = new RunStateStore(dir);
 
@@ -34,7 +34,7 @@ describe('run state store', () => {
   });
 
   it('keeps queued runs visible without marking them finished', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-runs-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-runs-'));
     tempDirs.push(dir);
     const store = new RunStateStore(dir);
 
@@ -66,7 +66,7 @@ describe('run state store', () => {
   });
 
   it('marks queued runs stale during recovery because queue state cannot survive a restart', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-runs-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-runs-'));
     tempDirs.push(dir);
     const store = new RunStateStore(dir);
 

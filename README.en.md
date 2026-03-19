@@ -1,23 +1,23 @@
-# Feishu Bridge
+# 飞鹊 (Feique)
 
 <div align="center">
 
-**Route Feishu into Codex / Claude Code's control plane.**
+**Team AI Coding Orchestration Hub — orderly, controlled, observable.**
 
-[![npm version](https://img.shields.io/npm/v/feishu-ai-bridge.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/feishu-ai-bridge)
+[![npm version](https://img.shields.io/npm/v/feique.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/feique)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=d4845a)](LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/feishu-ai-bridge.svg?style=flat-square)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/node/v/feique.svg?style=flat-square)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
-[简体中文](README.md) | [Website](https://colorcross.github.io/feishu-bridge/en.html) | [Getting Started](docs/getting-started.md) | [Architecture](docs/architecture.md) | [FAQ](docs/faq.md)
+[简体中文](README.md) | [Website](https://colorcross.github.io/feique/en.html) | [Getting Started](docs/getting-started.md) | [Architecture](docs/architecture.md) | [FAQ](docs/faq.md)
 
 </div>
 
 ---
 
-Feishu Bridge is a Feishu (Lark) bridge designed for Codex CLI and Claude Code (Claude CLI). It is not just a message forwarding tool, but a **control plane with project awareness, session adoption, and concurrency protection**. Through its Backend abstraction layer, the same Feishu interaction experience seamlessly supports both Codex and Claude Code backends.
+Feique is a **Team AI Coding Orchestration Hub**. It routes Feishu messages into Codex CLI or Claude Code sessions, built around three pillars: **team collaboration, operational control, and observability** — with project binding, session adoption, concurrency protection, multi-backend switching, access control, audit logs, and Prometheus metrics.
 
-It routes Feishu messages directly into resumable Codex CLI or Claude Code sessions. Project bindings are persisted by `chat_id`, local sessions can be adopted, shared repositories are automatically serialized, and queued runtime states are directly visible within Feishu. Final replies support rich text and cards, and are intentionally collapsed into a cleaner single result message instead of exposing bridge-style `quote / project / duration` metadata.
+Team members collaborate naturally through Feishu groups. Managers gain full visibility through dashboards and metrics. Project bindings persist by `chat_id`, local sessions can be adopted, shared repositories are automatically serialized, and queued runtime states are directly visible within Feishu. Final replies support rich text and cards, collapsed into cleaner single result messages.
 
 ## 🌟 Core Features
 
@@ -28,7 +28,7 @@ It routes Feishu messages directly into resumable Codex CLI or Claude Code sessi
 | **Runtime Guard** | Dual-layer serialization with `queue key` + `project.root`. Threads in the same project won't conflict, and concurrent operations on the same repository across different chats are automatically queued with visible status. |
 | **Docs / Base / Tasks** | Beyond `/wiki` and `/kb search`, the bridge can read/create Feishu Docs, list/create/complete Tasks, and list/write Base records. |
 | **Media Aware** | Images, files, audio, and rich text messages are parsed into structured metadata and injected into Codex prompts. |
-| **MCP Surface** | Not just for Feishu. Run `feishu-bridge mcp` to expose core capabilities through `stdio` or `HTTP/SSE`, with multi-token Bearer rotation for remote clients. |
+| **MCP Surface** | Not just for Feishu. Run `feique mcp` to expose core capabilities through `stdio` or `HTTP/SSE`, with multi-token Bearer rotation for remote clients. |
 | **Access Roles** | Supports `viewer / operator / admin` plus finer capability allow-lists for sessions, runs, config changes, and service operations. |
 | **Memory System** | Supports project memory and group shared memory, SQLite + FTS5 retrieval, configurable TTL, pin strategies, and background cleanup. |
 | **Project Isolation** | Downloads, temp files, cache, and project audit logs default to `state/projects/<alias>/...`, with per-project overrides available. |
@@ -40,14 +40,14 @@ It routes Feishu messages directly into resumable Codex CLI or Claude Code sessi
 ### 1. Installation
 
 ```bash
-npm install -g feishu-ai-bridge
-feishu-bridge init --mode global
+npm install -g feique
+feique init --mode global
 
 # Create a new project directory and bind it
-feishu-bridge create-project repo-new /srv/codex/repo-new
+feique create-project repo-new /srv/codex/repo-new
 
 # Bind an existing directory as a project
-feishu-bridge bind repo-a /path/to/repo-a
+feique bind repo-a /path/to/repo-a
 ```
 
 ### 2. Configure Environment Variables
@@ -63,13 +63,13 @@ export FEISHU_APP_SECRET=***
 
 ```bash
 # Check environment and connectivity
-feishu-bridge doctor --remote
+feique doctor --remote
 
 # Start the service
-feishu-bridge start
+feique start
 
 # View logs
-feishu-bridge logs --follow
+feique logs --follow
 ```
 
 ## 💬 Interaction Examples in Feishu
@@ -118,7 +118,7 @@ For detailed architecture design, please refer to the [Architecture Document](do
 
 ## ⚙️ Minimal Configuration Example
 
-The configuration file is located at `~/.feishu-bridge/config.toml` by default:
+The configuration file is located at `~/.feique/config.toml` by default:
 
 ```toml
 version = 1
@@ -133,7 +133,7 @@ default_sandbox = "workspace-write"
 run_timeout_ms = 1800000  # 30 minutes
 
 [storage]
-dir = "~/.feishu-bridge/state"
+dir = "~/.feique/state"
 
 [mcp]
 transport = "http"

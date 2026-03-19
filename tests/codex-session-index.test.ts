@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('codex session index', () => {
   it('prefers exact project-root matches before fuzzy historical roots', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-codex-home-'));
     tempDirs.push(codexHome);
     const currentRoot = '/workspace/acme-service';
     const previousRoot = '/archive/acme-service-repo';
@@ -30,7 +30,7 @@ describe('codex session index', () => {
   });
 
   it('finds fuzzy historical sessions when the project root moved', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-codex-home-'));
     tempDirs.push(codexHome);
     const currentRoot = '/workspace/acme-service';
     const previousRoot = '/archive/acme-service-repo';

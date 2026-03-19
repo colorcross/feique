@@ -23,7 +23,7 @@
 
 ### Session Store
 
-持久化在 `~/.feishu-bridge/state/sessions.json`：
+持久化在 `~/.feique/state/sessions.json`：
 
 - 按 `chat_id` 持久化的当前选择项目
 - 每个项目当前激活的 `thread_id`
@@ -32,7 +32,7 @@
 
 ### Idempotency Store
 
-持久化在 `~/.feishu-bridge/state/idempotency.json`：
+持久化在 `~/.feique/state/idempotency.json`：
 
 - 按 `message_id` / `open_message_id` 去重
 - 记录重复次数和最近一次时间
@@ -40,7 +40,7 @@
 
 ### Run State Store
 
-持久化在 `~/.feishu-bridge/state/runs.json`：
+持久化在 `~/.feique/state/runs.json`：
 
 - `run_id`
 - `queue_key`
@@ -75,22 +75,22 @@
 
 桥接器内置轻量指标注册表，可导出 Prometheus 文本格式：
 
-- `feishu_bridge_incoming_messages_total`
-- `feishu_bridge_duplicate_events_total`
-- `feishu_bridge_card_actions_total`
-- `feishu_bridge_codex_turns_total`
-- `feishu_bridge_codex_turn_duration_seconds`
-- `feishu_bridge_outbound_messages_total`
-- `feishu_bridge_cancellations_total`
-- `feishu_bridge_active_codex_runs`
-- `feishu_bridge_last_incoming_message_timestamp_seconds`
-- `feishu_bridge_last_card_action_timestamp_seconds`
-- `feishu_bridge_last_codex_success_timestamp_seconds`
-- `feishu_bridge_last_codex_failure_timestamp_seconds`
-- `feishu_bridge_last_outbound_message_timestamp_seconds`
-- `feishu_bridge_last_outbound_failure_timestamp_seconds`
-- `feishu_bridge_last_run_timestamp_seconds`
-- `feishu_bridge_service_start_time_seconds`
+- `feique_incoming_messages_total`
+- `feique_duplicate_events_total`
+- `feique_card_actions_total`
+- `feique_codex_turns_total`
+- `feique_codex_turn_duration_seconds`
+- `feique_outbound_messages_total`
+- `feique_cancellations_total`
+- `feique_active_codex_runs`
+- `feique_last_incoming_message_timestamp_seconds`
+- `feique_last_card_action_timestamp_seconds`
+- `feique_last_codex_success_timestamp_seconds`
+- `feique_last_codex_failure_timestamp_seconds`
+- `feique_last_outbound_message_timestamp_seconds`
+- `feique_last_outbound_failure_timestamp_seconds`
+- `feique_last_run_timestamp_seconds`
+- `feique_service_start_time_seconds`
 
 当 `service.metrics_port` 配置后，会启动独立管理端口暴露 `/metrics`。
 

@@ -14,7 +14,7 @@ Use Discussions for:
 
 Link:
 
-- <https://github.com/colorcross/feishu-bridge/discussions>
+- <https://github.com/colorcross/feique/discussions>
 
 ### GitHub Issues
 
@@ -26,7 +26,7 @@ Use Issues for:
 
 Link:
 
-- <https://github.com/colorcross/feishu-bridge/issues>
+- <https://github.com/colorcross/feique/issues>
 
 ### Security reports
 
@@ -40,8 +40,8 @@ See:
 
 When asking for help, include:
 
-1. `feishu-bridge doctor` output
-2. `feishu-bridge feishu inspect` output when relevant
+1. `feique doctor` output
+2. `feique feishu inspect` output when relevant
 3. deployment mode: `long-connection` or `webhook`
 4. the smallest reproducible message flow
 5. only the relevant log excerpt, with secrets removed

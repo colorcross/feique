@@ -21,7 +21,7 @@ afterEach(async () => {
 
 describe('message resource resolver', () => {
   it('downloads image resources and annotates local paths', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-resource-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-resource-'));
     tempDirs.push(dir);
     const writeFile = vi.fn(async (filePath: string) => {
       await fs.writeFile(filePath, 'image-bytes', 'utf8');
@@ -62,7 +62,7 @@ describe('message resource resolver', () => {
   });
 
   it('transcribes audio resources when enabled', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-audio-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-audio-'));
     tempDirs.push(dir);
     const writeFile = vi.fn(async (filePath: string) => {
       await fs.writeFile(filePath, 'audio-bytes', 'utf8');
@@ -103,7 +103,7 @@ describe('message resource resolver', () => {
   });
 
   it('extracts text excerpts from text-like file attachments', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-file-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-file-'));
     tempDirs.push(dir);
     const writeFile = vi.fn(async (filePath: string) => {
       await fs.writeFile(filePath, '# 发布说明\n请先执行 pnpm build，再执行 npm publish。', 'utf8');
@@ -145,7 +145,7 @@ describe('message resource resolver', () => {
   });
 
   it('describes image resources when image analysis is enabled', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-image-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-image-'));
     tempDirs.push(dir);
     const writeFile = vi.fn(async (filePath: string) => {
       await fs.writeFile(filePath, 'image-bytes', 'utf8');
@@ -188,7 +188,7 @@ describe('message resource resolver', () => {
   });
 
   it('extracts excerpts from docx-like files through the rich document extractor hook', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-docx-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-docx-'));
     tempDirs.push(dir);
     const writeFile = vi.fn(async (filePath: string) => {
       await fs.writeFile(filePath, 'fake-docx', 'utf8');

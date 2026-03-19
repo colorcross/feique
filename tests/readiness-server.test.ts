@@ -64,10 +64,10 @@ describe('metrics server readiness', () => {
     });
 
     const metricsOutput = await requestText(`http://127.0.0.1:${server.address.port}/metrics`);
-    expect(metricsOutput.body).toContain('feishu_bridge_service_ready 1');
-    expect(metricsOutput.body).toContain('feishu_bridge_service_live 1');
-    expect(metricsOutput.body).toContain('feishu_bridge_startup_warnings 1');
-    expect(metricsOutput.body).toContain('feishu_bridge_startup_errors 0');
+    expect(metricsOutput.body).toContain('feique_service_ready 1');
+    expect(metricsOutput.body).toContain('feique_service_live 1');
+    expect(metricsOutput.body).toContain('feique_startup_warnings 1');
+    expect(metricsOutput.body).toContain('feique_startup_errors 0');
   });
 });
 

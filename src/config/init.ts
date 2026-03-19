@@ -57,7 +57,7 @@ run_timeout_ms = 1800000
 bridge_instructions = "Reply concisely for Feishu. Include changed files and verification when relevant."
 
 [storage]
-dir = "~/.feishu-bridge/state"
+dir = "~/.feique/state"
 
 [security]
 allowed_project_roots = []
@@ -117,10 +117,10 @@ chat_rate_limit_max_runs = 20
 # profile = "default"
 # sandbox = "workspace-write"
 # description = "Main repo"
-# download_dir = "./.feishu-bridge/downloads"
-# temp_dir = "./.feishu-bridge/tmp"
-# cache_dir = "./.feishu-bridge/cache"
-# log_dir = "./.feishu-bridge/logs"
+# download_dir = "./.feique/downloads"
+# temp_dir = "./.feique/tmp"
+# cache_dir = "./.feique/cache"
+# log_dir = "./.feique/logs"
 # run_priority = 100
 `;
 }

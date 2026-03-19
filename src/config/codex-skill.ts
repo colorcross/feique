@@ -5,7 +5,7 @@ import * as toml from '@iarna/toml';
 import { ensureDir, fileExists } from '../utils/fs.js';
 
 export async function installBundledCodexSkill(options: { skillSourceDir: string; skillName?: string }): Promise<{ skillPath: string; configPath: string }> {
-  const skillName = options.skillName ?? 'feishu-bridge-session';
+  const skillName = options.skillName ?? 'feique-session';
   const skillTargetDir = path.join(os.homedir(), '.codex', 'skills', skillName);
   const codexConfigPath = path.join(os.homedir(), '.codex', 'config.toml');
 

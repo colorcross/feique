@@ -24,7 +24,7 @@ afterEach(async () => {
 
 describe('mcp server', () => {
   it('serves MCP runtime tools, project switching, session adoption, and natural-language command execution', async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-mcp-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-mcp-'));
     tempDirs.push(cwd);
     const codexHome = path.join(cwd, '.codex-home');
     const configPath = path.join(cwd, 'bridge.toml');
@@ -88,7 +88,7 @@ describe('mcp server', () => {
     );
     expect(init?.result).toMatchObject({
       serverInfo: {
-        name: 'feishu-bridge',
+        name: 'feique',
       },
       capabilities: {
         tools: {},

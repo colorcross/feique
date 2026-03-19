@@ -15,7 +15,7 @@ export interface InstallServiceOptions {
 }
 
 export function resolveDefaultLogDirectory(): string {
-  return path.join(os.homedir(), '.feishu-bridge', 'logs');
+  return path.join(os.homedir(), '.feique', 'logs');
 }
 
 export async function installServiceFile(options: InstallServiceOptions): Promise<ServiceDescriptor> {

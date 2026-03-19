@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Support Guide
-    url: https://github.com/colorcross/feishu-bridge/blob/main/SUPPORT.md
+    url: https://github.com/colorcross/feique/blob/main/SUPPORT.md
     about: Use the support guide to choose between docs, discussions, issues, and security reporting.
   - name: GitHub Discussions
-    url: https://github.com/colorcross/feishu-bridge/discussions
+    url: https://github.com/colorcross/feique/discussions
     about: Ask usage questions, deployment questions, or product-level discussions.
   - name: Documentation
-    url: https://github.com/colorcross/feishu-bridge/tree/main/docs
+    url: https://github.com/colorcross/feique/tree/main/docs
     about: Read the docs before filing an issue.

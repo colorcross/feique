@@ -45,7 +45,7 @@ export const bridgeConfigSchema = z.object({
   version: z.number().int().positive().default(1),
   service: z
     .object({
-      name: z.string().default('feishu-bridge'),
+      name: z.string().default('feique'),
       default_project: z.string().optional(),
       project_switch_auto_adopt_latest: z.boolean().default(false),
       reply_mode: replyModeSchema.default('text'),
@@ -81,7 +81,7 @@ export const bridgeConfigSchema = z.object({
       memory_pin_age_basis: memoryPinAgeBasisSchema.default('updated_at'),
     })
     .default({
-      name: 'feishu-bridge',
+      name: 'feique',
       project_switch_auto_adopt_latest: false,
       reply_mode: 'text',
       emit_progress_updates: false,
@@ -134,10 +134,10 @@ export const bridgeConfigSchema = z.object({
     }),
   storage: z
     .object({
-      dir: z.string().default('~/.feishu-bridge/state'),
+      dir: z.string().default('~/.feique/state'),
     })
     .default({
-      dir: '~/.feishu-bridge/state',
+      dir: '~/.feique/state',
     }),
   security: z
     .object({

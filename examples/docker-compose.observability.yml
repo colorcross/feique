@@ -1,7 +1,7 @@
 services:
   prometheus:
     image: prom/prometheus:v2.54.1
-    container_name: codex-feishu-prometheus
+    container_name: feique-prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-lifecycle
@@ -15,7 +15,7 @@ services:
 
   alertmanager:
     image: prom/alertmanager:v0.28.0
-    container_name: codex-feishu-alertmanager
+    container_name: feique-alertmanager
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
     ports:
@@ -25,7 +25,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.1.0
-    container_name: codex-feishu-grafana
+    container_name: feique-grafana
     depends_on:
       - prometheus
     environment:

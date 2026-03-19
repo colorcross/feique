@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feishu Bridge — 飞书 AI 编程控制面</title>
+    <title>飞鹊 (Feique) — 团队 AI 编程协作中枢</title>
     <meta
       name="description"
-      content="Feishu Bridge 把飞书消息路由到 Codex CLI 或 Claude Code 会话。支持多后端切换（/backend）、项目绑定、会话续接、仓库串行和权限分层。"
+      content="飞鹊 (Feique) — 让团队 AI 编程有序、可控、可观测。把飞书消息路由到 Codex CLI 或 Claude Code，支持多后端切换、项目绑定、会话续接、仓库串行和权限分层。"
     />
-    <meta property="og:title" content="Feishu Bridge — 飞书 AI 编程控制面" />
+    <meta property="og:title" content="飞鹊 (Feique) — 团队 AI 编程协作中枢" />
     <meta
       property="og:description"
-      content="Feishu Bridge 把飞书消息路由到 Codex CLI 或 Claude Code 会话。支持多后端切换、项目绑定、会话续接、仓库串行和权限分层。"
+      content="飞鹊 (Feique) — 让团队 AI 编程有序、可控、可观测。把飞书消息路由到 Codex CLI 或 Claude Code，支持多后端切换、项目绑定、会话续接、仓库串行和权限分层。"
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://colorcross.github.io/feishu-bridge/" />
-    <meta property="og:image" content="https://colorcross.github.io/feishu-bridge/social-preview.png" />
+    <meta property="og:url" content="https://colorcross.github.io/feique/" />
+    <meta property="og:image" content="https://colorcross.github.io/feique/social-preview.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Feishu Bridge" />
+    <meta name="twitter:title" content="飞鹊 (Feique) — 团队 AI 编程协作中枢" />
     <meta
       name="twitter:description"
-      content="飞书 AI 编程控制面。把飞书消息路由到 Codex CLI 或 Claude Code，支持多后端切换、项目绑定、会话续接和仓库串行。"
+      content="让团队 AI 编程有序、可控、可观测。把飞书消息路由到 Codex CLI 或 Claude Code，支持多后端切换、项目绑定、会话续接和仓库串行。"
     />
-    <meta name="twitter:image" content="https://colorcross.github.io/feishu-bridge/social-preview.png" />
+    <meta name="twitter:image" content="https://colorcross.github.io/feique/social-preview.png" />
     <meta name="theme-color" content="#0a0e17" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -46,7 +46,7 @@
 
       <!-- 顶部导航 -->
       <header class="site-header">
-        <a class="brand" href="https://github.com/colorcross/feishu-bridge">
+        <a class="brand" href="https://github.com/colorcross/feique">
           <span class="brand-icon" aria-hidden="true">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <rect width="28" height="28" rx="8" fill="url(#brandGrad)"/>
@@ -61,14 +61,14 @@
               </defs>
             </svg>
           </span>
-          <span class="brand-name">Feishu Bridge</span>
+          <span class="brand-name">飞鹊 (Feique)</span>
         </a>
         <nav class="site-nav" aria-label="主导航">
           <a href="./en.html" class="nav-link">EN</a>
-          <a href="https://github.com/colorcross/feishu-bridge/blob/main/docs/getting-started.md" class="nav-link">文档</a>
-          <a href="https://github.com/colorcross/feishu-bridge/releases" class="nav-link">Releases</a>
-          <a href="https://www.npmjs.com/package/feishu-ai-bridge" class="nav-link">npm</a>
-          <a href="https://github.com/colorcross/feishu-bridge" class="nav-cta">
+          <a href="https://github.com/colorcross/feique/blob/main/docs/getting-started.md" class="nav-link">文档</a>
+          <a href="https://github.com/colorcross/feique/releases" class="nav-link">Releases</a>
+          <a href="https://www.npmjs.com/package/feique" class="nav-link">npm</a>
+          <a href="https://github.com/colorcross/feique" class="nav-cta">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
             </svg>
@@ -88,7 +88,7 @@
             v0.1.17 已发布
           </span>
           <span class="announcement-text">新增 Claude Code 后端 + /backend 命令会话级切换</span>
-          <a href="https://github.com/colorcross/feishu-bridge/releases" class="announcement-link">查看 Release →</a>
+          <a href="https://github.com/colorcross/feique/releases" class="announcement-link">查看 Release →</a>
         </div>
 
         <!-- Hero 区域 -->
@@ -100,19 +100,19 @@
               <span class="eyebrow-sub">Project-aware control plane</span>
             </div>
             <h1 class="hero-title">
-              <span class="title-line">飞书 AI 编程</span>
-              <span class="title-line title-accent">控制面。</span>
+              <span class="title-line">让团队 AI 编程</span>
+              <span class="title-line title-accent">有序、可控、可观测。</span>
             </h1>
             <p class="hero-desc">
-              Feishu Bridge 把飞书消息路由到 Codex CLI 或 Claude Code 会话。项目绑定、会话续接、仓库串行、后端切换、权限分层——一个控制面管完。
+              飞鹊 (Feique) 是团队 AI 编程协作中枢。把飞书消息路由到 Codex CLI 或 Claude Code，项目绑定、会话续接、仓库串行、后端切换、权限分层——一个中枢管好团队协作、运营管控和可观测性。
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-ai-bridge">
+              <a class="btn btn-primary" href="https://www.npmjs.com/package/feique">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 0v16h16V0H0zm14 14H2V2h12v12z"/><path d="M3 3h10v10H3z" opacity=".3"/></svg>
                 npm 安装
               </a>
-              <a class="btn btn-secondary" href="https://github.com/colorcross/feishu-bridge/blob/main/docs/getting-started.md">快速开始</a>
-              <a class="btn btn-ghost" href="https://github.com/colorcross/feishu-bridge">查看源码</a>
+              <a class="btn btn-secondary" href="https://github.com/colorcross/feique/blob/main/docs/getting-started.md">快速开始</a>
+              <a class="btn btn-ghost" href="https://github.com/colorcross/feique">查看源码</a>
             </div>
             <div class="hero-tags">
               <span class="tag">项目绑定</span>
@@ -133,13 +133,13 @@
                 <span class="demo-title">Install / First Run</span>
                 <span class="demo-badge">latest on npm</span>
               </div>
-              <pre class="demo-code"><code><span class="c-muted">$</span> npm install -g feishu-ai-bridge
-<span class="c-muted">$</span> feishu-bridge init --mode global
+              <pre class="demo-code"><code><span class="c-muted">$</span> npm install -g feique
+<span class="c-muted">$</span> feique init --mode global
 <span class="c-muted">$</span> export FEISHU_APP_ID=<span class="c-amber">cli_xxx</span>
 <span class="c-muted">$</span> export FEISHU_APP_SECRET=<span class="c-amber">***</span>
-<span class="c-muted">$</span> feishu-bridge doctor --remote
-<span class="c-teal">✓</span> feishu-bridge start
-<span class="c-teal">✓</span> feishu-bridge status</code></pre>
+<span class="c-muted">$</span> feique doctor --remote
+<span class="c-teal">✓</span> feique start
+<span class="c-teal">✓</span> feique status</code></pre>
             </div>
 
             <div class="demo-card demo-state">
@@ -302,7 +302,7 @@
         <section class="section fade-in">
           <div class="section-head">
             <span class="section-label">Capabilities</span>
-            <h2 class="section-title">为真实项目使用准备的关键能力，都在这一层里。</h2>
+            <h2 class="section-title">团队协作、运营管控、可观测性——三个维度的关键能力。</h2>
           </div>
           <div class="cap-grid">
             <div class="cap-card">
@@ -367,7 +367,7 @@
               </div>
               <span class="cap-label">MCP Surface</span>
               <h3 class="cap-title">既支持 stdio，也支持 HTTP/SSE MCP</h3>
-              <p class="cap-desc">运行 <code>feishu-bridge mcp</code>，即可把项目列表、项目切换、会话接管和自然语言控制命令暴露给 OpenClaw 等客户端；远端接入支持多 token 轮换和 Bearer 鉴权。</p>
+              <p class="cap-desc">运行 <code>feique mcp</code>，即可把项目列表、项目切换、会话接管和自然语言控制命令暴露给 OpenClaw 等客户端；远端接入支持多 token 轮换和 Bearer 鉴权。</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-amber" aria-hidden="true">
@@ -440,18 +440,18 @@
                 <span class="qs-card-sub">install and bootstrap</span>
               </div>
               <pre class="qs-pre"><code><span class="c-muted"># 安装</span>
-npm install -g feishu-ai-bridge
-feishu-bridge init --mode global
+npm install -g feique
+feique init --mode global
 
 <span class="c-muted"># 检查</span>
-feishu-bridge doctor
-feishu-bridge doctor --remote
+feique doctor
+feique doctor --remote
 
 <span class="c-muted"># 启动</span>
-feishu-bridge start
-feishu-bridge logs --follow
-feishu-bridge create-project repo-new /srv/codex/repo-new
-feishu-bridge mcp</code></pre>
+feique start
+feique logs --follow
+feique create-project repo-new /srv/codex/repo-new
+feique mcp</code></pre>
             </div>
             <div class="qs-card qs-code">
               <div class="qs-card-head">
@@ -484,7 +484,7 @@ feishu-bridge mcp</code></pre>
               <ul class="qs-list">
                 <li>
                   <strong>npm</strong>
-                  <span>直接 <code>npm install -g feishu-ai-bridge</code></span>
+                  <span>直接 <code>npm install -g feique</code></span>
                 </li>
                 <li>
                   <strong>GitHub Release</strong>
@@ -512,7 +512,7 @@ feishu-bridge mcp</code></pre>
           <div class="config-layout">
             <div class="config-code-wrap">
               <div class="config-code-head">
-                <span class="config-filename">~/.feishu-bridge/config.toml</span>
+                <span class="config-filename">~/.feique/config.toml</span>
                 <span class="config-badge">最小配置示例</span>
               </div>
               <pre class="config-pre"><code><span class="c-muted">version = 1</span>
@@ -529,7 +529,7 @@ bin = <span class="c-amber">"codex"</span>
 default_sandbox = <span class="c-amber">"workspace-write"</span>
 
 [storage]
-dir = <span class="c-amber">"~/.feishu-bridge/state"</span>
+dir = <span class="c-amber">"~/.feique/state"</span>
 
 [security]
 allowed_project_roots = [<span class="c-amber">"/srv/repos"</span>]
@@ -569,7 +569,7 @@ session_scope = <span class="c-amber">"chat"</span></code></pre>
                 </div>
                 <div>
                   <strong>多项目绑定</strong>
-                  <p>用 <code>feishu-bridge bind &lt;alias&gt; &lt;path&gt;</code> 绑定多个仓库，飞书里用 <code>/project &lt;alias&gt;</code> 切换。</p>
+                  <p>用 <code>feique bind &lt;alias&gt; &lt;path&gt;</code> 绑定多个仓库，飞书里用 <code>/project &lt;alias&gt;</code> 切换。</p>
                 </div>
               </div>
               <div class="config-tip">
@@ -592,42 +592,42 @@ session_scope = <span class="c-amber">"chat"</span></code></pre>
             <h2 class="section-title">安装、文档、版本和支持入口都可以从这里直接进入。</h2>
           </div>
           <div class="res-grid">
-            <a class="res-card" href="https://github.com/colorcross/feishu-bridge/blob/main/README.md">
+            <a class="res-card" href="https://github.com/colorcross/feique/blob/main/README.md">
               <div class="res-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </div>
               <strong>README</strong>
               <span>最新安装方式、命令面和运行模型</span>
             </a>
-            <a class="res-card" href="https://github.com/colorcross/feishu-bridge/blob/main/docs/getting-started.md">
+            <a class="res-card" href="https://github.com/colorcross/feique/blob/main/docs/getting-started.md">
               <div class="res-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3l7 4v6l-7 4-7-4V7l7-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
               </div>
               <strong>快速开始</strong>
               <span>从 npm 安装到飞书联调的最短路径</span>
             </a>
-            <a class="res-card" href="https://github.com/colorcross/feishu-bridge/blob/main/docs/architecture.md">
+            <a class="res-card" href="https://github.com/colorcross/feique/blob/main/docs/architecture.md">
               <div class="res-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="7" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 9v2M14 9v2M10 9v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </div>
               <strong>架构设计</strong>
               <span>selection key、session key、queue key 和仓库根锁</span>
             </a>
-            <a class="res-card" href="https://github.com/colorcross/feishu-bridge/blob/main/docs/faq.md">
+            <a class="res-card" href="https://github.com/colorcross/feique/blob/main/docs/faq.md">
               <div class="res-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 11V9a2 2 0 10-2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg>
               </div>
               <strong>FAQ</strong>
               <span>项目绑定、session adopt、排队状态和白名单</span>
             </a>
-            <a class="res-card" href="https://github.com/colorcross/feishu-bridge/releases">
+            <a class="res-card" href="https://github.com/colorcross/feique/releases">
               <div class="res-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </div>
               <strong>Releases</strong>
               <span>版本产物、变更摘要和自动发布链路</span>
             </a>
-            <a class="res-card" href="https://github.com/colorcross/feishu-bridge/discussions">
+            <a class="res-card" href="https://github.com/colorcross/feique/discussions">
               <div class="res-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
               </div>
@@ -640,13 +640,13 @@ session_scope = <span class="c-amber">"chat"</span></code></pre>
         <!-- CTA -->
         <section class="cta fade-in">
           <div class="cta-content">
-            <span class="section-label">Start where people already work</span>
-            <h2 class="cta-title">一个控制面，管好飞书到 AI 编程工具的全部链路。</h2>
-            <p class="cta-desc">适合需要项目路由、会话续接、并发保护和多后端支持的团队工作流。</p>
+            <span class="section-label">为团队而生</span>
+            <h2 class="cta-title">一个中枢，让团队 AI 编程有序、可控、可观测。</h2>
+            <p class="cta-desc">从项目路由到权限管控，从并发保护到成本追踪——飞鹊为团队 AI 编程协作而生。</p>
             <div class="cta-actions">
-              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-ai-bridge">npm 安装</a>
-              <a class="btn btn-secondary" href="https://github.com/colorcross/feishu-bridge/releases">查看 Release</a>
-              <a class="btn btn-ghost" href="https://github.com/colorcross/feishu-bridge/tree/main/docs">打开 Docs</a>
+              <a class="btn btn-primary" href="https://www.npmjs.com/package/feique">npm 安装</a>
+              <a class="btn btn-secondary" href="https://github.com/colorcross/feique/releases">查看 Release</a>
+              <a class="btn btn-ghost" href="https://github.com/colorcross/feique/tree/main/docs">打开 Docs</a>
             </div>
           </div>
           <div class="cta-deco" aria-hidden="true">
@@ -658,16 +658,16 @@ session_scope = <span class="c-amber">"chat"</span></code></pre>
       <!-- 页脚 -->
       <footer class="site-footer">
         <div class="footer-brand">
-          <span class="brand-name">Feishu Bridge</span>
-          <span class="footer-tagline">飞书 AI 编程控制面。</span>
+          <span class="brand-name">飞鹊 (Feique)</span>
+          <span class="footer-tagline">团队 AI 编程协作中枢。</span>
         </div>
         <nav class="footer-nav" aria-label="页脚导航">
-          <a href="https://github.com/colorcross/feishu-bridge">GitHub</a>
-          <a href="https://www.npmjs.com/package/feishu-ai-bridge">npm</a>
-          <a href="https://github.com/colorcross/feishu-bridge/blob/main/SUPPORT.md">Support</a>
-          <a href="https://github.com/colorcross/feishu-bridge/blob/main/CONTRIBUTING.md">Contributing</a>
-          <a href="https://github.com/colorcross/feishu-bridge/blob/main/SECURITY.md">Security</a>
-          <a href="https://github.com/colorcross/feishu-bridge/blob/main/LICENSE">MIT License</a>
+          <a href="https://github.com/colorcross/feique">GitHub</a>
+          <a href="https://www.npmjs.com/package/feique">npm</a>
+          <a href="https://github.com/colorcross/feique/blob/main/SUPPORT.md">Support</a>
+          <a href="https://github.com/colorcross/feique/blob/main/CONTRIBUTING.md">Contributing</a>
+          <a href="https://github.com/colorcross/feique/blob/main/SECURITY.md">Security</a>
+          <a href="https://github.com/colorcross/feique/blob/main/LICENSE">MIT License</a>
         </nav>
       </footer>
     </div>

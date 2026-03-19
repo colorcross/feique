@@ -81,7 +81,7 @@ interface RunLifecycleReplyDraft {
   runPhase: string;
 }
 
-export class FeishuBridgeService {
+export class FeiqueService {
   private readonly queue = new TaskQueue();
   private readonly projectRootQueue = new TaskQueue();
   private readonly activeRuns = new Map<string, ActiveRunHandle>();
@@ -226,7 +226,7 @@ export class FeishuBridgeService {
     }
 
     if (!Object.keys(this.config.projects).length) {
-      await this.sendTextReply(context.chat_id, '未配置任何项目。请先执行 `feishu-bridge bind <alias> <path>`。', context.message_id, context.text);
+      await this.sendTextReply(context.chat_id, '未配置任何项目。请先执行 `feique bind <alias> <path>`。', context.message_id, context.text);
       return;
     }
 
@@ -2675,7 +2675,7 @@ export class FeishuBridgeService {
     memoryContext: MemoryContext,
   ): Promise<string> {
     const prefixParts = [
-      'You are replying through a Feishu bridge connected to Codex CLI.',
+      'You are replying through Feique, a team AI coding orchestration hub connected to Codex CLI.',
       'Keep the final response concise and action-oriented.',
       'When files change, summarize key paths and verification.',
       'Do not expose session IDs, run IDs, chat IDs, conversation keys, secrets, raw logs, or absolute local filesystem paths to Feishu users unless they explicitly ask for them.',
@@ -3860,7 +3860,7 @@ export class FeishuBridgeService {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .find(Boolean);
-    return truncateExcerpt(firstLine ?? 'Feishu Bridge', 40);
+    return truncateExcerpt(firstLine ?? '飞鹊 (Feique)', 40);
   }
 
   private sanitizeUserVisibleReply(body: string): string {

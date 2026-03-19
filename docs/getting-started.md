@@ -20,21 +20,21 @@
 直接从 npm 全局安装：
 
 ```bash
-npm install -g feishu-ai-bridge
-feishu-bridge init --mode global
+npm install -g feique
+feique init --mode global
 ```
 
 如果你想固定到某个 release 产物，也可以直接安装 GitHub Release 的 tgz：
 
 ```bash
-npm install -g https://github.com/colorcross/feishu-bridge/releases/download/v0.1.11/feishu-bridge-0.1.11.tgz
-feishu-bridge init --mode global
+npm install -g https://github.com/colorcross/feique/releases/download/v0.1.11/feique-0.1.11.tgz
+feique init --mode global
 ```
 
 如果你是从源码目录直接调试，也可以：
 
 ```bash
-cd /path/to/feishu-bridge
+cd /path/to/feique
 bash scripts/install.sh
 ```
 
@@ -48,16 +48,16 @@ export FEISHU_APP_SECRET='xxx'
 ### 3. 检查配置
 
 ```bash
-feishu-bridge print-config
-feishu-bridge doctor
-feishu-bridge doctor --remote
+feique print-config
+feique doctor
+feique doctor --remote
 ```
 
 ### 4. 启动服务
 
 ```bash
-feishu-bridge start
-feishu-bridge status
+feique start
+feique status
 ```
 
 ### 5. 在飞书里发消息
@@ -103,16 +103,16 @@ encrypt_key = "env:FEISHU_ENCRYPT_KEY"
 ### 4. 启动服务
 
 ```bash
-feishu-bridge start
-feishu-bridge status
+feique start
+feique status
 ```
 
 ## 绑定多个项目
 
 ```bash
-feishu-bridge create-project repo-new /abs/path/to/repo-new
-feishu-bridge bind repo-a /abs/path/to/repo-a
-feishu-bridge bind repo-b /abs/path/to/repo-b
+feique create-project repo-new /abs/path/to/repo-new
+feique bind repo-a /abs/path/to/repo-a
+feique bind repo-b /abs/path/to/repo-b
 ```
 
 - `create-project`：目录不存在时，递归创建目录并接入项目
@@ -256,20 +256,20 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 
 ## 常用命令
 
-- `feishu-bridge start`：后台启动 bridge
-- `feishu-bridge status`：查看服务是否在运行、pid、日志路径和 active runs
-- `feishu-bridge logs --lines 100`：查看最近日志
-- `feishu-bridge logs --follow`：实时观察日志追加内容
-- `feishu-bridge logs --rotate`：轮转 runtime / audit 日志
-- `feishu-bridge ps`：查看当前任务列表和运行态
-- `feishu-bridge stop --force`：停止服务，必要时强制终止
-- `feishu-bridge restart`：重启后台服务
-- `feishu-bridge audit tail --limit 20`：查看最近审计事件
-- `feishu-bridge audit cleanup`：按 retention / archive 策略归档并清理审计日志
-- `feishu-bridge doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志并执行审计清理
-- `feishu-bridge upgrade --check`：检查 npm 是否有新版本
-- `feishu-bridge upgrade --yes`：从 npm 全局升级到最新版本
-- `feishu-bridge mcp`：启动 MCP 服务，供 OpenClaw 等外部工具接入
+- `feique start`：后台启动 bridge
+- `feique status`：查看服务是否在运行、pid、日志路径和 active runs
+- `feique logs --lines 100`：查看最近日志
+- `feique logs --follow`：实时观察日志追加内容
+- `feique logs --rotate`：轮转 runtime / audit 日志
+- `feique ps`：查看当前任务列表和运行态
+- `feique stop --force`：停止服务，必要时强制终止
+- `feique restart`：重启后台服务
+- `feique audit tail --limit 20`：查看最近审计事件
+- `feique audit cleanup`：按 retention / archive 策略归档并清理审计日志
+- `feique doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志并执行审计清理
+- `feique upgrade --check`：检查 npm 是否有新版本
+- `feique upgrade --yes`：从 npm 全局升级到最新版本
+- `feique mcp`：启动 MCP 服务，供 OpenClaw 等外部工具接入
   - 可通过 `project.create` / `project.switch` / `session.adopt` 做项目创建、切换和本地会话接管
   - 可通过 `command.interpret` / `command.execute` 安全解释并执行自然语言控制命令
   - `--transport http` 可直接暴露 HTTP/SSE MCP 入口
@@ -307,7 +307,7 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 如果外部客户端不方便走 `stdio`，可直接启 HTTP：
 
 ```bash
-feishu-bridge mcp --transport http --host 127.0.0.1 --port 8765 --auth-token "$MCP_AUTH_TOKEN_PRIMARY" --auth-token-id primary
+feique mcp --transport http --host 127.0.0.1 --port 8765 --auth-token "$MCP_AUTH_TOKEN_PRIMARY" --auth-token-id primary
 ```
 
 对应配置：
@@ -353,10 +353,10 @@ enabled = true
 [projects.repo-a]
 root = "/srv/repos/repo-a"
 run_priority = 200
-download_dir = "/srv/feishu-bridge/downloads/repo-a"
-temp_dir = "/srv/feishu-bridge/tmp/repo-a"
-cache_dir = "/srv/feishu-bridge/cache/repo-a"
-log_dir = "/srv/feishu-bridge/logs/repo-a"
+download_dir = "/srv/feique/downloads/repo-a"
+temp_dir = "/srv/feique/tmp/repo-a"
+cache_dir = "/srv/feique/cache/repo-a"
+log_dir = "/srv/feique/logs/repo-a"
 ```
 
 当多个项目共享同一个 `project.root` 锁时，`run_priority` 更高的项目会优先执行；相同优先级仍按 FIFO 排队。
@@ -432,8 +432,8 @@ admin_chat_ids = ["oc_admin_chat_1"]
 admin_chat_ids = ["oc_repo_admin_1"]
 chat_rate_limit_window_seconds = 60
 chat_rate_limit_max_runs = 20
-download_dir = "/srv/feishu-bridge/downloads/repo-a"
-temp_dir = "/srv/feishu-bridge/tmp/repo-a"
+download_dir = "/srv/feique/downloads/repo-a"
+temp_dir = "/srv/feique/tmp/repo-a"
 ```
 
 ## 常见联调问题
@@ -443,8 +443,8 @@ temp_dir = "/srv/feishu-bridge/tmp/repo-a"
 先检查：
 
 ```bash
-feishu-bridge feishu inspect
-feishu-bridge doctor --remote
+feique feishu inspect
+feique doctor --remote
 ```
 
 ### 2. 后端 CLI 启动前需要先开代理
@@ -498,5 +498,5 @@ Claude 后端会自动调用 `claude -p --output-format stream-json`，并支持
 ### 3. 想看实际生效配置
 
 ```bash
-feishu-bridge print-config
+feique print-config
 ```

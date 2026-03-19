@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('session store', () => {
   it('persists selected project and thread metadata', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-store-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-store-'));
     tempDirs.push(dir);
     const store = new SessionStore(dir);
     const key = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat-user' });
@@ -37,7 +37,7 @@ describe('session store', () => {
   });
 
   it('keeps both updates under concurrent writes', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-store-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-store-'));
     tempDirs.push(dir);
     const store = new SessionStore(dir);
     const key = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat-user' });
@@ -60,7 +60,7 @@ describe('session store', () => {
   });
 
   it('switches active sessions and keeps history', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-store-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-store-'));
     tempDirs.push(dir);
     const store = new SessionStore(dir);
     const key = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat-user' });
@@ -87,7 +87,7 @@ describe('session store', () => {
   });
 
   it('persists active_backend through setProjectBackend and upsertProjectSession', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-store-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-store-'));
     tempDirs.push(dir);
     const store = new SessionStore(dir);
     const key = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat-user' });

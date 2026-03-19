@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('memory store', () => {
   it('persists, searches, archives/restores, and summarizes project/group memories', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-memory-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-memory-'));
     tempDirs.push(dir);
     const store = new MemoryStore(dir);
     await store.ensureReady();

@@ -211,7 +211,7 @@ write_demo_config() {
 version = 1
 
 [service]
-name = "feishu-bridge-dev-stack"
+name = "feique-dev-stack"
 default_project = "demo"
 reply_mode = "text"
 emit_progress_updates = true

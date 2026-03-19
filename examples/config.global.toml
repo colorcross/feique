@@ -22,7 +22,7 @@ run_timeout_ms = 1800000
 bridge_instructions = "Reply in concise Chinese for Feishu."
 
 [storage]
-dir = "~/.feishu-bridge/state"
+dir = "~/.feique/state"
 
 [security]
 allowed_project_roots = []

@@ -1,4 +1,4 @@
-# Feishu Bridge Repo Workflow
+# 飞鹊 (Feique) Repo Workflow
 
 This file only keeps repository-specific rules. Global workflow, verification grading, token hygiene, and self-iteration live in `~/.codex/AGENTS.md`.
 

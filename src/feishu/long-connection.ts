@@ -2,14 +2,14 @@ import * as lark from '@larksuiteoapi/node-sdk';
 import type { Logger } from '../logging.js';
 import { extractIncomingMessage, shouldAllowChat } from './extractors.js';
 import type { BridgeConfig } from '../config/schema.js';
-import { FeishuBridgeService } from '../bridge/service.js';
+import { FeiqueService } from '../bridge/service.js';
 import { FeishuClient } from './client.js';
 import { waitForShutdownSignal } from '../runtime/shutdown.js';
 import type { ServiceReadinessProbe } from '../observability/readiness.js';
 
 export async function startLongConnectionBridge(input: {
   config: BridgeConfig;
-  service: FeishuBridgeService;
+  service: FeiqueService;
   feishuClient: FeishuClient;
   logger: Logger;
   readiness?: ServiceReadinessProbe;

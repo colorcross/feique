@@ -2,7 +2,7 @@ import http from 'node:http';
 import * as lark from '@larksuiteoapi/node-sdk';
 import type { Logger } from '../logging.js';
 import type { BridgeConfig } from '../config/schema.js';
-import { FeishuBridgeService } from '../bridge/service.js';
+import { FeiqueService } from '../bridge/service.js';
 import { extractCardAction, extractIncomingMessage, shouldAllowChat } from './extractors.js';
 import { waitForShutdownSignal } from '../runtime/shutdown.js';
 import type { ServiceReadinessProbe } from '../observability/readiness.js';
@@ -17,7 +17,7 @@ export interface WebhookBridgeHandle {
 
 export async function createWebhookBridgeServer(input: {
   config: BridgeConfig;
-  service: FeishuBridgeService;
+  service: FeiqueService;
   logger: Logger;
   readiness?: ServiceReadinessProbe;
 }): Promise<WebhookBridgeHandle> {
@@ -154,7 +154,7 @@ export async function createWebhookBridgeServer(input: {
 
 export async function startWebhookBridge(input: {
   config: BridgeConfig;
-  service: FeishuBridgeService;
+  service: FeiqueService;
   logger: Logger;
   readiness?: ServiceReadinessProbe;
 }): Promise<NodeJS.Signals> {

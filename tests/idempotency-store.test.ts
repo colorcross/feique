@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('idempotency store', () => {
   it('marks duplicate registrations and prunes expired entries', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-idempotency-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-idempotency-'));
     tempDirs.push(dir);
     const store = new IdempotencyStore(dir);
 

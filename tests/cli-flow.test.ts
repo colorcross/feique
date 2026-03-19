@@ -33,19 +33,19 @@ afterEach(async () => {
 
 describe('cli flow', () => {
   it('initializes a project config and binds a project alias', async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-cli-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-cli-'));
     tempDirs.push(cwd);
 
     const init = runCli(['init', '--mode', 'project'], { cwd });
     expect(init.status).toBe(0);
-    expect(await exists(path.join(cwd, '.feishu-bridge', 'config.toml'))).toBe(true);
+    expect(await exists(path.join(cwd, '.feique', 'config.toml'))).toBe(true);
 
     const repoPath = path.join(cwd, 'repo-a');
     await fs.mkdir(repoPath, { recursive: true });
-    const bind = runCli(['bind', 'repo-a', repoPath, '--config', path.join(cwd, '.feishu-bridge', 'config.toml')], { cwd });
+    const bind = runCli(['bind', 'repo-a', repoPath, '--config', path.join(cwd, '.feique', 'config.toml')], { cwd });
     expect(bind.status).toBe(0);
 
-    const print = runCli(['print-config', '--config', path.join(cwd, '.feishu-bridge', 'config.toml')], {
+    const print = runCli(['print-config', '--config', path.join(cwd, '.feique', 'config.toml')], {
       cwd,
       env: {
         FEISHU_APP_ID: 'cli_test',
@@ -58,7 +58,7 @@ describe('cli flow', () => {
   }, 15000);
 
   it('prints service instructions without writing system state', async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-service-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-service-'));
     tempDirs.push(cwd);
 
     const result = runCli(['service', 'print', '--platform', 'linux', '--working-dir', cwd], { cwd });
@@ -68,8 +68,8 @@ describe('cli flow', () => {
   });
 
   it('bind uses the global config by default when no project config exists', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-home-'));
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-bind-global-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-home-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-bind-global-'));
     tempDirs.push(home, cwd);
 
     const env = {
@@ -93,18 +93,18 @@ describe('cli flow', () => {
   });
 
   it('creates a project directory and binds it through the CLI', async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-create-project-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-create-project-'));
     tempDirs.push(cwd);
 
     const init = runCli(['init', '--mode', 'project'], { cwd });
     expect(init.status).toBe(0);
 
     const projectRoot = path.join(cwd, 'nested', 'repo-new');
-    const create = runCli(['create-project', 'repo-new', projectRoot, '--config', path.join(cwd, '.feishu-bridge', 'config.toml')], { cwd });
+    const create = runCli(['create-project', 'repo-new', projectRoot, '--config', path.join(cwd, '.feique', 'config.toml')], { cwd });
     expect(create.status).toBe(0);
     expect(await exists(projectRoot)).toBe(true);
 
-    const print = runCli(['print-config', '--config', path.join(cwd, '.feishu-bridge', 'config.toml')], {
+    const print = runCli(['print-config', '--config', path.join(cwd, '.feique', 'config.toml')], {
       cwd,
       env: {
         FEISHU_APP_ID: 'cli_test',
@@ -117,13 +117,13 @@ describe('cli flow', () => {
   }, 15000);
 
   it('surfaces missing environment variables through doctor when config load fails', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-home-'));
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-doctor-cli-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-home-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-doctor-cli-'));
     tempDirs.push(home, cwd);
 
-    await fs.mkdir(path.join(home, '.feishu-bridge'), { recursive: true });
+    await fs.mkdir(path.join(home, '.feique'), { recursive: true });
     await fs.writeFile(
-      path.join(home, '.feishu-bridge', 'config.toml'),
+      path.join(home, '.feique', 'config.toml'),
       [
         'version = 1',
         '',
@@ -150,8 +150,8 @@ describe('cli flow', () => {
   });
 
   it('fails fast on serve when startup doctor finds blocking errors', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-home-'));
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-serve-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-home-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-serve-'));
     tempDirs.push(home, cwd);
 
     const configPath = path.join(cwd, 'bridge.toml');
@@ -190,8 +190,8 @@ describe('cli flow', () => {
   });
 
   it('prints doctor findings as json', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-home-'));
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-doctor-json-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-home-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-doctor-json-'));
     tempDirs.push(home, cwd);
     const fakeCodex = path.join(cwd, 'fake-codex');
     await fs.writeFile(
@@ -303,8 +303,8 @@ describe('cli flow', () => {
   });
 
   it('inspects and stops runtime state through runtime management commands without requiring Feishu secrets', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-runtime-home-'));
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-runtime-cli-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-runtime-home-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-runtime-cli-'));
     tempDirs.push(home, cwd);
     const stateDir = path.join(cwd, 'state');
     await fs.mkdir(stateDir, { recursive: true });
@@ -399,8 +399,8 @@ describe('cli flow', () => {
   }, 15000);
 
   it('bootstraps a global config through the install script without requiring --config afterwards', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-install-home-'));
-    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-install-project-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-install-home-'));
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-install-project-'));
     tempDirs.push(home, projectRoot);
 
     const result = spawnSync('bash', [path.join(repoRoot, 'scripts', 'install.sh'), '--skip-global-install', '--project-root', projectRoot, '--alias', 'repo-install'], {
@@ -414,7 +414,7 @@ describe('cli flow', () => {
     });
 
     expect(result.status).toBe(0);
-    expect(await exists(path.join(home, '.feishu-bridge', 'config.toml'))).toBe(true);
+    expect(await exists(path.join(home, '.feique', 'config.toml'))).toBe(true);
 
     const print = runCli(['print-config'], {
       cwd: projectRoot,

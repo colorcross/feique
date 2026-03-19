@@ -49,7 +49,7 @@
       },
       "targets": [
         {
-          "expr": "sum(feishu_bridge_active_codex_runs)",
+          "expr": "sum(feique_active_codex_runs)",
           "legendFormat": "active",
           "refId": "A"
         }
@@ -105,7 +105,7 @@
       },
       "targets": [
         {
-          "expr": "increase(feishu_bridge_outbound_messages_total{status=\"failure\"}[1h])",
+          "expr": "increase(feique_outbound_messages_total{status=\"failure\"}[1h])",
           "legendFormat": "failures",
           "refId": "A"
         }
@@ -137,7 +137,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (status) (rate(feishu_bridge_codex_turns_total[5m]))",
+          "expr": "sum by (status) (rate(feique_codex_turns_total[5m]))",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
@@ -171,7 +171,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (project, status) (rate(feishu_bridge_codex_turn_duration_seconds_sum[5m])) / clamp_min(sum by (project, status) (rate(feishu_bridge_codex_turn_duration_seconds_count[5m])), 0.001)",
+          "expr": "sum by (project, status) (rate(feique_codex_turn_duration_seconds_sum[5m])) / clamp_min(sum by (project, status) (rate(feique_codex_turn_duration_seconds_count[5m])), 0.001)",
           "legendFormat": "{{project}} {{status}}",
           "refId": "A"
         }
@@ -205,12 +205,12 @@
       },
       "targets": [
         {
-          "expr": "time() - feishu_bridge_last_incoming_message_timestamp_seconds",
+          "expr": "time() - feique_last_incoming_message_timestamp_seconds",
           "legendFormat": "incoming idle",
           "refId": "A"
         },
         {
-          "expr": "time() - max(feishu_bridge_last_outbound_message_timestamp_seconds)",
+          "expr": "time() - max(feique_last_outbound_message_timestamp_seconds)",
           "legendFormat": "outbound idle",
           "refId": "B"
         }
@@ -234,8 +234,8 @@
     "to": "now"
   },
   "timezone": "",
-  "title": "Feishu Bridge Overview",
-  "uid": "feishu-bridge-overview",
+  "title": "飞鹊 (Feique) Overview",
+  "uid": "feique-overview",
   "version": 1,
   "weekStart": ""
 }

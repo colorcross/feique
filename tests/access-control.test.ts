@@ -135,7 +135,7 @@ function buildConfig(overrides: Partial<BridgeConfig> = {}): BridgeConfig {
     backend: { default: 'codex' },
     claude: { bin: 'claude', default_permission_mode: 'auto', output_token_limit: 4000 },
     storage: {
-      dir: '/tmp/feishu-bridge-access-test',
+      dir: '/tmp/feique-access-test',
       ...(overrides.storage ?? {}),
     },
     security: {
