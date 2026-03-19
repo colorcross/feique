@@ -27,7 +27,7 @@ feishu-bridge init --mode global
 如果你想固定到某个 release 产物，也可以直接安装 GitHub Release 的 tgz：
 
 ```bash
-npm install -g https://github.com/colorcross/codex-feishu/releases/download/v0.1.11/feishu-bridge-0.1.11.tgz
+npm install -g https://github.com/colorcross/feishu-bridge/releases/download/v0.1.11/feishu-bridge-0.1.11.tgz
 feishu-bridge init --mode global
 ```
 

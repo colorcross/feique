@@ -12,8 +12,8 @@
 
 当前线上地址：
 
-- 中文：<https://colorcross.github.io/codex-feishu/>
-- 英文：<https://colorcross.github.io/codex-feishu/en.html>
+- 中文：<https://colorcross.github.io/feishu-bridge/>
+- 英文：<https://colorcross.github.io/feishu-bridge/en.html>
 
 ## 当前官网信息架构
 

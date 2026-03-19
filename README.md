@@ -9,7 +9,7 @@
 [![Node.js Version](https://img.shields.io/node/v/feishu-bridge.svg?style=flat-square)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
-[English](README.en.md) | [官网](https://colorcross.github.io/codex-feishu/) | [快速开始](docs/getting-started.md) | [架构设计](docs/architecture.md) | [FAQ](docs/faq.md)
+[English](README.en.md) | [官网](https://colorcross.github.io/feishu-bridge/) | [快速开始](docs/getting-started.md) | [架构设计](docs/architecture.md) | [FAQ](docs/faq.md)
 
 </div>
 

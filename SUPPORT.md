@@ -14,7 +14,7 @@ Use Discussions for:
 
 Link:
 
-- <https://github.com/colorcross/codex-feishu/discussions>
+- <https://github.com/colorcross/feishu-bridge/discussions>
 
 ### GitHub Issues
 
@@ -26,7 +26,7 @@ Use Issues for:
 
 Link:
 
-- <https://github.com/colorcross/codex-feishu/issues>
+- <https://github.com/colorcross/feishu-bridge/issues>
 
 ### Security reports
 
