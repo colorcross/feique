@@ -651,7 +651,10 @@ export class FeiqueService {
       controller: new AbortController(),
     };
     this.activeRuns.set(input.queueKey, activeRun);
-    await this.updateRunStartedReply(input.chatId, input.projectAlias, runId);
+    const sessionBackendOverride = await this.sessionStore.getProjectBackend(input.sessionKey, input.projectAlias);
+    const backend = this.resolveBackendByName(input.projectAlias, sessionBackendOverride);
+    const backendLabel = backend.name === 'claude' ? 'Claude' : 'Codex';
+    await this.updateRunStartedReply(input.chatId, input.projectAlias, runId, backendLabel);
 
     await this.runStateStore.upsertRun(runId, {
       queue_key: input.queueKey,
@@ -698,9 +701,6 @@ export class FeiqueService {
     this.metrics?.recordCodexTurnStarted(input.projectAlias, runId);
 
     try {
-      const sessionBackendOverride = await this.sessionStore.getProjectBackend(input.sessionKey, input.projectAlias);
-      const backend = this.resolveBackendByName(input.projectAlias, sessionBackendOverride);
-      const backendLabel = backend.name === 'claude' ? 'Claude' : 'Codex';
       const outputTokenLimit = backend.name === 'claude'
         ? (this.config.claude?.output_token_limit ?? this.config.codex.output_token_limit)
         : this.config.codex.output_token_limit;
@@ -756,7 +756,7 @@ export class FeiqueService {
             return;
           }
           lastProgressUpdate = now;
-          await this.updateRunProgressReply(input, runId, message);
+          await this.updateRunProgressReply(input, runId, message, backendLabel);
         },
       });
 
@@ -4342,16 +4342,17 @@ export class FeiqueService {
     });
   }
 
-  private async updateRunStartedReply(chatId: string, projectAlias: string, runId: string): Promise<void> {
+  private async updateRunStartedReply(chatId: string, projectAlias: string, runId: string, backendLabel?: string): Promise<void> {
     const target = this.runReplyTargets.get(runId);
     if (!target?.messageId) {
       return;
     }
+    const label = backendLabel ?? 'AI';
     const body = this.buildAcknowledgedRunReply(projectAlias, '处理中', '桥接器已开始处理你的请求。', target.mode);
     await this.updateRunLifecycleReply({
       chatId,
       projectAlias,
-      title: 'Codex 处理中',
+      title: `${label} 处理中`,
       body,
       runStatus: 'running',
       runPhase: '处理中',
@@ -4369,11 +4370,13 @@ export class FeiqueService {
     },
     runId: string,
     progress: string,
+    backendLabel?: string,
   ): Promise<void> {
     const target = this.runReplyTargets.get(runId);
     if (!target?.messageId) {
       return;
     }
+    const label = backendLabel ?? 'AI';
     const body = [
       this.buildAcknowledgedRunReply(input.projectAlias, '处理中', '桥接器正在持续处理你的请求。', target.mode),
       '最新进展:',
@@ -4384,7 +4387,7 @@ export class FeiqueService {
     const updated = await this.updateRunLifecycleReply({
       chatId: input.chatId,
       projectAlias: input.projectAlias,
-      title: 'Codex 处理中',
+      title: `${label} 处理中`,
       body,
       runStatus: 'running',
       runPhase: '生成中',
