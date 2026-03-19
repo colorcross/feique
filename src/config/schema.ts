@@ -41,6 +41,7 @@ export const projectSchema = z.object({
   claude_max_budget_usd: z.number().positive().optional(),
   claude_allowed_tools: z.array(z.string()).optional(),
   claude_system_prompt_append: z.string().optional(),
+  daily_token_quota: z.number().int().positive().optional(),
 });
 
 export const bridgeConfigSchema = z.object({

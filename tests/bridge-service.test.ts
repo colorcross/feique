@@ -1532,6 +1532,83 @@ describe('bridge service', () => {
     expect(revokeReply).toContain('空间: space-1');
     expect(revokeReply).toContain('member_id: ou_123');
   });
+
+  it('rejects prompt when daily token quota is exceeded', async () => {
+    const setup = await createService({
+      projects: {
+        default: {
+          root: '/tmp/project',
+          daily_token_quota: 5000,
+        },
+      },
+    });
+
+    // Seed a completed run with high token usage to exceed the quota
+    await setup.runStateStore.upsertRun('run-quota-1', {
+      queue_key: 'chat::default',
+      conversation_key: 'chat',
+      project_alias: 'default',
+      chat_id: 'chat',
+      actor_id: 'user',
+      project_root: '/tmp/project',
+      prompt_excerpt: 'test',
+      status: 'success',
+      input_tokens: 3000,
+      output_tokens: 3000,
+    });
+
+    const message = buildMessage('do something');
+    await setup.service.handleIncomingMessage(message);
+
+    // Should NOT have called codex since quota exceeded
+    expect(runCodexTurnMock).not.toHaveBeenCalled();
+
+    // Should have sent a quota-exceeded reply
+    const quotaReply = setup.sendText.mock.calls.find(
+      (call: unknown[]) => typeof call[1] === 'string' && (call[1] as string).includes('token 额度'),
+    );
+    expect(quotaReply).toBeDefined();
+    expect(quotaReply![1]).toContain('6000/5000');
+  });
+
+  it('allows prompt when daily token quota is not exceeded', async () => {
+    const setup = await createService({
+      projects: {
+        default: {
+          root: '/tmp/project',
+          daily_token_quota: 100000,
+        },
+      },
+    });
+
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-1',
+      finalMessage: 'done',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    // Seed a completed run with low token usage
+    await setup.runStateStore.upsertRun('run-quota-2', {
+      queue_key: 'chat::default',
+      conversation_key: 'chat',
+      project_alias: 'default',
+      chat_id: 'chat',
+      actor_id: 'user',
+      project_root: '/tmp/project',
+      prompt_excerpt: 'test',
+      status: 'success',
+      input_tokens: 100,
+      output_tokens: 100,
+    });
+
+    const message = buildMessage('do something');
+    await setup.service.handleIncomingMessage(message);
+
+    // Should have called codex since we're under quota
+    expect(runCodexTurnMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 interface TestConfigOverrides extends Partial<Omit<BridgeConfig, 'service' | 'codex' | 'storage' | 'security' | 'feishu' | 'projects'>> {

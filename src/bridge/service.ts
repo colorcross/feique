@@ -388,24 +388,31 @@ export class FeiqueService {
           await this.handleTeamCommand(context);
           return;
         case 'learn':
+          this.metrics?.recordCollaborationEvent('learn');
           await this.handleLearnCommand(context, selectionKey, command.value);
           return;
         case 'recall':
+          this.metrics?.recordCollaborationEvent('recall');
           await this.handleRecallCommand(context, selectionKey, command.query);
           return;
         case 'handoff':
+          this.metrics?.recordCollaborationEvent('handoff');
           await this.handleHandoffCommand(context, selectionKey, command.summary);
           return;
         case 'pickup':
+          this.metrics?.recordCollaborationEvent('pickup');
           await this.handlePickupCommand(context, selectionKey, command.id);
           return;
         case 'review':
+          this.metrics?.recordCollaborationEvent('review');
           await this.handleReviewCommand(context, selectionKey);
           return;
         case 'approve':
+          this.metrics?.recordCollaborationEvent('approve');
           await this.handleApproveCommand(context, command.comment);
           return;
         case 'reject':
+          this.metrics?.recordCollaborationEvent('reject');
           await this.handleRejectCommand(context, command.reason);
           return;
         case 'insights':
@@ -418,6 +425,7 @@ export class FeiqueService {
           await this.handleTimelineCommand(context, selectionKey, command.project);
           return;
         case 'digest':
+          this.metrics?.recordCollaborationEvent('digest');
           await this.handleDigestCommand(context);
           return;
         case 'prompt':
@@ -852,11 +860,19 @@ export class FeiqueService {
       });
       this.metrics?.recordCodexTurn('success', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
 
+      // Record cost and token metrics
+      if (result.inputTokens || result.outputTokens) {
+        const costUsd = estimateCost(result.inputTokens, result.outputTokens, backend.name) ?? 0;
+        this.metrics?.recordCost(input.projectAlias, backend.name, costUsd);
+        this.metrics?.recordTokens(input.projectAlias, backend.name, result.inputTokens ?? 0, result.outputTokens ?? 0);
+      }
+
       // Direction 5: Record trust outcome
       try {
         const trustState = await this.trustStore.getOrCreate(input.projectAlias);
         const updated = recordRunOutcome(trustState, true, DEFAULT_TRUST_POLICY);
         await this.trustStore.update(input.projectAlias, updated);
+        this.metrics?.recordTrustLevel(input.projectAlias, updated.current_level);
       } catch { /* trust tracking is best-effort */ }
 
       // Direction 2: Auto-extract knowledge
@@ -1218,6 +1234,26 @@ export class FeiqueService {
         return;
       }
     } catch { /* trust enforcement is best-effort */ }
+
+    // Token quota enforcement
+    if (projectContext.project.daily_token_quota) {
+      try {
+        const costSummary = await this.runStateStore.getCostSummary(24);
+        const projectUsage = costSummary.by_project[projectContext.projectAlias];
+        if (projectUsage) {
+          const usedTokens = projectUsage.input_tokens + projectUsage.output_tokens;
+          if (usedTokens > projectContext.project.daily_token_quota) {
+            await this.sendTextReply(
+              context.chat_id,
+              `\u26a0\ufe0f 项目 ${projectContext.projectAlias} 已达到每日 token 额度 (${usedTokens}/${projectContext.project.daily_token_quota})，请联系管理员调整。`,
+              context.message_id,
+              context.text,
+            );
+            return;
+          }
+        }
+      } catch { /* quota check is best-effort */ }
+    }
 
     const scheduled = await this.scheduleProjectExecution(
       projectContext,
@@ -1723,6 +1759,7 @@ export class FeiqueService {
       state.current_level = resolvedLevel as TrustLevel;
       state.last_evaluated_at = new Date().toISOString();
       await this.trustStore.update(projectContext.projectAlias, state);
+      this.metrics?.recordTrustLevel(projectContext.projectAlias, resolvedLevel);
 
       await this.auditLog.append({
         type: 'collaboration.trust.set',
@@ -3512,6 +3549,11 @@ export class FeiqueService {
     const queued = await this.prepareQueuedExecution(projectContext, metadata, runId);
     const rootKey = buildProjectRootQueueKey(projectContext.project.root);
     const startGate = createDeferred<void>();
+    // Record queue depth when enqueuing
+    this.metrics?.recordQueueDepth(
+      projectContext.projectAlias,
+      this.queue.getPendingCount(projectContext.queueKey) + 1,
+    );
     return {
       runId,
       queued,
@@ -3521,6 +3563,11 @@ export class FeiqueService {
           await startGate.promise;
           await task(runId);
         }, { priority: projectContext.project.run_priority });
+        // Record queue depth after dequeue
+        this.metrics?.recordQueueDepth(
+          projectContext.projectAlias,
+          this.queue.getPendingCount(projectContext.queueKey),
+        );
       }),
     };
   }
