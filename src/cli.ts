@@ -33,6 +33,8 @@ import { isProcessAlive, terminateProcess } from './runtime/process.js';
 import { startMcpServer } from './mcp/server.js';
 import { getProjectArchiveDir, getProjectAuditDir } from './projects/paths.js';
 import { expandHomePath } from './utils/path.js';
+import { MemoryStore } from './state/memory-store.js';
+import { createEmbeddingProvider } from './memory/embedding-factory.js';
 
 const logger = createLogger();
 const program = new Command();
@@ -202,6 +204,7 @@ const serveCommand = program
     const sessionStore = new SessionStore(config.storage.dir);
     const auditLog = new AuditLog(config.storage.dir);
     const metrics = new MetricsRegistry();
+    const embeddingProvider = createEmbeddingProvider(config);
     const instanceLock = await acquireInstanceLock({
       storageDir: config.storage.dir,
       serviceName: config.service.name,
@@ -209,7 +212,8 @@ const serveCommand = program
     });
     const feishuClient = new FeishuClient(config.feishu, logger, metrics);
     const mutableConfigPath = options.config ? path.resolve(options.config) : sources[0];
-    const service = new FeiqueService(config, feishuClient, sessionStore, auditLog, logger, metrics, undefined, undefined, undefined, undefined, {
+    const memoryStore = new MemoryStore(config.storage.dir, embeddingProvider);
+    const service = new FeiqueService(config, feishuClient, sessionStore, auditLog, logger, metrics, undefined, undefined, memoryStore, undefined, {
       configPath: mutableConfigPath,
       restart: async () => {
         const detached = await detachServeProcess({

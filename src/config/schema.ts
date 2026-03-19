@@ -8,6 +8,7 @@ export const mcpTransportSchema = z.enum(['stdio', 'http']);
 export const memoryPinOverflowStrategySchema = z.enum(['reject', 'age-out']);
 export const memoryPinAgeBasisSchema = z.enum(['updated_at', 'last_accessed_at']);
 export const backendNameSchema = z.enum(['codex', 'claude']);
+export const embeddingProviderSchema = z.enum(['local', 'ollama']);
 export const claudePermissionModeSchema = z.enum(['acceptEdits', 'bypassPermissions', 'default', 'dontAsk', 'plan', 'auto']);
 
 export const projectSchema = z.object({
@@ -211,6 +212,20 @@ export const bridgeConfigSchema = z.object({
       bin: 'claude',
       default_permission_mode: 'auto',
       output_token_limit: 4000,
+    }),
+  embedding: z
+    .object({
+      provider: embeddingProviderSchema.default('local'),
+      ollama_base_url: z.string().default('http://127.0.0.1:11434'),
+      ollama_model: z.string().default('qwen3-embedding:8b'),
+      ollama_timeout_ms: z.number().int().positive().default(30000),
+    })
+    .optional()
+    .default({
+      provider: 'local',
+      ollama_base_url: 'http://127.0.0.1:11434',
+      ollama_model: 'qwen3-embedding:8b',
+      ollama_timeout_ms: 30000,
     }),
   feishu: z.object({
     app_id: z.string(),

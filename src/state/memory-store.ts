@@ -185,7 +185,7 @@ export class MemoryStore {
       };
 
       const embeddingText = `${record.title} ${record.content} ${record.tags.join(' ')}`;
-      const embeddingJson = serializeEmbedding(this.embedder.embed(embeddingText));
+      const embeddingJson = serializeEmbedding(await this.embedder.embed(embeddingText));
 
       return this.withDb((db) => {
         db.prepare(`
@@ -247,7 +247,7 @@ export class MemoryStore {
   public async searchMemories(selector: MemorySelector, query: string, limit: number, filters?: MemoryFilters): Promise<MemoryRecord[]> {
     await this.serial.wait();
     const touchedAt = this.monotonicNow();
-    const queryEmbedding = this.embedder.embed(query);
+    const queryEmbedding = await this.embedder.embed(query);
 
     return this.withDb((db) => {
       const { whereClause, params } = buildMemorySelectorWhere(selector, filters);

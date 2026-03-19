@@ -9,7 +9,7 @@
  */
 
 export interface EmbeddingProvider {
-  embed(text: string): number[];
+  embed(text: string): Promise<number[]>;
   dimension(): number;
 }
 
@@ -32,7 +32,7 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
     return this.dim;
   }
 
-  embed(text: string): number[] {
+  async embed(text: string): Promise<number[]> {
     const vec = new Float64Array(this.dim);
 
     // Layer 1: Character bigrams (captures Chinese and subword patterns)
