@@ -23,7 +23,7 @@
 
 ### Session Store
 
-持久化在 `~/.codex-feishu/state/sessions.json`：
+持久化在 `~/.feishu-bridge/state/sessions.json`：
 
 - 按 `chat_id` 持久化的当前选择项目
 - 每个项目当前激活的 `thread_id`
@@ -32,7 +32,7 @@
 
 ### Idempotency Store
 
-持久化在 `~/.codex-feishu/state/idempotency.json`：
+持久化在 `~/.feishu-bridge/state/idempotency.json`：
 
 - 按 `message_id` / `open_message_id` 去重
 - 记录重复次数和最近一次时间
@@ -40,7 +40,7 @@
 
 ### Run State Store
 
-持久化在 `~/.codex-feishu/state/runs.json`：
+持久化在 `~/.feishu-bridge/state/runs.json`：
 
 - `run_id`
 - `queue_key`
@@ -75,22 +75,22 @@
 
 桥接器内置轻量指标注册表，可导出 Prometheus 文本格式：
 
-- `codex_feishu_incoming_messages_total`
-- `codex_feishu_duplicate_events_total`
-- `codex_feishu_card_actions_total`
-- `codex_feishu_codex_turns_total`
-- `codex_feishu_codex_turn_duration_seconds`
-- `codex_feishu_outbound_messages_total`
-- `codex_feishu_cancellations_total`
-- `codex_feishu_active_codex_runs`
-- `codex_feishu_last_incoming_message_timestamp_seconds`
-- `codex_feishu_last_card_action_timestamp_seconds`
-- `codex_feishu_last_codex_success_timestamp_seconds`
-- `codex_feishu_last_codex_failure_timestamp_seconds`
-- `codex_feishu_last_outbound_message_timestamp_seconds`
-- `codex_feishu_last_outbound_failure_timestamp_seconds`
-- `codex_feishu_last_run_timestamp_seconds`
-- `codex_feishu_service_start_time_seconds`
+- `feishu_bridge_incoming_messages_total`
+- `feishu_bridge_duplicate_events_total`
+- `feishu_bridge_card_actions_total`
+- `feishu_bridge_codex_turns_total`
+- `feishu_bridge_codex_turn_duration_seconds`
+- `feishu_bridge_outbound_messages_total`
+- `feishu_bridge_cancellations_total`
+- `feishu_bridge_active_codex_runs`
+- `feishu_bridge_last_incoming_message_timestamp_seconds`
+- `feishu_bridge_last_card_action_timestamp_seconds`
+- `feishu_bridge_last_codex_success_timestamp_seconds`
+- `feishu_bridge_last_codex_failure_timestamp_seconds`
+- `feishu_bridge_last_outbound_message_timestamp_seconds`
+- `feishu_bridge_last_outbound_failure_timestamp_seconds`
+- `feishu_bridge_last_run_timestamp_seconds`
+- `feishu_bridge_service_start_time_seconds`
 
 当 `service.metrics_port` 配置后，会启动独立管理端口暴露 `/metrics`。
 

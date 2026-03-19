@@ -23,4 +23,4 @@
 
 1. 先看 [README](../README.md)
 2. 再看 [快速开始](getting-started.md)、[FAQ](faq.md)、[部署说明](deployment.md)
-3. 提问时带上 `codex-feishu doctor`、`codex-feishu feishu inspect`、相关日志和最小复现步骤
+3. 提问时带上 `feishu-bridge doctor`、`feishu-bridge feishu inspect`、相关日志和最小复现步骤

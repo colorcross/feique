@@ -28,7 +28,7 @@ afterEach(async () => {
 
 describe('mcp http server', () => {
   it('serves HTTP JSON-RPC and SSE endpoints behind rotating Bearer auth tokens', async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-mcp-http-'));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-mcp-http-'));
     tempDirs.push(cwd);
     const configPath = path.join(cwd, 'bridge.toml');
     const repoA = path.join(cwd, 'repo-a');
@@ -95,7 +95,7 @@ describe('mcp http server', () => {
     expect(JSON.parse(initialize.body)).toMatchObject({
       result: {
         serverInfo: {
-          name: 'codex-feishu',
+          name: 'feishu-bridge',
         },
       },
     });

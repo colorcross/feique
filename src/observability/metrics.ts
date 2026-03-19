@@ -29,31 +29,31 @@ interface GaugeMetric {
 }
 
 const COUNTER_DEFS: CounterMetric[] = [
-  { name: 'codex_feishu_incoming_messages_total', help: 'Incoming Feishu messages received by the bridge.', type: 'counter' },
-  { name: 'codex_feishu_duplicate_events_total', help: 'Duplicate inbound events ignored by the bridge.', type: 'counter' },
-  { name: 'codex_feishu_card_actions_total', help: 'Interactive card actions handled by the bridge.', type: 'counter' },
-  { name: 'codex_feishu_codex_turns_total', help: 'Codex runs executed by the bridge.', type: 'counter' },
-  { name: 'codex_feishu_outbound_messages_total', help: 'Outbound Feishu messages sent by the bridge.', type: 'counter' },
-  { name: 'codex_feishu_cancellations_total', help: 'Codex runs cancelled by users or recovery logic.', type: 'counter' },
+  { name: 'feishu_bridge_incoming_messages_total', help: 'Incoming Feishu messages received by the bridge.', type: 'counter' },
+  { name: 'feishu_bridge_duplicate_events_total', help: 'Duplicate inbound events ignored by the bridge.', type: 'counter' },
+  { name: 'feishu_bridge_card_actions_total', help: 'Interactive card actions handled by the bridge.', type: 'counter' },
+  { name: 'feishu_bridge_codex_turns_total', help: 'Codex runs executed by the bridge.', type: 'counter' },
+  { name: 'feishu_bridge_outbound_messages_total', help: 'Outbound Feishu messages sent by the bridge.', type: 'counter' },
+  { name: 'feishu_bridge_cancellations_total', help: 'Codex runs cancelled by users or recovery logic.', type: 'counter' },
 ];
 
 const SUMMARY_DEFS: SummaryMetric[] = [
-  { name: 'codex_feishu_codex_turn_duration_seconds', help: 'Duration of Codex runs in seconds.', type: 'summary' },
+  { name: 'feishu_bridge_codex_turn_duration_seconds', help: 'Duration of Codex runs in seconds.', type: 'summary' },
 ];
 
 const GAUGE_DEFS: GaugeMetric[] = [
-  { name: 'codex_feishu_active_codex_runs', help: 'Number of Codex runs currently in progress.', type: 'gauge' },
-  { name: 'codex_feishu_service_live', help: 'Whether the bridge process is considered live.', type: 'gauge' },
-  { name: 'codex_feishu_service_ready', help: 'Whether the bridge process is ready to accept traffic.', type: 'gauge' },
-  { name: 'codex_feishu_startup_warnings', help: 'Number of startup doctor warnings recorded for the running process.', type: 'gauge' },
-  { name: 'codex_feishu_startup_errors', help: 'Number of startup doctor errors recorded for the running process.', type: 'gauge' },
-  { name: 'codex_feishu_last_incoming_message_timestamp_seconds', help: 'Unix timestamp of the last incoming Feishu message.', type: 'gauge' },
-  { name: 'codex_feishu_last_card_action_timestamp_seconds', help: 'Unix timestamp of the last Feishu card action.', type: 'gauge' },
-  { name: 'codex_feishu_last_codex_success_timestamp_seconds', help: 'Unix timestamp of the last successful Codex run.', type: 'gauge' },
-  { name: 'codex_feishu_last_codex_failure_timestamp_seconds', help: 'Unix timestamp of the last failed Codex run.', type: 'gauge' },
-  { name: 'codex_feishu_last_outbound_message_timestamp_seconds', help: 'Unix timestamp of the last successful outbound Feishu message.', type: 'gauge' },
-  { name: 'codex_feishu_last_outbound_failure_timestamp_seconds', help: 'Unix timestamp of the last failed outbound Feishu message.', type: 'gauge' },
-  { name: 'codex_feishu_last_run_timestamp_seconds', help: 'Unix timestamp of the latest known run transition.', type: 'gauge' },
+  { name: 'feishu_bridge_active_codex_runs', help: 'Number of Codex runs currently in progress.', type: 'gauge' },
+  { name: 'feishu_bridge_service_live', help: 'Whether the bridge process is considered live.', type: 'gauge' },
+  { name: 'feishu_bridge_service_ready', help: 'Whether the bridge process is ready to accept traffic.', type: 'gauge' },
+  { name: 'feishu_bridge_startup_warnings', help: 'Number of startup doctor warnings recorded for the running process.', type: 'gauge' },
+  { name: 'feishu_bridge_startup_errors', help: 'Number of startup doctor errors recorded for the running process.', type: 'gauge' },
+  { name: 'feishu_bridge_last_incoming_message_timestamp_seconds', help: 'Unix timestamp of the last incoming Feishu message.', type: 'gauge' },
+  { name: 'feishu_bridge_last_card_action_timestamp_seconds', help: 'Unix timestamp of the last Feishu card action.', type: 'gauge' },
+  { name: 'feishu_bridge_last_codex_success_timestamp_seconds', help: 'Unix timestamp of the last successful Codex run.', type: 'gauge' },
+  { name: 'feishu_bridge_last_codex_failure_timestamp_seconds', help: 'Unix timestamp of the last failed Codex run.', type: 'gauge' },
+  { name: 'feishu_bridge_last_outbound_message_timestamp_seconds', help: 'Unix timestamp of the last successful outbound Feishu message.', type: 'gauge' },
+  { name: 'feishu_bridge_last_outbound_failure_timestamp_seconds', help: 'Unix timestamp of the last failed outbound Feishu message.', type: 'gauge' },
+  { name: 'feishu_bridge_last_run_timestamp_seconds', help: 'Unix timestamp of the latest known run transition.', type: 'gauge' },
 ];
 
 export class MetricsRegistry implements MetricsSink {
@@ -86,53 +86,53 @@ export class MetricsRegistry implements MetricsSink {
   }
 
   public recordIncomingMessage(chatType: string, command: string): void {
-    this.incrementCounter('codex_feishu_incoming_messages_total', { chat_type: chatType, command });
-    this.setGauge('codex_feishu_last_incoming_message_timestamp_seconds', nowInSeconds());
+    this.incrementCounter('feishu_bridge_incoming_messages_total', { chat_type: chatType, command });
+    this.setGauge('feishu_bridge_last_incoming_message_timestamp_seconds', nowInSeconds());
   }
 
   public recordDuplicateEvent(kind: 'message' | 'card'): void {
-    this.incrementCounter('codex_feishu_duplicate_events_total', { kind });
+    this.incrementCounter('feishu_bridge_duplicate_events_total', { kind });
   }
 
   public recordCardAction(action: string): void {
-    this.incrementCounter('codex_feishu_card_actions_total', { action });
-    this.setGauge('codex_feishu_last_card_action_timestamp_seconds', nowInSeconds(), { action });
+    this.incrementCounter('feishu_bridge_card_actions_total', { action });
+    this.setGauge('feishu_bridge_last_card_action_timestamp_seconds', nowInSeconds(), { action });
   }
 
   public recordCodexTurnStarted(projectAlias: string, runId?: string): void {
-    this.incrementGauge('codex_feishu_active_codex_runs', { project: projectAlias }, 1);
-    this.setGauge('codex_feishu_last_run_timestamp_seconds', nowInSeconds(), buildRunLabels(projectAlias, runId, 'running'));
+    this.incrementGauge('feishu_bridge_active_codex_runs', { project: projectAlias }, 1);
+    this.setGauge('feishu_bridge_last_run_timestamp_seconds', nowInSeconds(), buildRunLabels(projectAlias, runId, 'running'));
   }
 
   public recordCodexTurn(status: 'success' | 'failure' | 'cancelled', projectAlias: string, durationSeconds: number, runId?: string): void {
-    this.incrementCounter('codex_feishu_codex_turns_total', { status, project: projectAlias });
-    this.observe('codex_feishu_codex_turn_duration_seconds', durationSeconds, { status, project: projectAlias });
-    this.incrementGauge('codex_feishu_active_codex_runs', { project: projectAlias }, -1);
+    this.incrementCounter('feishu_bridge_codex_turns_total', { status, project: projectAlias });
+    this.observe('feishu_bridge_codex_turn_duration_seconds', durationSeconds, { status, project: projectAlias });
+    this.incrementGauge('feishu_bridge_active_codex_runs', { project: projectAlias }, -1);
     const timestampMetric =
       status === 'success'
-        ? 'codex_feishu_last_codex_success_timestamp_seconds'
-        : 'codex_feishu_last_codex_failure_timestamp_seconds';
+        ? 'feishu_bridge_last_codex_success_timestamp_seconds'
+        : 'feishu_bridge_last_codex_failure_timestamp_seconds';
     this.setGauge(timestampMetric, nowInSeconds(), { project: projectAlias });
-    this.setGauge('codex_feishu_last_run_timestamp_seconds', nowInSeconds(), buildRunLabels(projectAlias, runId, status));
+    this.setGauge('feishu_bridge_last_run_timestamp_seconds', nowInSeconds(), buildRunLabels(projectAlias, runId, status));
     if (status === 'cancelled') {
-      this.incrementCounter('codex_feishu_cancellations_total', { project: projectAlias });
+      this.incrementCounter('feishu_bridge_cancellations_total', { project: projectAlias });
     }
   }
 
   public recordOutboundMessage(msgType: 'text' | 'interactive' | 'post', status: 'success' | 'failure'): void {
-    this.incrementCounter('codex_feishu_outbound_messages_total', { msg_type: msgType, status });
+    this.incrementCounter('feishu_bridge_outbound_messages_total', { msg_type: msgType, status });
     const timestampMetric =
       status === 'success'
-        ? 'codex_feishu_last_outbound_message_timestamp_seconds'
-        : 'codex_feishu_last_outbound_failure_timestamp_seconds';
+        ? 'feishu_bridge_last_outbound_message_timestamp_seconds'
+        : 'feishu_bridge_last_outbound_failure_timestamp_seconds';
     this.setGauge(timestampMetric, nowInSeconds(), { msg_type: msgType });
   }
 
   public recordReadiness(snapshot: ReadinessMetricSnapshot): void {
-    this.setGauge('codex_feishu_service_live', snapshot.ok ? 1 : 0);
-    this.setGauge('codex_feishu_service_ready', snapshot.ready ? 1 : 0);
-    this.setGauge('codex_feishu_startup_warnings', snapshot.startupWarnings);
-    this.setGauge('codex_feishu_startup_errors', snapshot.startupErrors);
+    this.setGauge('feishu_bridge_service_live', snapshot.ok ? 1 : 0);
+    this.setGauge('feishu_bridge_service_ready', snapshot.ready ? 1 : 0);
+    this.setGauge('feishu_bridge_startup_warnings', snapshot.startupWarnings);
+    this.setGauge('feishu_bridge_startup_errors', snapshot.startupErrors);
   }
 
   public renderPrometheus(): string {
@@ -172,9 +172,9 @@ export class MetricsRegistry implements MetricsSink {
       }
     }
 
-    lines.push('# HELP codex_feishu_service_start_time_seconds Unix time when the bridge process started.');
-    lines.push('# TYPE codex_feishu_service_start_time_seconds gauge');
-    lines.push(`codex_feishu_service_start_time_seconds ${this.startedAtSeconds}`);
+    lines.push('# HELP feishu_bridge_service_start_time_seconds Unix time when the bridge process started.');
+    lines.push('# TYPE feishu_bridge_service_start_time_seconds gauge');
+    lines.push(`feishu_bridge_service_start_time_seconds ${this.startedAtSeconds}`);
 
     return `${lines.join('\n')}\n`;
   }

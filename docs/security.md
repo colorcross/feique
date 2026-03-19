@@ -83,8 +83,8 @@
 
 桥接器会把关键事件追加到：
 
-- `~/.codex-feishu/state/audit.jsonl`
-- `~/.codex-feishu/state/admin-audit.jsonl`
+- `~/.feishu-bridge/state/audit.jsonl`
+- `~/.feishu-bridge/state/admin-audit.jsonl`
 
 包括：
 
@@ -103,5 +103,5 @@
 查看方式：
 
 ```bash
-codex-feishu audit tail --limit 50
+feishu-bridge audit tail --limit 50
 ```

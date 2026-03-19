@@ -49,7 +49,7 @@
       },
       "targets": [
         {
-          "expr": "sum(codex_feishu_active_codex_runs)",
+          "expr": "sum(feishu_bridge_active_codex_runs)",
           "legendFormat": "active",
           "refId": "A"
         }
@@ -105,7 +105,7 @@
       },
       "targets": [
         {
-          "expr": "increase(codex_feishu_outbound_messages_total{status=\"failure\"}[1h])",
+          "expr": "increase(feishu_bridge_outbound_messages_total{status=\"failure\"}[1h])",
           "legendFormat": "failures",
           "refId": "A"
         }
@@ -137,7 +137,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (status) (rate(codex_feishu_codex_turns_total[5m]))",
+          "expr": "sum by (status) (rate(feishu_bridge_codex_turns_total[5m]))",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
@@ -171,7 +171,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (project, status) (rate(codex_feishu_codex_turn_duration_seconds_sum[5m])) / clamp_min(sum by (project, status) (rate(codex_feishu_codex_turn_duration_seconds_count[5m])), 0.001)",
+          "expr": "sum by (project, status) (rate(feishu_bridge_codex_turn_duration_seconds_sum[5m])) / clamp_min(sum by (project, status) (rate(feishu_bridge_codex_turn_duration_seconds_count[5m])), 0.001)",
           "legendFormat": "{{project}} {{status}}",
           "refId": "A"
         }
@@ -205,12 +205,12 @@
       },
       "targets": [
         {
-          "expr": "time() - codex_feishu_last_incoming_message_timestamp_seconds",
+          "expr": "time() - feishu_bridge_last_incoming_message_timestamp_seconds",
           "legendFormat": "incoming idle",
           "refId": "A"
         },
         {
-          "expr": "time() - max(codex_feishu_last_outbound_message_timestamp_seconds)",
+          "expr": "time() - max(feishu_bridge_last_outbound_message_timestamp_seconds)",
           "legendFormat": "outbound idle",
           "refId": "B"
         }
@@ -234,8 +234,8 @@
     "to": "now"
   },
   "timezone": "",
-  "title": "Codex Feishu Overview",
-  "uid": "codex-feishu-overview",
+  "title": "Feishu Bridge Overview",
+  "uid": "feishu-bridge-overview",
   "version": 1,
   "weekStart": ""
 }

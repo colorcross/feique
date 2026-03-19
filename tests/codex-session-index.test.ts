@@ -12,10 +12,10 @@ afterEach(async () => {
 
 describe('codex session index', () => {
   it('prefers exact project-root matches before fuzzy historical roots', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
     tempDirs.push(codexHome);
-    const currentRoot = '/workspace/codex-feishu';
-    const previousRoot = '/archive/codex-feishu-bridge';
+    const currentRoot = '/workspace/acme-service';
+    const previousRoot = '/archive/acme-service-repo';
 
     await writeSessionMeta(codexHome, 'session-exact', currentRoot, '2026-03-11T03:37:22.628Z');
     await writeSessionMeta(codexHome, 'session-old-root', previousRoot, '2026-03-10T12:06:50.670Z');
@@ -30,10 +30,10 @@ describe('codex session index', () => {
   });
 
   it('finds fuzzy historical sessions when the project root moved', async () => {
-    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-codex-home-'));
+    const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-codex-home-'));
     tempDirs.push(codexHome);
-    const currentRoot = '/workspace/codex-feishu';
-    const previousRoot = '/archive/codex-feishu-bridge';
+    const currentRoot = '/workspace/acme-service';
+    const previousRoot = '/archive/acme-service-repo';
 
     await writeSessionMeta(codexHome, 'session-old-root', previousRoot, '2026-03-10T12:06:50.670Z');
 

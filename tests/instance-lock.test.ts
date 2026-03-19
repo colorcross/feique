@@ -12,12 +12,12 @@ afterEach(async () => {
 
 describe('instance lock', () => {
   it('creates and releases a lock file', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-lock-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-lock-'));
     tempDirs.push(dir);
 
     const lock = await acquireInstanceLock({
       storageDir: dir,
-      serviceName: 'codex-feishu',
+      serviceName: 'feishu-bridge',
       ownerPid: 4242,
       isProcessAlive: () => false,
     });
@@ -28,10 +28,10 @@ describe('instance lock', () => {
   });
 
   it('rejects when another live process owns the lock', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-lock-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-lock-'));
     tempDirs.push(dir);
 
-    const lockPath = path.join(dir, 'codex-feishu.lock');
+    const lockPath = path.join(dir, 'feishu-bridge.lock');
     await fs.writeFile(
       lockPath,
       JSON.stringify({
@@ -46,17 +46,17 @@ describe('instance lock', () => {
     await expect(
       acquireInstanceLock({
         storageDir: dir,
-        serviceName: 'codex-feishu',
+        serviceName: 'feishu-bridge',
         isProcessAlive: (pid) => pid === 7331,
       }),
-    ).rejects.toThrow('Another codex-feishu instance is already running');
+    ).rejects.toThrow('Another feishu-bridge instance is already running');
   });
 
   it('replaces stale lock files', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-lock-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-lock-'));
     tempDirs.push(dir);
 
-    const lockPath = path.join(dir, 'codex-feishu.lock');
+    const lockPath = path.join(dir, 'feishu-bridge.lock');
     await fs.writeFile(
       lockPath,
       JSON.stringify({
@@ -70,7 +70,7 @@ describe('instance lock', () => {
 
     const lock = await acquireInstanceLock({
       storageDir: dir,
-      serviceName: 'codex-feishu',
+      serviceName: 'feishu-bridge',
       ownerPid: 8888,
       isProcessAlive: () => false,
     });

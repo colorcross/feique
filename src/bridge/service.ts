@@ -81,7 +81,7 @@ interface RunLifecycleReplyDraft {
   runPhase: string;
 }
 
-export class CodexFeishuService {
+export class FeishuBridgeService {
   private readonly queue = new TaskQueue();
   private readonly projectRootQueue = new TaskQueue();
   private readonly activeRuns = new Map<string, ActiveRunHandle>();
@@ -226,7 +226,7 @@ export class CodexFeishuService {
     }
 
     if (!Object.keys(this.config.projects).length) {
-      await this.sendTextReply(context.chat_id, '未配置任何项目。请先执行 `codex-feishu bind <alias> <path>`。', context.message_id, context.text);
+      await this.sendTextReply(context.chat_id, '未配置任何项目。请先执行 `feishu-bridge bind <alias> <path>`。', context.message_id, context.text);
       return;
     }
 
@@ -3860,7 +3860,7 @@ export class CodexFeishuService {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .find(Boolean);
-    return truncateExcerpt(firstLine ?? 'Codex Feishu', 40);
+    return truncateExcerpt(firstLine ?? 'Feishu Bridge', 40);
   }
 
   private sanitizeUserVisibleReply(body: string): string {

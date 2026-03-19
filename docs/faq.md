@@ -82,7 +82,7 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 这些值来自飞书事件里的 `chat_id`。最简单的收集方式是：
 
 ```bash
-codex-feishu audit tail --limit 20
+feishu-bridge audit tail --limit 20
 ```
 
 ## 6. 回复为什么现在看起来像“回复某条消息”？
@@ -133,22 +133,22 @@ allowed_project_roots = ["/"]
 
 因为 CLI 已经做了默认路由：
 
-- 优先找最近的项目配置 `.codex-feishu/config.toml`
-- 找不到时回退到全局 `~/.codex-feishu/config.toml`
+- 优先找最近的项目配置 `.feishu-bridge/config.toml`
+- 找不到时回退到全局 `~/.feishu-bridge/config.toml`
 
 ## 10. 如何后台运行、停机、看日志？
 
-- `codex-feishu start`：后台启动 bridge
-- `codex-feishu status`：查看运行状态、pid、日志路径
-- `codex-feishu logs --lines 100`：查看最近日志
-- `codex-feishu logs --follow`：实时跟随日志输出
-- `codex-feishu logs --rotate`：轮转 runtime / audit 日志
-- `codex-feishu ps`：查看当前任务列表
-- `codex-feishu stop --force`：停止 bridge
-- `codex-feishu restart`：重启 bridge
-- `codex-feishu doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志
-- `codex-feishu upgrade --check`：查看 npm 是否有更新
-- `codex-feishu mcp`：暴露 stdio MCP 服务给外部应用
+- `feishu-bridge start`：后台启动 bridge
+- `feishu-bridge status`：查看运行状态、pid、日志路径
+- `feishu-bridge logs --lines 100`：查看最近日志
+- `feishu-bridge logs --follow`：实时跟随日志输出
+- `feishu-bridge logs --rotate`：轮转 runtime / audit 日志
+- `feishu-bridge ps`：查看当前任务列表
+- `feishu-bridge stop --force`：停止 bridge
+- `feishu-bridge restart`：重启 bridge
+- `feishu-bridge doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志
+- `feishu-bridge upgrade --check`：查看 npm 是否有更新
+- `feishu-bridge mcp`：暴露 stdio MCP 服务给外部应用
   - 可直接调用 `project.switch`、`session.adopt`
   - 也可通过 `command.interpret`、`command.execute` 对自然语言控制命令做解释和直接执行
 

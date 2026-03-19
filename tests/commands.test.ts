@@ -198,7 +198,7 @@ describe('bridge commands', () => {
     expect(parseBridgeCommand('切换到项目 repo-a')).toEqual({ kind: 'project', alias: 'repo-a' });
     expect(parseBridgeCommand('切到长话短说项目')).toEqual({ kind: 'project', alias: '长话短说' });
     expect(parseBridgeCommand('切到 XLINE 项目')).toEqual({ kind: 'project', alias: 'XLINE' });
-    expect(parseBridgeCommand('切到 codex-feishu 项目')).toEqual({ kind: 'project', alias: 'codex-feishu' });
+    expect(parseBridgeCommand('切到 feishu-bridge 项目')).toEqual({ kind: 'project', alias: 'feishu-bridge' });
     expect(parseBridgeCommand('请把项目切到 repo-a')).toEqual({ kind: 'project', alias: 'repo-a' });
     expect(parseBridgeCommand('切到长话短说项目，看昨晚都干了啥')).toEqual({
       kind: 'project',

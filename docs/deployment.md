@@ -4,10 +4,10 @@
 
 适合个人开发：
 
-1. `codex-feishu init --mode global`
+1. `feishu-bridge init --mode global`
 2. 填好飞书应用配置
 3. `transport = "long-connection"`
-4. `codex-feishu serve`
+4. `feishu-bridge serve`
 
 如需在每次拉起后端 CLI 前先开代理，可在配置中加入：
 
@@ -32,22 +32,22 @@ pre_exec = "proxy_on"
 如果不想让 bridge 占住当前终端，可直接后台启动：
 
 ```bash
-codex-feishu start
+feishu-bridge start
 ```
 
 后台运行后可直接管理：
 
-- `codex-feishu status`：查看服务状态、pid、日志路径
-- `codex-feishu logs --lines 100`：查看最近日志
-- `codex-feishu logs --follow`：实时跟随日志
-- `codex-feishu logs --rotate`：轮转 runtime / audit 日志
-- `codex-feishu ps`：查看当前任务状态
-- `codex-feishu stop --force`：停止 bridge
-- `codex-feishu restart`：重启 bridge
-- `codex-feishu audit cleanup`：按 retention / archive 策略归档并清理审计日志
-- `codex-feishu doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志并执行审计清理
-- `codex-feishu upgrade --check`：检查 npm 最新版本
-- `codex-feishu mcp`：暴露 MCP 服务给 OpenClaw 等外部工具
+- `feishu-bridge status`：查看服务状态、pid、日志路径
+- `feishu-bridge logs --lines 100`：查看最近日志
+- `feishu-bridge logs --follow`：实时跟随日志
+- `feishu-bridge logs --rotate`：轮转 runtime / audit 日志
+- `feishu-bridge ps`：查看当前任务状态
+- `feishu-bridge stop --force`：停止 bridge
+- `feishu-bridge restart`：重启 bridge
+- `feishu-bridge audit cleanup`：按 retention / archive 策略归档并清理审计日志
+- `feishu-bridge doctor --fix`：创建缺失状态目录、清理 stale pid、轮转超大日志并执行审计清理
+- `feishu-bridge upgrade --check`：检查 npm 最新版本
+- `feishu-bridge mcp`：暴露 MCP 服务给 OpenClaw 等外部工具
   - `stdio` 适合本机 agent
   - `http` 适合远端或多客户端接入
   - 包含项目切换、会话接管和自然语言控制命令解释 / 执行入口
@@ -110,14 +110,14 @@ npm run demo:down
 1. 生成并写入 LaunchAgent：
 
 ```bash
-codex-feishu service install --config ~/.codex-feishu/config.toml --platform darwin
+feishu-bridge service install --config ~/.feishu-bridge/config.toml --platform darwin
 ```
 
 2. 按命令输出执行：
 
 ```bash
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/codex-feishu.plist
-launchctl kickstart -k gui/$(id -u)/codex-feishu
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/feishu-bridge.plist
+launchctl kickstart -k gui/$(id -u)/feishu-bridge
 ```
 
 ### Linux
@@ -125,14 +125,14 @@ launchctl kickstart -k gui/$(id -u)/codex-feishu
 1. 生成并写入 systemd user unit：
 
 ```bash
-codex-feishu service install --config ~/.codex-feishu/config.toml --platform linux
+feishu-bridge service install --config ~/.feishu-bridge/config.toml --platform linux
 ```
 
 2. 按命令输出执行：
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now codex-feishu.service
+systemctl --user enable --now feishu-bridge.service
 ```
 
 ## 反向代理与探针
@@ -189,7 +189,7 @@ enabled = true
 
 - `starting` 阶段 `/healthz` 可为 `200`，但 `/readyz` 会返回 `503`
 - `degraded` 或 `stopped` 阶段 `/healthz` / `/readyz` 都会返回 `503`
-- `/metrics` 会暴露 `codex_feishu_service_live`、`codex_feishu_service_ready`、`codex_feishu_startup_warnings`、`codex_feishu_startup_errors`
+- `/metrics` 会暴露 `feishu_bridge_service_live`、`feishu_bridge_service_ready`、`feishu_bridge_startup_warnings`、`feishu_bridge_startup_errors`
 
 Prometheus 示例文件：
 
@@ -197,7 +197,7 @@ Prometheus 示例文件：
 - 告警规则：`examples/alerts.yml`
 - Alertmanager 配置：`examples/alertmanager.yml`
 - 一键观测栈：`examples/docker-compose.observability.yml`
-- Grafana dashboard：`examples/grafana/dashboards/codex-feishu-overview.json`
+- Grafana dashboard：`examples/grafana/dashboards/feishu-bridge-overview.json`
 
 本地校验：
 
@@ -238,13 +238,13 @@ docker compose -f examples/docker-compose.observability.yml up -d
 1. 启动服务：
 
 ```bash
-codex-feishu serve --config ~/.codex-feishu/config.toml
+feishu-bridge serve --config ~/.feishu-bridge/config.toml
 ```
 
 2. 回放消息事件：
 
 ```bash
-codex-feishu webhook replay-message \
+feishu-bridge webhook replay-message \
   --url http://127.0.0.1:3333/webhook/event \
   --chat-id oc_demo \
   --actor-id ou_demo \
@@ -254,7 +254,7 @@ codex-feishu webhook replay-message \
 3. 回放卡片事件：
 
 ```bash
-codex-feishu webhook replay-card \
+feishu-bridge webhook replay-card \
   --url http://127.0.0.1:3333/webhook/card \
   --chat-id oc_demo \
   --actor-id ou_demo \
@@ -275,24 +275,24 @@ codex-feishu webhook replay-card \
 如果只需要快速探活，可直接执行：
 
 ```bash
-codex-feishu webhook smoke --base-url http://127.0.0.1:3333
+feishu-bridge webhook smoke --base-url http://127.0.0.1:3333
 ```
 
 ## 启动与停机
 
 推荐启动顺序：
 
-1. `codex-feishu doctor`
-   或 `codex-feishu doctor --json`
-   或 `codex-feishu doctor --remote`
-   或 `codex-feishu doctor --fix`
-2. `codex-feishu start`
+1. `feishu-bridge doctor`
+   或 `feishu-bridge doctor --json`
+   或 `feishu-bridge doctor --remote`
+   或 `feishu-bridge doctor --fix`
+2. `feishu-bridge start`
 3. 观察日志确认桥接已开始监听或已建立长连接
 
 若必须绕过预检：
 
 ```bash
-codex-feishu serve --skip-doctor
+feishu-bridge serve --skip-doctor
 ```
 
 停机时建议向主进程发送：

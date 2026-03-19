@@ -52,7 +52,7 @@ export async function runCodexTurn(options: CodexRunOptions): Promise<CodexRunRe
   if (options.cacheDir) {
     await fs.mkdir(path.resolve(options.cacheDir), { recursive: true });
   }
-  const outputFile = path.join(runtimeTempDir, `codex-feishu-${randomUUID()}.txt`);
+  const outputFile = path.join(runtimeTempDir, `feishu-bridge-${randomUUID()}.txt`);
   const capabilities = detectCodexCliCapabilities(options.bin);
   const args = buildCodexArgs(options, outputFile, capabilities);
   const spawnSpec = buildSpawnSpec(options, args);

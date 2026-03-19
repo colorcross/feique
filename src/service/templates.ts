@@ -90,7 +90,7 @@ function buildSystemdDescriptor(input: ServiceTemplateInput): ServiceDescriptor 
   const stderrPath = path.join(input.logDirectory, `${serviceName}.err.log`);
 
   const content = `[Unit]
-Description=Codex Feishu
+Description=Feishu Bridge
 After=network-online.target
 Wants=network-online.target
 

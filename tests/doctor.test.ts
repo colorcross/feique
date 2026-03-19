@@ -34,7 +34,7 @@ afterEach(async () => {
 
 describe('doctor', () => {
   it('reports config risks and project root state', async () => {
-    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-doctor-'));
+    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-doctor-'));
     tempDirs.push(workspace);
 
     const projectRoot = path.join(workspace, 'repo-a');
@@ -43,7 +43,7 @@ describe('doctor', () => {
     const config: BridgeConfig = {
       version: 1,
       service: {
-        name: 'codex-feishu',
+        name: 'feishu-bridge',
         default_project: 'missing-project',
         project_switch_auto_adopt_latest: false,
         reply_mode: 'card',
@@ -161,7 +161,7 @@ describe('doctor', () => {
   });
 
   it('finds missing env references from config files', async () => {
-    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-env-'));
+    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-env-'));
     tempDirs.push(workspace);
 
     process.env.DOCTOR_PRESENT_VAR = 'present';

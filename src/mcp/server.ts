@@ -215,7 +215,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'service.restart',
-    description: 'Restart the codex-feishu background service with the current config.',
+    description: 'Restart the feishu-bridge background service with the current config.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -266,11 +266,11 @@ export async function handleMcpRequest(request: JsonRpcRequest, options: { cwd: 
           tools: {},
         },
         serverInfo: {
-          name: 'codex-feishu',
+          name: 'feishu-bridge',
           version: packageJson.version,
         },
         instructions:
-          'Use the provided tools to inspect codex-feishu runtime state, switch projects, adopt Codex sessions, and safely interpret or execute supported control commands.',
+          'Use the provided tools to inspect feishu-bridge runtime state, switch projects, adopt Codex sessions, and safely interpret or execute supported control commands.',
       },
     };
   }

@@ -15,17 +15,17 @@ afterEach(async () => {
 
 describe('config load', () => {
   it('merges global and project config layers', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-home-'));
-    const repo = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-repo-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-home-'));
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-repo-'));
     tempDirs.push(home, repo);
 
     process.env.HOME = home;
     process.env.FEISHU_APP_ID = 'cli_test';
     process.env.FEISHU_APP_SECRET = 'secret_test';
 
-    await fs.mkdir(path.join(home, '.codex-feishu'), { recursive: true });
+    await fs.mkdir(path.join(home, '.feishu-bridge'), { recursive: true });
     await fs.writeFile(
-      path.join(home, '.codex-feishu', 'config.toml'),
+      path.join(home, '.feishu-bridge', 'config.toml'),
       [
         'version = 1',
         '',
@@ -40,9 +40,9 @@ describe('config load', () => {
       'utf8',
     );
 
-    await fs.mkdir(path.join(repo, '.codex-feishu'), { recursive: true });
+    await fs.mkdir(path.join(repo, '.feishu-bridge'), { recursive: true });
     await fs.writeFile(
-      path.join(repo, '.codex-feishu', 'config.toml'),
+      path.join(repo, '.feishu-bridge', 'config.toml'),
       [
         '[service]',
         'default_project = "repo-b"',
@@ -63,14 +63,14 @@ describe('config load', () => {
   });
 
   it('defaults run_timeout_ms to 30 minutes and seeds init templates with the same value', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-home-'));
-    const repo = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-repo-'));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-home-'));
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-repo-'));
     tempDirs.push(home, repo);
 
     process.env.FEISHU_APP_ID = 'cli_test';
     process.env.FEISHU_APP_SECRET = 'secret_test';
 
-    const configPath = path.join(home, '.codex-feishu', 'config.toml');
+    const configPath = path.join(home, '.feishu-bridge', 'config.toml');
     await fs.mkdir(path.dirname(configPath), { recursive: true });
     await fs.writeFile(
       configPath,

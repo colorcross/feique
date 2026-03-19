@@ -1,12 +1,12 @@
-# Codex Feishu
+# Feishu Bridge
 
 <div align="center">
 
 **把飞书接到 Codex / Claude Code 的控制面。**
 
-[![npm version](https://img.shields.io/npm/v/codex-feishu.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/codex-feishu)
+[![npm version](https://img.shields.io/npm/v/feishu-bridge.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/feishu-bridge)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=d4845a)](LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/codex-feishu.svg?style=flat-square)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/node/v/feishu-bridge.svg?style=flat-square)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 [English](README.en.md) | [官网](https://colorcross.github.io/codex-feishu/) | [快速开始](docs/getting-started.md) | [架构设计](docs/architecture.md) | [FAQ](docs/faq.md)
@@ -15,7 +15,7 @@
 
 ---
 
-Codex Feishu 是一个为 Codex CLI 和 Claude Code (Claude CLI) 设计的飞书桥接器。它不仅仅是一个消息转发工具，而是一个**带有项目感知、会话接管和并发保护的控制面**。通过 Backend 抽象层，同一套飞书交互体验可以无缝对接 Codex 或 Claude Code 两种后端。
+Feishu Bridge 是一个为 Codex CLI 和 Claude Code (Claude CLI) 设计的飞书桥接器。它不仅仅是一个消息转发工具，而是一个**带有项目感知、会话接管和并发保护的控制面**。通过 Backend 抽象层，同一套飞书交互体验可以无缝对接 Codex 或 Claude Code 两种后端。
 
 它让飞书消息直接进入可续接的 Codex CLI 或 Claude Code 会话。项目绑定按 `chat_id` 持久化，本地会话可接管，同仓库自动串行，排队和运行态在飞书里直接可见；最终回复支持富文本和卡片，并默认收口成更干净的单条结果消息，不再夹带 `引用 / 项目 / 耗时` 这类工程化头部信息。
 
@@ -28,7 +28,7 @@ Codex Feishu 是一个为 Codex CLI 和 Claude Code (Claude CLI) 设计的飞书
 | **并发保护 (Runtime Guard)** | `queue key` + `project.root` 双层串行。同项目 thread 不会乱写，不同群同时操作同一仓库也会被自动收口并显示排队状态。 |
 | **飞书对象工具面 (Docs / Base / Tasks)** | 除了 `/wiki` 和 `/kb search`，还支持直接读取/创建飞书文档、列任务/建任务/完结任务，以及查看/写入多维表格记录。 |
 | **多模态上下文 (Media Aware)** | 图片、文件、音频、富文本消息会被解析成结构化元数据，并带进 Codex 提示词。 |
-| **MCP 接口 (MCP Surface)** | 不只给飞书用，运行 `codex-feishu mcp` 即可通过 `stdio` 或 `HTTP/SSE` 暴露能力，支持多 token 轮换鉴权，并可给 OpenClaw 等客户端开放项目切换、会话接管和自然语言控制。 |
+| **MCP 接口 (MCP Surface)** | 不只给飞书用，运行 `feishu-bridge mcp` 即可通过 `stdio` 或 `HTTP/SSE` 暴露能力，支持多 token 轮换鉴权，并可给 OpenClaw 等客户端开放项目切换、会话接管和自然语言控制。 |
 | **权限分层 (Access Roles)** | 支持 `viewer / operator / admin` 三档角色，并补了 session / run / config / service 级能力名单。 |
 | **记忆系统 (Memory System)** | 支持项目记忆与群共享记忆，SQLite + FTS5 检索，可配置 TTL、置顶策略和后台定时清理。 |
 | **项目隔离 (Project Isolation)** | 下载、临时文件、缓存和项目审计默认落到 `state/projects/<alias>/...`，也可按项目单独指定。 |
@@ -40,14 +40,14 @@ Codex Feishu 是一个为 Codex CLI 和 Claude Code (Claude CLI) 设计的飞书
 ### 1. 安装
 
 ```bash
-npm install -g codex-feishu
-codex-feishu init --mode global
+npm install -g feishu-bridge
+feishu-bridge init --mode global
 
 # 创建一个新项目目录并接入配置
-codex-feishu create-project repo-new /srv/codex/repo-new
+feishu-bridge create-project repo-new /srv/codex/repo-new
 
 # 绑定已有目录为项目
-codex-feishu bind repo-a /path/to/repo-a
+feishu-bridge bind repo-a /path/to/repo-a
 ```
 
 ### 2. 配置环境变量
@@ -63,13 +63,13 @@ export FEISHU_APP_SECRET=***
 
 ```bash
 # 检查环境与连通性
-codex-feishu doctor --remote
+feishu-bridge doctor --remote
 
 # 启动服务
-codex-feishu start
+feishu-bridge start
 
 # 查看日志
-codex-feishu logs --follow
+feishu-bridge logs --follow
 ```
 
 ## 💬 飞书内交互示例
@@ -118,7 +118,7 @@ codex-feishu logs --follow
 
 ## ⚙️ 最小配置示例
 
-配置文件默认位于 `~/.codex-feishu/config.toml`：
+配置文件默认位于 `~/.feishu-bridge/config.toml`：
 
 ```toml
 version = 1
@@ -142,7 +142,7 @@ run_timeout_ms = 1800000  # 30 minutes
 # default_model = "sonnet"
 
 [storage]
-dir = "~/.codex-feishu/state"
+dir = "~/.feishu-bridge/state"
 
 [security]
 allowed_project_roots = ["/srv/repos"]
@@ -183,10 +183,10 @@ operator_chat_ids = ["oc_repo_operator_1"]
 session_operator_chat_ids = ["oc_repo_session_operator_1"]
 run_operator_chat_ids = ["oc_repo_run_operator_1"]
 config_admin_chat_ids = ["oc_repo_config_admin_1"]
-download_dir = "/srv/codex-feishu/projects/repo-a/downloads"
-temp_dir = "/srv/codex-feishu/projects/repo-a/tmp"
-cache_dir = "/srv/codex-feishu/projects/repo-a/cache"
-log_dir = "/srv/codex-feishu/projects/repo-a/logs"
+download_dir = "/srv/feishu-bridge/projects/repo-a/downloads"
+temp_dir = "/srv/feishu-bridge/projects/repo-a/tmp"
+cache_dir = "/srv/feishu-bridge/projects/repo-a/cache"
+log_dir = "/srv/feishu-bridge/projects/repo-a/logs"
 # backend = "claude"  # 项目级后端覆盖
 ```
 
@@ -201,7 +201,7 @@ log_dir = "/srv/codex-feishu/projects/repo-a/logs"
 
 MCP 说明：
 
-- `codex-feishu mcp` 默认仍可跑 `stdio`
+- `feishu-bridge mcp` 默认仍可跑 `stdio`
 - 加 `--transport http` 或配置 `[mcp] transport = "http"` 后，会暴露 JSON-RPC + SSE 端点
 - 如启用 HTTP，建议使用 `mcp.auth_tokens` 做多 token 轮换，并通过 `active_auth_token_id` 标记当前主 token
 - 老配置里的 `mcp.auth_token` 仍兼容，但更适合单机本地接入

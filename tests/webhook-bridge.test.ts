@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BridgeConfig } from '../src/config/schema.js';
-import type { CodexFeishuService } from '../src/bridge/service.js';
+import type { FeishuBridgeService } from '../src/bridge/service.js';
 import { createWebhookBridgeServer } from '../src/feishu/webhook.js';
 import { buildReplayCardAction, buildReplayMessageEvent, postWebhookPayload } from '../src/feishu/replay.js';
 
@@ -40,7 +40,7 @@ describe('webhook bridge', () => {
       service: {
         handleIncomingMessage,
         handleCardAction,
-      } as unknown as CodexFeishuService,
+      } as unknown as FeishuBridgeService,
       logger,
     });
     servers.push(server);
@@ -112,7 +112,7 @@ describe('webhook bridge', () => {
       service: {
         handleIncomingMessage,
         handleCardAction: vi.fn(),
-      } as unknown as CodexFeishuService,
+      } as unknown as FeishuBridgeService,
       logger,
     });
     servers.push(server);
@@ -182,7 +182,7 @@ function buildWebhookConfig(): BridgeConfig {
     backend: { default: 'codex' },
     claude: { bin: 'claude', default_permission_mode: 'auto', output_token_limit: 4000 },
     storage: {
-      dir: '/tmp/codex-feishu-test',
+      dir: '/tmp/feishu-bridge-test',
     },
     security: {
       allowed_project_roots: [],

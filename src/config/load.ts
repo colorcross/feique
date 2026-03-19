@@ -38,7 +38,7 @@ export async function loadBridgeConfig(options: { cwd?: string; configPath?: str
   const layers = await loadConfigLayers({ ...(options.configPath ? { configPath: options.configPath } : {}), cwd });
   if (layers.length === 0) {
     throw new Error(
-      `No config found. Run \`codex-feishu init --mode global\` or create ${PROJECT_CONFIG_RELATIVE_PATH}.`,
+      `No config found. Run \`feishu-bridge init --mode global\` or create ${PROJECT_CONFIG_RELATIVE_PATH}.`,
     );
   }
 
@@ -82,23 +82,23 @@ export async function loadBridgeConfigFile(configPath: string, behavior: { resol
 const runtimeConfigSchema = z.object({
   service: z
     .object({
-      name: z.string().default('codex-feishu'),
+      name: z.string().default('feishu-bridge'),
       log_tail_lines: z.number().int().positive().default(100),
       log_rotate_max_bytes: z.number().int().positive().default(10 * 1024 * 1024),
       log_rotate_keep_files: z.number().int().positive().default(5),
     })
     .default({
-      name: 'codex-feishu',
+      name: 'feishu-bridge',
       log_tail_lines: 100,
       log_rotate_max_bytes: 10 * 1024 * 1024,
       log_rotate_keep_files: 5,
     }),
   storage: z
     .object({
-      dir: z.string().default('~/.codex-feishu/state'),
+      dir: z.string().default('~/.feishu-bridge/state'),
     })
     .default({
-      dir: '~/.codex-feishu/state',
+      dir: '~/.feishu-bridge/state',
     }),
 });
 
@@ -107,7 +107,7 @@ export async function loadRuntimeConfig(options: { cwd?: string; configPath?: st
   const layers = await loadConfigLayers({ ...(options.configPath ? { configPath: options.configPath } : {}), cwd }, { resolveEnv: false });
   if (layers.length === 0) {
     throw new Error(
-      `No config found. Run \`codex-feishu init --mode global\` or create ${PROJECT_CONFIG_RELATIVE_PATH}.`,
+      `No config found. Run \`feishu-bridge init --mode global\` or create ${PROJECT_CONFIG_RELATIVE_PATH}.`,
     );
   }
 
@@ -203,7 +203,7 @@ async function readLayerIfExists(filePath: string, behavior: { resolveEnv?: bool
 
 function resolveLayerBaseDir(configPath: string): string {
   const configDir = path.dirname(configPath);
-  if (path.basename(configDir) === '.codex-feishu') {
+  if (path.basename(configDir) === '.feishu-bridge') {
     return path.dirname(configDir);
   }
   return configDir;

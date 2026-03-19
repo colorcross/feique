@@ -40,8 +40,8 @@ See:
 
 When asking for help, include:
 
-1. `codex-feishu doctor` output
-2. `codex-feishu feishu inspect` output when relevant
+1. `feishu-bridge doctor` output
+2. `feishu-bridge feishu inspect` output when relevant
 3. deployment mode: `long-connection` or `webhook`
 4. the smallest reproducible message flow
 5. only the relevant log excerpt, with secrets removed

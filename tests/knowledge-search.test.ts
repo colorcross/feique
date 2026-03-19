@@ -12,10 +12,10 @@ afterEach(async () => {
 
 describe('knowledge search', () => {
   it('searches configured documentation roots', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-kb-'));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-kb-'));
     tempDirs.push(root);
     await fs.mkdir(path.join(root, 'docs'), { recursive: true });
-    await fs.writeFile(path.join(root, 'docs', 'install.md'), '# Install\nUse npm install -g codex-feishu\n', 'utf8');
+    await fs.writeFile(path.join(root, 'docs', 'install.md'), '# Install\nUse npm install -g feishu-bridge\n', 'utf8');
 
     const project = {
       root,
@@ -32,12 +32,12 @@ describe('knowledge search', () => {
     const roots = await resolveKnowledgeRoots(project);
     expect(roots).toEqual([path.join(root, 'docs')]);
 
-    const result = await searchKnowledgeBase(project, 'codex-feishu');
+    const result = await searchKnowledgeBase(project, 'feishu-bridge');
     expect(result.matches[0]).toEqual(
       expect.objectContaining({
         file: path.join(root, 'docs', 'install.md'),
       }),
     );
-    expect(result.matches[0]?.text).toContain('codex-feishu');
+    expect(result.matches[0]?.text).toContain('feishu-bridge');
   });
 });

@@ -14,7 +14,7 @@ Usage: scripts/install.sh [options]
 Options:
   --project-root <dir>    Bind this directory as the default project. Defaults to the current repo root.
   --alias <name>          Project alias to bind. Defaults to "default".
-  --force-config          Overwrite ~/.codex-feishu/config.toml if it already exists.
+  --force-config          Overwrite ~/.feishu-bridge/config.toml if it already exists.
   --skip-global-install   Skip \`npm install -g\` and use the local dist/cli.js for config bootstrap.
   --help                  Show this help text.
 EOF
@@ -83,7 +83,7 @@ main() {
 
   run_cli() {
     if [[ "${SKIP_GLOBAL_INSTALL}" == "off" ]]; then
-      codex-feishu "$@"
+      feishu-bridge "$@"
       return
     fi
 
@@ -91,12 +91,12 @@ main() {
   }
 
   if [[ "${SKIP_GLOBAL_INSTALL}" == "off" ]]; then
-    echo "Installing codex-feishu globally from ${ROOT_DIR}"
+    echo "Installing feishu-bridge globally from ${ROOT_DIR}"
     npm install -g "${ROOT_DIR}"
   fi
 
-  if [[ "${FORCE_CONFIG}" == "on" || ! -f "${HOME}/.codex-feishu/config.toml" ]]; then
-    echo "Initializing global config at ${HOME}/.codex-feishu/config.toml"
+  if [[ "${FORCE_CONFIG}" == "on" || ! -f "${HOME}/.feishu-bridge/config.toml" ]]; then
+    echo "Initializing global config at ${HOME}/.feishu-bridge/config.toml"
     if [[ "${FORCE_CONFIG}" == "on" ]]; then
       run_cli init --mode global --force
     else
@@ -105,7 +105,7 @@ main() {
   fi
 
   echo "Binding project ${PROJECT_ALIAS} -> ${PROJECT_ROOT}"
-  run_cli bind "${PROJECT_ALIAS}" "${PROJECT_ROOT}" --config "${HOME}/.codex-feishu/config.toml"
+  run_cli bind "${PROJECT_ALIAS}" "${PROJECT_ROOT}" --config "${HOME}/.feishu-bridge/config.toml"
 
   cat <<EOF
 
@@ -116,12 +116,12 @@ Next steps:
      export FEISHU_APP_ID='cli_xxx'
      export FEISHU_APP_SECRET='xxx'
   2. Inspect effective config:
-     codex-feishu print-config
+     feishu-bridge print-config
   3. Run startup checks:
-     codex-feishu doctor
-     codex-feishu doctor --remote
+     feishu-bridge doctor
+     feishu-bridge doctor --remote
   4. Start the bridge:
-     codex-feishu serve --detach
+     feishu-bridge serve --detach
 EOF
 }
 

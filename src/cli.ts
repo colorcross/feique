@@ -14,7 +14,7 @@ import { SessionStore } from './state/session-store.js';
 import { AuditLog } from './state/audit-log.js';
 import { RunStateStore } from './state/run-state-store.js';
 import { FeishuClient } from './feishu/client.js';
-import { CodexFeishuService } from './bridge/service.js';
+import { FeishuBridgeService } from './bridge/service.js';
 import { startLongConnectionBridge } from './feishu/long-connection.js';
 import { startWebhookBridge } from './feishu/webhook.js';
 import { bindProjectAlias, createProjectAlias } from './config/mutate.js';
@@ -50,7 +50,7 @@ interface RuntimeCliConfig {
 }
 
 program
-  .name('codex-feishu')
+  .name('feishu-bridge')
   .description('Feishu bridge for Codex CLI with session routing and project-scoped config.')
   .version(packageJson.version);
 
@@ -183,7 +183,7 @@ const serveCommand = program
       }
       if (hasDoctorErrors(findings)) {
         readiness.markDegraded('Doctor failed with blocking errors.');
-        throw new Error('Doctor failed with blocking errors. Run `codex-feishu doctor` to inspect the config.');
+        throw new Error('Doctor failed with blocking errors. Run `feishu-bridge doctor` to inspect the config.');
       }
     }
 
@@ -209,7 +209,7 @@ const serveCommand = program
     });
     const feishuClient = new FeishuClient(config.feishu, logger, metrics);
     const mutableConfigPath = options.config ? path.resolve(options.config) : sources[0];
-    const service = new CodexFeishuService(config, feishuClient, sessionStore, auditLog, logger, metrics, undefined, undefined, undefined, undefined, {
+    const service = new FeishuBridgeService(config, feishuClient, sessionStore, auditLog, logger, metrics, undefined, undefined, undefined, undefined, {
       configPath: mutableConfigPath,
       restart: async () => {
         const detached = await detachServeProcess({
@@ -495,7 +495,7 @@ program
 
 program
   .command('upgrade')
-  .description('Check or install the latest npm release of codex-feishu')
+  .description('Check or install the latest npm release of feishu-bridge')
   .option('--check', 'only print the latest available version', false)
   .option('--yes', 'install the latest release immediately', false)
   .action(async (options: { check: boolean; yes: boolean }) => {
@@ -504,12 +504,12 @@ program
     console.log(`latest: ${latest}`);
     if (options.check || !options.yes) {
       if (!options.check) {
-        console.log('Re-run with `codex-feishu upgrade --yes` to install the latest npm release globally.');
+        console.log('Re-run with `feishu-bridge upgrade --yes` to install the latest npm release globally.');
       }
       return;
     }
     await installLatestPublishedVersion();
-    console.log(`Upgraded codex-feishu to ${latest}`);
+    console.log(`Upgraded feishu-bridge to ${latest}`);
   });
 
 program
@@ -576,9 +576,9 @@ const codexCommand = program.command('codex').description('Codex-side helpers');
 codexCommand
   .command('install-skill')
   .description('Install the bundled Codex skill into ~/.codex/skills and enable it in ~/.codex/config.toml')
-  .option('--name <name>', 'target skill name', 'codex-feishu-session')
+  .option('--name <name>', 'target skill name', 'feishu-bridge-session')
   .action(async (options: { name: string }) => {
-    const skillSourceDir = path.resolve(process.cwd(), 'skills', 'codex-feishu-session');
+    const skillSourceDir = path.resolve(process.cwd(), 'skills', 'feishu-bridge-session');
     if (!(await fileExists(skillSourceDir))) {
       throw new Error(`Bundled skill not found: ${skillSourceDir}`);
     }
@@ -617,7 +617,7 @@ feishuCommand
   .option('--config <path>', 'config path override')
   .requiredOption('--receive-id-type <type>', 'chat_id | open_id | user_id | union_id | email')
   .requiredOption('--receive-id <id>', 'target receive_id')
-  .option('--text <text>', 'message text', 'codex-feishu send-test')
+  .option('--text <text>', 'message text', 'feishu-bridge send-test')
   .action(
     async (options: {
       config?: string;
@@ -640,7 +640,7 @@ webhookCommand
   .requiredOption('--url <url>', 'target event webhook URL')
   .requiredOption('--chat-id <id>', 'chat_id')
   .requiredOption('--actor-id <id>', 'sender open_id')
-  .option('--text <text>', 'message text', 'hello from codex-feishu replay')
+  .option('--text <text>', 'message text', 'hello from feishu-bridge replay')
   .option('--chat-type <type>', 'p2p or group', 'p2p')
   .option('--tenant-key <key>', 'tenant key', 'tenant-local')
   .action(
@@ -823,7 +823,7 @@ serviceCommand
   .command('print')
   .description('Print the launchd/systemd service definition and helper commands')
   .option('--config <path>', 'config path override')
-  .option('--service-name <name>', 'service name', 'codex-feishu')
+  .option('--service-name <name>', 'service name', 'feishu-bridge')
   .option('--working-dir <dir>', 'working directory', process.cwd())
   .option('--log-dir <dir>', 'log directory')
   .option('--platform <platform>', 'darwin or linux')
@@ -862,7 +862,7 @@ serviceCommand
   .command('install')
   .description('Write a launchd/systemd user service file for the bridge')
   .option('--config <path>', 'config path override')
-  .option('--service-name <name>', 'service name', 'codex-feishu')
+  .option('--service-name <name>', 'service name', 'feishu-bridge')
   .option('--working-dir <dir>', 'working directory', process.cwd())
   .option('--log-dir <dir>', 'log directory')
   .option('--platform <platform>', 'darwin or linux')
@@ -886,7 +886,7 @@ serviceCommand
 serviceCommand
   .command('uninstall')
   .description('Remove the generated launchd/systemd user service file')
-  .option('--service-name <name>', 'service name', 'codex-feishu')
+  .option('--service-name <name>', 'service name', 'feishu-bridge')
   .option('--platform <platform>', 'darwin or linux')
   .action(async (options: { serviceName: string; platform?: NodeJS.Platform }) => {
     const result = await uninstallServiceFile({
@@ -1315,12 +1315,12 @@ async function applySafeDoctorFixes(config: BridgeConfig): Promise<string[]> {
 }
 
 async function fetchLatestPublishedVersion(): Promise<string> {
-  const stdout = await runChildForStdout('npm', ['view', 'codex-feishu', 'version']);
+  const stdout = await runChildForStdout('npm', ['view', 'feishu-bridge', 'version']);
   return stdout.trim();
 }
 
 async function installLatestPublishedVersion(): Promise<void> {
-  await runChildForStdout('npm', ['install', '-g', 'codex-feishu@latest']);
+  await runChildForStdout('npm', ['install', '-g', 'feishu-bridge@latest']);
 }
 
 async function runChildForStdout(command: string, args: string[]): Promise<string> {

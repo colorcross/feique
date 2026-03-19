@@ -46,9 +46,9 @@
 ### Highlights
 
 - 修复飞书私聊和群聊里 `切到 XLINE 项目` 这类带空格的自然语言切项目表达，避免被误当成普通 prompt 继续落到旧项目。
-- 新增“创建项目”能力，可在指定目录下直接创建项目根目录并接入 `codex-feishu` 配置。
+- 新增“创建项目”能力，可在指定目录下直接创建项目根目录并接入 `feishu-bridge` 配置。
 - 新能力覆盖三条控制面：
-  - CLI：`codex-feishu create-project <alias> <root>`
+  - CLI：`feishu-bridge create-project <alias> <root>`
   - 飞书管理员：`/admin project create <alias> <root>`
   - MCP：`project.create`
 
@@ -478,7 +478,7 @@
 
 ### Highlights
 
-- 发布 `Codex Feishu` 首个可部署版本，支持飞书 `long-connection` 和 `webhook` 两种接入模式。
+- 发布 `Feishu Bridge` 首个可部署版本，支持飞书 `long-connection` 和 `webhook` 两种接入模式。
 - 建立项目路由、会话续接、多会话历史和飞书命令控制链路，可在飞书侧按项目驱动 Codex CLI。
 - 提供面向生产的运行能力，包括实例锁、启动预检、后台运行、运行超时、取消、stale/orphaned run 恢复和运行态管理命令。
 - 增加消息幂等去重、审计日志、Prometheus 指标、Alertmanager/Grafana 示例，满足基础观测和排障需求。
@@ -521,7 +521,7 @@
   - Grafana provisioning 与 dashboard 示例
 - 安装与交付：
   - 全局/项目级配置
-  - `codex-feishu bind`
+  - `feishu-bridge bind`
   - 可选 Codex skill 安装
   - 一键安装脚本 `scripts/install.sh`
 
@@ -529,7 +529,7 @@
 
 - 群聊默认要求 `@机器人` 才触发，除非显式关闭 `security.require_group_mentions`。
 - 启用 `service.reply_quote_user_message = true` 时，优先使用飞书原生 reply 回复触发消息。
-- `bind` 默认优先使用最近项目配置；若不存在项目配置，则回退到全局 `~/.codex-feishu/config.toml`。
+- `bind` 默认优先使用最近项目配置；若不存在项目配置，则回退到全局 `~/.feishu-bridge/config.toml`。
 
 ### Known Limitations
 

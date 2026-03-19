@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('config history store', () => {
   it('records and lists recent config snapshots', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-config-history-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-config-history-'));
     tempDirs.push(dir);
     const configPath = path.join(dir, 'config.toml');
     await fs.writeFile(configPath, 'version = 1\n', 'utf8');

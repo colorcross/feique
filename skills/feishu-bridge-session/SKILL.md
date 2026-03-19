@@ -1,9 +1,9 @@
 ---
-name: "codex-feishu-session"
-description: "Guidance for Codex sessions that are driven from Feishu. Use when the conversation originates from the Codex Feishu Bridge or when output must fit Feishu chat constraints."
+name: "feishu-bridge-session"
+description: "Guidance for Codex sessions that are driven from Feishu. Use when the conversation originates from the Feishu Bridge or when output must fit Feishu chat constraints."
 ---
 
-# Codex Feishu Session
+# Feishu Bridge Session
 
 When this skill is active, assume the user is reading your output inside Feishu chat.
 

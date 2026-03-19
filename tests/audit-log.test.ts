@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('audit log', () => {
   it('appends and tails structured events', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-audit-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-audit-'));
     tempDirs.push(dir);
     const audit = new AuditLog(dir);
 
@@ -26,7 +26,7 @@ describe('audit log', () => {
   });
 
   it('archives and prunes expired events', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-feishu-audit-cleanup-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feishu-bridge-audit-cleanup-'));
     tempDirs.push(dir);
     const audit = new AuditLog(dir);
 

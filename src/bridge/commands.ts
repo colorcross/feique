@@ -92,7 +92,7 @@ export function normalizeIncomingText(input: string): string {
 
 export function buildHelpText(): string {
   return [
-    'Codex Feishu',
+    'Feishu Bridge',
     '',
     '基础控制',
     '/help 查看帮助',
@@ -398,7 +398,7 @@ function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
   if (/^(查看运行列表|查看运行状态列表|管理员运行列表|查看排队列表|查看任务列表)$/.test(normalized)) {
     return { kind: 'admin', resource: 'service', action: 'runs' };
   }
-  if (/^(重启服务|重启机器人|重启 codex-feishu 服务|重启一下服务|重启一下机器人)$/i.test(normalized)) {
+  if (/^(重启服务|重启机器人|重启 feishu-bridge 服务|重启一下服务|重启一下机器人)$/i.test(normalized)) {
     return { kind: 'admin', resource: 'service', action: 'restart' };
   }
 
