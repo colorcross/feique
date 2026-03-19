@@ -1,0 +1,13 @@
+node_modules
+dist
+.vitest
+coverage
+.git
+.github
+tests
+docs
+website
+examples
+*.md
+!README.md
+!LICENSE

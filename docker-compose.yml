@@ -1,0 +1,43 @@
+services:
+  feique:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3333:3333"     # Webhook endpoint
+      - "9090:9090"     # Metrics + Dashboard
+    volumes:
+      - feique-data:/data
+      - ${FEIQUE_CONFIG:-./config.toml}:/app/config.toml:ro
+      - ${REPOS_DIR:-/srv/repos}:/repos:rw
+    environment:
+      - FEISHU_APP_ID
+      - FEISHU_APP_SECRET
+      - FEISHU_ENCRYPT_KEY
+      - FEISHU_VERIFICATION_TOKEN
+    command: ["serve", "--config", "/app/config.toml"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Optional: Ollama for neural embeddings
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["embedding"]
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  feique-data:
+  ollama-models:

@@ -103,6 +103,69 @@ npm run demo:down
 - 自然语言命令和斜杠命令会直接执行，不再追加确认消息
 
 
+## Docker 部署
+
+适合团队服务器部署，提供 Dockerfile 和 docker-compose.yml。
+
+### 快速启动
+
+```bash
+# 1. 准备配置文件
+cp examples/config.global.toml config.toml
+# 编辑 config.toml 填入飞书应用凭据和项目配置
+
+# 2. 设置环境变量
+export FEISHU_APP_ID=cli_xxx
+export FEISHU_APP_SECRET=xxx
+export REPOS_DIR=/path/to/your/repos
+
+# 3. 启动
+docker compose up -d
+
+# 4. 查看状态
+docker compose logs -f feique
+curl http://localhost:9090/healthz
+```
+
+### 访问入口
+
+| 端口 | 用途 |
+|------|------|
+| 3333 | Webhook 事件接收（飞书事件订阅和卡片回调） |
+| 9090 | Metrics + Dashboard（`/metrics` `/healthz` `/readyz` `/dashboard`） |
+
+### 启用 Ollama 嵌入
+
+如需神经网络语义搜索：
+
+```bash
+# 启动 feique + ollama
+docker compose --profile embedding up -d
+
+# 在 ollama 容器中拉取模型
+docker compose exec ollama ollama pull qwen3-embedding:8b
+```
+
+然后在 config.toml 中配置：
+
+```toml
+[embedding]
+provider = "ollama"
+ollama_base_url = "http://ollama:11434"  # docker compose 内部网络
+ollama_model = "auto"
+```
+
+### 数据持久化
+
+| 卷 | 内容 |
+|----|------|
+| `feique-data` | 运行状态、审计日志、记忆数据库、信任状态 |
+| `ollama-models` | Ollama 模型文件（可选） |
+
+### 仪表板
+
+启动后访问 `http://localhost:9090/dashboard` 查看团队 AI 协作全局状态。
+
 ## 用户级服务安装
 
 ### macOS
