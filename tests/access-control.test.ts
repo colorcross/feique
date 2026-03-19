@@ -120,7 +120,7 @@ function buildConfig(overrides: Partial<BridgeConfig> = {}): BridgeConfig {
       audit_cleanup_interval_seconds: 3600,
       memory_max_pinned_per_scope: 5,
       memory_pin_overflow_strategy: 'age-out',
-      memory_pin_age_basis: 'updated_at',
+      memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [],
       ...(overrides.service ?? {}),
     },
     codex: {

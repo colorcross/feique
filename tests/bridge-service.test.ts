@@ -86,7 +86,7 @@ describe('bridge service', () => {
         memory_cleanup_interval_seconds: 1800,
         memory_max_pinned_per_scope: 5,
         memory_pin_overflow_strategy: 'age-out',
-        memory_pin_age_basis: 'updated_at',
+        memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [],
       },
     });
     runCodexTurnMock.mockResolvedValue({
@@ -520,7 +520,7 @@ describe('bridge service', () => {
         'repo-a': { root: '/tmp/repo-a', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
         'repo-b': { root: '/tmp/repo-b', session_scope: 'chat', mention_required: false, knowledge_paths: [], wiki_space_ids: [] },
       },
-      service: { name: 'test-bridge', default_project: 'repo-a', reply_mode: 'text', emit_progress_updates: false, progress_update_interval_ms: 4000, metrics_host: '127.0.0.1', idempotency_ttl_seconds: 86400, session_history_limit: 20, log_tail_lines: 100, reply_quote_user_message: false, reply_quote_max_chars: 120, download_message_resources: false, transcribe_audio_messages: false, describe_image_messages: false, openai_image_model: 'gpt-4.1-mini', memory_enabled: true, memory_search_limit: 3, memory_recent_limit: 5, memory_prompt_max_chars: 1600, thread_summary_max_chars: 1200, memory_group_enabled: false, memory_cleanup_interval_seconds: 1800, memory_max_pinned_per_scope: 5, memory_pin_overflow_strategy: 'age-out', memory_pin_age_basis: 'updated_at' },
+      service: { name: 'test-bridge', default_project: 'repo-a', reply_mode: 'text', emit_progress_updates: false, progress_update_interval_ms: 4000, metrics_host: '127.0.0.1', idempotency_ttl_seconds: 86400, session_history_limit: 20, log_tail_lines: 100, reply_quote_user_message: false, reply_quote_max_chars: 120, download_message_resources: false, transcribe_audio_messages: false, describe_image_messages: false, openai_image_model: 'gpt-4.1-mini', memory_enabled: true, memory_search_limit: 3, memory_recent_limit: 5, memory_prompt_max_chars: 1600, thread_summary_max_chars: 1200, memory_group_enabled: false, memory_cleanup_interval_seconds: 1800, memory_max_pinned_per_scope: 5, memory_pin_overflow_strategy: 'age-out', memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [] },
     });
 
     const resolvers: Array<(value: unknown) => void> = [];
@@ -1136,7 +1136,7 @@ describe('bridge service', () => {
         memory_default_ttl_days: 1,
         memory_max_pinned_per_scope: 1,
         memory_pin_overflow_strategy: 'age-out',
-        memory_pin_age_basis: 'updated_at',
+        memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [],
       },
     });
     const store = new MemoryStore(setup.config.storage.dir);
@@ -1629,7 +1629,7 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
       audit_cleanup_interval_seconds: 3600,
       memory_max_pinned_per_scope: 5,
       memory_pin_overflow_strategy: 'age-out',
-      memory_pin_age_basis: 'updated_at',
+      memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [],
     },
     codex: {
       bin: 'codex',

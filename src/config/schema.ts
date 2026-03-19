@@ -80,6 +80,9 @@ export const bridgeConfigSchema = z.object({
       memory_max_pinned_per_scope: z.number().int().positive().default(5),
       memory_pin_overflow_strategy: memoryPinOverflowStrategySchema.default('age-out'),
       memory_pin_age_basis: memoryPinAgeBasisSchema.default('updated_at'),
+      team_digest_enabled: z.boolean().default(false),
+      team_digest_interval_hours: z.number().int().positive().default(24),
+      team_digest_chat_ids: z.array(z.string()).default([]),
     })
     .default({
       name: 'feique',
@@ -112,6 +115,9 @@ export const bridgeConfigSchema = z.object({
       memory_max_pinned_per_scope: 5,
       memory_pin_overflow_strategy: 'age-out',
       memory_pin_age_basis: 'updated_at',
+      team_digest_enabled: false,
+      team_digest_interval_hours: 24,
+      team_digest_chat_ids: [],
     }),
   codex: z
     .object({

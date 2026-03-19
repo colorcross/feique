@@ -51,6 +51,7 @@ import { classifyOperation, enforceTrustBoundary, recordRunOutcome, formatTrustS
 import { buildProjectTimeline, buildOnboardingContext, formatTimeline, isNewActor } from '../collaboration/timeline.js';
 import { HandoffStore } from '../state/handoff-store.js';
 import { TrustStore } from '../state/trust-store.js';
+import { buildTeamDigest, formatTeamDigest, createDigestPeriod } from '../collaboration/digest.js';
 
 interface ActiveRunHandle {
   runId: string;
@@ -96,6 +97,7 @@ export class FeiqueService {
   private readonly runReplyTargets = new Map<string, RunReplyTarget>();
   private readonly chatRateWindows = new Map<string, number[]>();
   private maintenanceTimer?: NodeJS.Timeout;
+  private digestTimer?: NodeJS.Timeout;
 
   public constructor(
     private readonly config: BridgeConfig,
@@ -147,14 +149,70 @@ export class FeiqueService {
       void this.runMaintenanceCycle();
     }, intervalMs);
     this.maintenanceTimer.unref?.();
+    this.startDigestLoop();
   }
 
   public stopMaintenanceLoop(): void {
-    if (!this.maintenanceTimer) {
+    if (this.maintenanceTimer) {
+      clearInterval(this.maintenanceTimer);
+      this.maintenanceTimer = undefined;
+    }
+    if (this.digestTimer) {
+      clearInterval(this.digestTimer);
+      this.digestTimer = undefined;
+    }
+  }
+
+  public startDigestLoop(): void {
+    if (this.digestTimer || !this.config.service.team_digest_enabled) {
       return;
     }
-    clearInterval(this.maintenanceTimer);
-    this.maintenanceTimer = undefined;
+    if (this.config.service.team_digest_chat_ids.length === 0) {
+      return;
+    }
+    const intervalMs = this.config.service.team_digest_interval_hours * 3600_000;
+    this.digestTimer = setInterval(() => {
+      void this.runDigestCycle();
+    }, intervalMs);
+    this.digestTimer.unref?.();
+  }
+
+  public async runDigestCycle(): Promise<void> {
+    const chatIds = this.config.service.team_digest_chat_ids;
+    if (chatIds.length === 0) return;
+
+    try {
+      const period = createDigestPeriod(this.config.service.team_digest_interval_hours);
+      const runs = await this.runStateStore.listRuns();
+      const memories = this.config.service.memory_enabled
+        ? await this.memoryStore.listRecentMemories({ scope: 'project', project_alias: '' }, 100)
+        : [];
+      const auditEvents = await this.auditLog.tail(500);
+
+      const digest = buildTeamDigest(runs, memories, auditEvents, period);
+
+      if (digest.summary.total_runs === 0) {
+        return; // Nothing to report
+      }
+
+      const text = formatTeamDigest(digest);
+      for (const chatId of chatIds) {
+        try {
+          await this.feishuClient.sendText(chatId, text);
+        } catch (error) {
+          this.logger.warn({ chatId, error }, 'Failed to send team digest');
+        }
+      }
+
+      await this.auditLog.append({
+        type: 'collaboration.digest.sent',
+        period_label: period.label,
+        total_runs: digest.summary.total_runs,
+        chat_ids: chatIds,
+      });
+    } catch (error) {
+      this.logger.error({ error }, 'Failed to generate team digest');
+    }
   }
 
   public async runMemoryMaintenance(): Promise<number> {
@@ -340,6 +398,9 @@ export class FeiqueService {
           return;
         case 'timeline':
           await this.handleTimelineCommand(context, selectionKey, command.project);
+          return;
+        case 'digest':
+          await this.handleDigestCommand(context);
           return;
         case 'prompt':
           await this.handlePromptMessage(context, selectionKey, command.prompt, context.text);
@@ -1607,6 +1668,20 @@ export class FeiqueService {
 
     const state = await this.trustStore.getOrCreate(projectContext.projectAlias);
     await this.sendTextReply(context.chat_id, formatTrustState(state), context.message_id, context.text);
+  }
+
+  // ── Team Digest ──
+
+  private async handleDigestCommand(context: IncomingMessageContext): Promise<void> {
+    const period = createDigestPeriod(this.config.service.team_digest_interval_hours);
+    const runs = await this.runStateStore.listRuns();
+    const memories = this.config.service.memory_enabled
+      ? await this.memoryStore.listRecentMemories({ scope: 'project', project_alias: '' }, 100)
+      : [];
+    const auditEvents = await this.auditLog.tail(500);
+    const digest = buildTeamDigest(runs, memories, auditEvents, period);
+    const text = formatTeamDigest(digest);
+    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
   }
 
   // ── Direction 6: Timeline ──

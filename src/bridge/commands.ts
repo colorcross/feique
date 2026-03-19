@@ -41,6 +41,7 @@ export type BridgeCommand =
   | { kind: 'insights' }
   | { kind: 'trust'; action?: 'set'; level?: string }
   | { kind: 'timeline'; project?: string }
+  | { kind: 'digest' }
   | { kind: 'prompt'; prompt: string };
 
 export function parseBridgeCommand(input: string): BridgeCommand {
@@ -110,6 +111,8 @@ export function parseBridgeCommand(input: string): BridgeCommand {
       return parseTrustCommand(argument);
     case '/timeline':
       return { kind: 'timeline', project: argument || undefined };
+    case '/digest':
+      return { kind: 'digest' };
     default:
       return { kind: 'prompt', prompt: trimmed };
   }
@@ -214,6 +217,7 @@ export function buildHelpText(): string {
     '/trust 查看当前项目的信任等级',
     '/trust set <observe|suggest|execute|autonomous> 设置信任等级',
     '/timeline [项目] 查看项目协作时间线',
+    '/digest 立即生成团队 AI 协作日报',
     '',
     '管理员',
     '/admin status 查看管理员配置摘要',
@@ -326,6 +330,8 @@ export function describeBridgeCommand(command: BridgeCommand): string {
       return command.action === 'set' ? `设置信任等级: ${command.level}` : '查看信任状态';
     case 'timeline':
       return command.project ? `查看项目 ${command.project} 时间线` : '查看项目时间线';
+    case 'digest':
+      return '生成团队 AI 协作日报';
     case 'prompt':
       return truncateForDescription(command.prompt);
   }
@@ -359,6 +365,7 @@ export function isReadOnlyCommand(command: BridgeCommand): boolean {
     case 'recall':
     case 'insights':
     case 'timeline':
+    case 'digest':
       return true;
     case 'trust':
       return !command.action;
