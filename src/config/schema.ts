@@ -25,6 +25,7 @@ export const projectSchema = z.object({
   viewer_chat_ids: z.array(z.string()).optional(),
   operator_chat_ids: z.array(z.string()).optional(),
   admin_chat_ids: z.array(z.string()).default([]),
+  notification_chat_ids: z.array(z.string()).default([]),
   session_operator_chat_ids: z.array(z.string()).optional(),
   run_operator_chat_ids: z.array(z.string()).optional(),
   config_admin_chat_ids: z.array(z.string()).optional(),

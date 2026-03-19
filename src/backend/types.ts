@@ -48,6 +48,8 @@ export interface BackendRunResult {
   finalMessage: string;
   stderr: string;
   exitCode: number;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 // ---------------------------------------------------------------------------

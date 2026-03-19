@@ -52,6 +52,7 @@ import { buildProjectTimeline, buildOnboardingContext, formatTimeline, isNewActo
 import { HandoffStore } from '../state/handoff-store.js';
 import { TrustStore } from '../state/trust-store.js';
 import { buildTeamDigest, formatTeamDigest, createDigestPeriod } from '../collaboration/digest.js';
+import { estimateCost } from '../observability/cost.js';
 
 interface ActiveRunHandle {
   runId: string;
@@ -210,6 +211,23 @@ export class FeiqueService {
         total_runs: digest.summary.total_runs,
         chat_ids: chatIds,
       });
+
+      // Send per-project mini-digests to project notification chats
+      for (const projectDigest of digest.topProjects) {
+        const projectChatIds = this.config.projects[projectDigest.alias]?.notification_chat_ids ?? [];
+        if (projectChatIds.length === 0) continue;
+        const successPct = Math.round(projectDigest.success_rate * 100);
+        const miniDigestText = [
+          `📊 项目摘要 [${projectDigest.alias}] — ${period.label}`,
+          `运行: ${projectDigest.runs} | 成功率: ${successPct}%`,
+          `参与者: ${projectDigest.actors.join(', ') || '无'}`,
+        ].join('\n');
+        for (const chatId of projectChatIds) {
+          try {
+            await this.feishuClient.sendText(chatId, miniDigestText);
+          } catch { /* best-effort */ }
+        }
+      }
     } catch (error) {
       this.logger.error({ error }, 'Failed to generate team digest');
     }
@@ -828,6 +846,9 @@ export class FeiqueService {
         prompt_excerpt: truncateExcerpt(input.prompt),
         status: 'success',
         status_detail: undefined,
+        input_tokens: result.inputTokens,
+        output_tokens: result.outputTokens,
+        estimated_cost_usd: estimateCost(result.inputTokens, result.outputTokens, backend.name),
       });
       this.metrics?.recordCodexTurn('success', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
 
@@ -914,6 +935,9 @@ export class FeiqueService {
           const updated = recordRunOutcome(trustState, false, DEFAULT_TRUST_POLICY);
           await this.trustStore.update(input.projectAlias, updated);
         } catch { /* trust tracking is best-effort */ }
+        // Notify project chats about the failure
+        await this.notifyProjectChats(input.projectAlias,
+          `❌ 运行失败 [${input.projectAlias}]\n${message.slice(0, 200)}`);
       }
       if (cancelled) {
         this.logger.warn(
@@ -1155,12 +1179,42 @@ export class FeiqueService {
         return;
       }
       if (decision.requires_approval) {
+        // Create an approval request
+        const review = createReview({
+          run_id: `approval-${Date.now()}`,
+          project_alias: projectContext.projectAlias,
+          chat_id: context.chat_id,
+          actor_id: context.actor_id ?? 'unknown',
+          content_excerpt: `[${operationClass}] ${prompt.slice(0, 100)}`,
+        });
+        await this.handoffStore.addReview(review);
+
+        // Notify admin chats
+        const adminChatIds = projectContext.project.admin_chat_ids ?? [];
+        const approvalText = `🛡️ 审批请求 [${projectContext.projectAlias}]\n发起人: ${context.actor_id}\n操作类型: ${operationClass}\n内容: "${prompt.slice(0, 80)}"\n\n使用 /approve 批准此操作`;
+        for (const adminChat of adminChatIds) {
+          try {
+            await this.feishuClient.sendText(adminChat, approvalText);
+          } catch { /* best-effort */ }
+        }
+
+        // Notify project notification chats
+        await this.notifyProjectChats(projectContext.projectAlias, approvalText);
+
+        // Tell the user their request is pending
         await this.sendTextReply(
           context.chat_id,
-          `⚠️ ${decision.reason ?? '此操作需要审批'}\n使用 /trust set execute 提升信任等级，或请管理员审批。`,
+          `⏳ ${decision.reason ?? '此操作需要审批'}\n已通知管理员，等待审批中...`,
           context.message_id,
           context.text,
         );
+
+        await this.auditLog.append({
+          type: 'collaboration.approval.requested',
+          project_alias: projectContext.projectAlias,
+          actor_id: context.actor_id,
+          operation_class: operationClass,
+        });
         return;
       }
     } catch { /* trust enforcement is best-effort */ }
@@ -1824,6 +1878,7 @@ export class FeiqueService {
           viewer_chat_ids: [],
           operator_chat_ids: [],
           admin_chat_ids: [],
+          notification_chat_ids: [],
           session_operator_chat_ids: [],
           run_operator_chat_ids: [],
           config_admin_chat_ids: [],
@@ -3905,6 +3960,16 @@ export class FeiqueService {
   private async appendProjectAuditEvent(projectAlias: string, project: ProjectConfig, event: { type: string; [key: string]: unknown }): Promise<void> {
     const auditLog = new AuditLog(getProjectAuditDir(this.config.storage.dir, projectAlias, project), 'project-audit.jsonl');
     await auditLog.append(event);
+  }
+
+  private async notifyProjectChats(projectAlias: string, text: string): Promise<void> {
+    const project = this.config.projects[projectAlias];
+    const chatIds = project?.notification_chat_ids ?? [];
+    for (const chatId of chatIds) {
+      try {
+        await this.feishuClient.sendText(chatId, text);
+      } catch { /* best-effort */ }
+    }
   }
 
   private listManagedAuditTargets(): Array<{ stateDir: string; fileName: string; archiveDir?: string }> {

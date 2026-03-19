@@ -13,6 +13,8 @@ import { findNearestProjectConfig, loadBridgeConfig, loadRuntimeConfig } from '.
 import { SessionStore } from './state/session-store.js';
 import { AuditLog } from './state/audit-log.js';
 import { RunStateStore } from './state/run-state-store.js';
+import { TrustStore } from './state/trust-store.js';
+import { HandoffStore } from './state/handoff-store.js';
 import { FeishuClient } from './feishu/client.js';
 import { FeiqueService } from './bridge/service.js';
 import { startLongConnectionBridge } from './feishu/long-connection.js';
@@ -237,6 +239,9 @@ const serveCommand = program
     const recoveredRuns = await service.recoverRuntimeState();
     await service.runMaintenanceCycle();
     service.startMaintenanceLoop();
+    const dashboardRunStateStore = new RunStateStore(config.storage.dir);
+    const dashboardTrustStore = new TrustStore(config.storage.dir);
+    const dashboardHandoffStore = new HandoffStore(config.storage.dir);
     const metricsServer =
       config.service.metrics_port !== undefined
         ? await startMetricsServer({
@@ -246,6 +251,10 @@ const serveCommand = program
             logger,
             metrics,
             readiness,
+            runStateStore: dashboardRunStateStore,
+            trustStore: dashboardTrustStore,
+            handoffStore: dashboardHandoffStore,
+            auditLog,
           })
         : undefined;
 

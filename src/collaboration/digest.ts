@@ -35,6 +35,9 @@ interface DigestSummary {
   unique_actors: number;
   unique_projects: number;
   avg_duration_ms: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost_usd: number;
 }
 
 interface ProjectDigest {
@@ -80,6 +83,11 @@ export function buildTeamDigest(
   const avgDuration = durations.length > 0
     ? durations.reduce((a, b) => a + b, 0) / durations.length
     : 0;
+
+  // Token / cost totals
+  const totalInputTokens = periodRuns.reduce((sum, r) => sum + (r.input_tokens ?? 0), 0);
+  const totalOutputTokens = periodRuns.reduce((sum, r) => sum + (r.output_tokens ?? 0), 0);
+  const totalCostUsd = periodRuns.reduce((sum, r) => sum + (r.estimated_cost_usd ?? 0), 0);
 
   // Per-project breakdown
   const projectMap = new Map<string, RunState[]>();
@@ -146,6 +154,9 @@ export function buildTeamDigest(
       unique_actors: actors.size,
       unique_projects: projects.size,
       avg_duration_ms: avgDuration,
+      total_input_tokens: totalInputTokens,
+      total_output_tokens: totalOutputTokens,
+      total_cost_usd: totalCostUsd,
     },
     topProjects,
     topContributors,
@@ -182,6 +193,11 @@ export function formatTeamDigest(digest: TeamDigest): string {
   }
   if (digest.handoffsCompleted > 0) {
     lines.push(`  会话交接: ${digest.handoffsCompleted} 次`);
+  }
+  if (summary.total_input_tokens > 0 || summary.total_output_tokens > 0) {
+    const fmtTokens = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}K` : `${n}`;
+    const costCny = (summary.total_cost_usd * 7.2).toFixed(2);
+    lines.push(`  Token 用量: ${fmtTokens(summary.total_input_tokens)} 输入 / ${fmtTokens(summary.total_output_tokens)} 输出, 预估 ¥${costCny}`);
   }
 
   // Top projects

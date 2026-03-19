@@ -23,6 +23,9 @@ export interface RunState {
   updated_at: string;
   finished_at?: string;
   error?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  estimated_cost_usd?: number;
 }
 
 /** Retention: auto-delete completed/failed/cancelled runs older than 30 days. */
@@ -67,6 +70,9 @@ export class RunStateStore {
         status_detail: pickPatchedValue(patch, 'status_detail', existing?.status_detail),
         finished_at: pickPatchedValue(patch, 'finished_at', existing?.finished_at),
         error: pickPatchedValue(patch, 'error', existing?.error),
+        input_tokens: pickPatchedValue(patch, 'input_tokens', existing?.input_tokens),
+        output_tokens: pickPatchedValue(patch, 'output_tokens', existing?.output_tokens),
+        estimated_cost_usd: pickPatchedValue(patch, 'estimated_cost_usd', existing?.estimated_cost_usd),
       };
       if (isTerminalRunStatus(next.status)) {
         next.finished_at = patch.finished_at ?? now;
@@ -78,8 +84,9 @@ export class RunStateStore {
         INSERT OR REPLACE INTO runs (
           run_id, queue_key, conversation_key, project_alias, chat_id,
           actor_id, session_id, project_root, pid, prompt_excerpt,
-          status, status_detail, started_at, updated_at, finished_at, error
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          status, status_detail, started_at, updated_at, finished_at, error,
+          input_tokens, output_tokens, estimated_cost_usd
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         next.run_id,
         next.queue_key,
@@ -97,6 +104,9 @@ export class RunStateStore {
         next.updated_at,
         next.finished_at ?? null,
         next.error ?? null,
+        next.input_tokens ?? null,
+        next.output_tokens ?? null,
+        next.estimated_cost_usd ?? null,
       );
 
       this.pruneOldRuns();
@@ -188,6 +198,62 @@ export class RunStateStore {
     });
   }
 
+  public async getCostSummary(hours: number = 24): Promise<{
+    total_runs: number;
+    total_input_tokens: number;
+    total_output_tokens: number;
+    total_cost_usd: number;
+    by_project: Record<string, { runs: number; input_tokens: number; output_tokens: number; cost_usd: number }>;
+    by_actor: Record<string, { runs: number; input_tokens: number; output_tokens: number; cost_usd: number }>;
+  }> {
+    await this.serial.wait();
+    const cutoff = new Date(Date.now() - hours * 3600_000).toISOString();
+    const rows = this.db.prepare(
+      'SELECT * FROM runs WHERE started_at >= ?',
+    ).all(cutoff) as unknown as RunRow[];
+
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCostUsd = 0;
+    const byProject = new Map<string, { runs: number; input_tokens: number; output_tokens: number; cost_usd: number }>();
+    const byActor = new Map<string, { runs: number; input_tokens: number; output_tokens: number; cost_usd: number }>();
+
+    for (const row of rows) {
+      const input = row.input_tokens ?? 0;
+      const output = row.output_tokens ?? 0;
+      const cost = row.estimated_cost_usd ?? 0;
+      totalInputTokens += input;
+      totalOutputTokens += output;
+      totalCostUsd += cost;
+
+      // By project
+      const projEntry = byProject.get(row.project_alias) ?? { runs: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 };
+      projEntry.runs += 1;
+      projEntry.input_tokens += input;
+      projEntry.output_tokens += output;
+      projEntry.cost_usd += cost;
+      byProject.set(row.project_alias, projEntry);
+
+      // By actor
+      const actorKey = row.actor_id ?? 'unknown';
+      const actorEntry = byActor.get(actorKey) ?? { runs: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 };
+      actorEntry.runs += 1;
+      actorEntry.input_tokens += input;
+      actorEntry.output_tokens += output;
+      actorEntry.cost_usd += cost;
+      byActor.set(actorKey, actorEntry);
+    }
+
+    return {
+      total_runs: rows.length,
+      total_input_tokens: totalInputTokens,
+      total_output_tokens: totalOutputTokens,
+      total_cost_usd: totalCostUsd,
+      by_project: Object.fromEntries(byProject),
+      by_actor: Object.fromEntries(byActor),
+    };
+  }
+
   // ── private helpers ──
 
   private getRunSync(runId: string): RunState | null {
@@ -201,7 +267,8 @@ export class RunStateStore {
         queue_key = ?, conversation_key = ?, project_alias = ?, chat_id = ?,
         actor_id = ?, session_id = ?, project_root = ?, pid = ?,
         prompt_excerpt = ?, status = ?, status_detail = ?,
-        started_at = ?, updated_at = ?, finished_at = ?, error = ?
+        started_at = ?, updated_at = ?, finished_at = ?, error = ?,
+        input_tokens = ?, output_tokens = ?, estimated_cost_usd = ?
       WHERE run_id = ?
     `).run(
       run.queue_key,
@@ -219,6 +286,9 @@ export class RunStateStore {
       run.updated_at,
       run.finished_at ?? null,
       run.error ?? null,
+      run.input_tokens ?? null,
+      run.output_tokens ?? null,
+      run.estimated_cost_usd ?? null,
       run.run_id,
     );
   }
@@ -258,6 +328,9 @@ interface RunRow {
   updated_at: string;
   finished_at: string | null;
   error: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  estimated_cost_usd: number | null;
 }
 
 function mapRunRow(row: RunRow): RunState {
@@ -278,6 +351,9 @@ function mapRunRow(row: RunRow): RunState {
     updated_at: row.updated_at,
     finished_at: row.finished_at ?? undefined,
     error: row.error ?? undefined,
+    input_tokens: row.input_tokens ?? undefined,
+    output_tokens: row.output_tokens ?? undefined,
+    estimated_cost_usd: row.estimated_cost_usd ?? undefined,
   };
 }
 
@@ -302,7 +378,10 @@ function initializeSchema(db: DatabaseSync): void {
       started_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       finished_at TEXT,
-      error TEXT
+      error TEXT,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      estimated_cost_usd REAL
     );
 
     CREATE INDEX IF NOT EXISTS idx_runs_status_project ON runs(status, project_alias);
@@ -310,6 +389,19 @@ function initializeSchema(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_runs_queue_key_status ON runs(queue_key, status);
     CREATE INDEX IF NOT EXISTS idx_runs_started_at ON runs(started_at);
   `);
+
+  // Migrate existing databases that lack the token columns.
+  const cols = db.prepare("PRAGMA table_info('runs')").all() as Array<{ name: string }>;
+  const colNames = new Set(cols.map((c) => c.name));
+  if (!colNames.has('input_tokens')) {
+    db.exec('ALTER TABLE runs ADD COLUMN input_tokens INTEGER;');
+  }
+  if (!colNames.has('output_tokens')) {
+    db.exec('ALTER TABLE runs ADD COLUMN output_tokens INTEGER;');
+  }
+  if (!colNames.has('estimated_cost_usd')) {
+    db.exec('ALTER TABLE runs ADD COLUMN estimated_cost_usd REAL;');
+  }
 }
 
 // ── Utility functions (unchanged public contract) ──

@@ -35,9 +35,12 @@ interface ClaudeStreamEvent {
   cost_usd?: number;
   duration_ms?: number;
   num_turns?: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
   message?: {
     id?: string;
     content?: Array<{ type?: string; text?: string }>;
+    usage?: { input_tokens?: number; output_tokens?: number };
   };
   [key: string]: unknown;
 }
@@ -73,6 +76,8 @@ export class ClaudeBackend implements Backend {
       let stdoutBuffer = '';
       let sessionId = options.sessionId;
       let finalMessage = '';
+      let inputTokens: number | undefined;
+      let outputTokens: number | undefined;
       let settled = false;
       let timeoutHandle: NodeJS.Timeout | undefined;
       let abortCleanup: (() => void) | undefined;
@@ -147,9 +152,13 @@ export class ClaudeBackend implements Backend {
               sessionId = event.session_id;
             }
 
-            // Extract final text from result event
+            // Extract final text and token usage from result event
             if (event.type === 'result' && typeof event.result === 'string') {
               finalMessage = event.result;
+            }
+            if (event.type === 'result') {
+              if (typeof event.total_input_tokens === 'number') inputTokens = event.total_input_tokens;
+              if (typeof event.total_output_tokens === 'number') outputTokens = event.total_output_tokens;
             }
 
             // Extract assistant text from assistant messages
@@ -197,6 +206,8 @@ export class ClaudeBackend implements Backend {
           finalMessage: finalMessage.trim(),
           stderr: stderr.trim(),
           exitCode: exitCode ?? 0,
+          inputTokens,
+          outputTokens,
         });
       });
     });

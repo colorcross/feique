@@ -224,6 +224,7 @@ function buildWebhookConfig(): BridgeConfig {
         knowledge_paths: [],
         wiki_space_ids: [],
         admin_chat_ids: [],
+        notification_chat_ids: [],
         run_priority: 100,
         chat_rate_limit_window_seconds: 60,
         chat_rate_limit_max_runs: 20,
