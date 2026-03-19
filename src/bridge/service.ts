@@ -43,6 +43,14 @@ import { expandHomePath } from '../utils/path.js';
 import { canAccessGlobalCapability, canAccessProject, canAccessProjectCapability, describeMinimumRole, filterAccessibleProjects, resolveProjectAccessRole, type AccessRole } from '../security/access.js';
 import { adoptProjectSession as adoptSharedProjectSession, listBridgeSessions as listSharedBridgeSessions, switchProjectBinding as switchSharedProjectBinding } from '../control-plane/project-session.js';
 import { getProjectArchiveDir, getProjectAuditDir, getProjectAuditFile, getProjectCacheDir, getProjectDownloadsDir, getProjectTempDir } from '../projects/paths.js';
+import { buildTeamActivityView, detectOverlaps, formatTeamView, formatOverlapAlerts } from '../collaboration/awareness.js';
+import { extractInsights, buildLearnInput, formatRecallResults } from '../collaboration/knowledge.js';
+import { createHandoff, acceptHandoff, createReview, resolveReview, formatHandoff, formatReview, formatReviewResult } from '../collaboration/handoff.js';
+import { analyzeTeamHealth, formatInsightsReport } from '../collaboration/insights.js';
+import { classifyOperation, enforceTrustBoundary, recordRunOutcome, formatTrustState, DEFAULT_TRUST_POLICY, type TrustLevel } from '../collaboration/trust.js';
+import { buildProjectTimeline, buildOnboardingContext, formatTimeline, isNewActor } from '../collaboration/timeline.js';
+import { HandoffStore } from '../state/handoff-store.js';
+import { TrustStore } from '../state/trust-store.js';
 
 interface ActiveRunHandle {
   runId: string;
@@ -103,6 +111,8 @@ export class FeiqueService {
     private readonly runtimeControl?: RuntimeControl,
     private readonly adminAuditLog: AuditLog = new AuditLog(config.storage.dir, 'admin-audit.jsonl'),
     private readonly configHistoryStore: ConfigHistoryStore = new ConfigHistoryStore(config.storage.dir),
+    private readonly handoffStore: HandoffStore = new HandoffStore(config.storage.dir),
+    private readonly trustStore: TrustStore = new TrustStore(config.storage.dir),
   ) {}
 
   public async recoverRuntimeState(): Promise<RunState[]> {
@@ -298,6 +308,39 @@ export class FeiqueService {
         case 'admin':
           await this.handleAdminCommand(context, selectionKey, command);
           return;
+        case 'team':
+          await this.handleTeamCommand(context);
+          return;
+        case 'learn':
+          await this.handleLearnCommand(context, selectionKey, command.value);
+          return;
+        case 'recall':
+          await this.handleRecallCommand(context, selectionKey, command.query);
+          return;
+        case 'handoff':
+          await this.handleHandoffCommand(context, selectionKey, command.summary);
+          return;
+        case 'pickup':
+          await this.handlePickupCommand(context, selectionKey, command.id);
+          return;
+        case 'review':
+          await this.handleReviewCommand(context, selectionKey);
+          return;
+        case 'approve':
+          await this.handleApproveCommand(context, command.comment);
+          return;
+        case 'reject':
+          await this.handleRejectCommand(context, command.reason);
+          return;
+        case 'insights':
+          await this.handleInsightsCommand(context);
+          return;
+        case 'trust':
+          await this.handleTrustCommand(context, selectionKey, command.action, command.level);
+          return;
+        case 'timeline':
+          await this.handleTimelineCommand(context, selectionKey, command.project);
+          return;
         case 'prompt':
           await this.handlePromptMessage(context, selectionKey, command.prompt, context.text);
           return;
@@ -492,7 +535,26 @@ export class FeiqueService {
           includeGroupMemories: this.config.service.memory_group_enabled && input.incomingMessage.chat_type === 'group',
         })
       : { pinnedMemories: [], relevantMemories: [], pinnedGroupMemories: [], relevantGroupMemories: [] };
-    const bridgePrompt = await this.buildBridgePrompt(input.projectAlias, input.project, input.incomingMessage, input.prompt, memoryContext);
+    // Direction 6: Inject onboarding context for new actors
+    let onboardingPrefix = '';
+    if (input.actorId && this.config.service.memory_enabled) {
+      try {
+        const allRuns = await this.runStateStore.listRuns();
+        if (isNewActor(input.actorId, allRuns, input.projectAlias)) {
+          const memories = await this.memoryStore.listRecentMemories(
+            { scope: 'project', project_alias: input.projectAlias },
+            10,
+          );
+          const timeline = buildProjectTimeline(allRuns, memories, [], input.projectAlias, 10);
+          onboardingPrefix = buildOnboardingContext(timeline, memories, input.projectAlias);
+        }
+      } catch { /* onboarding injection is best-effort */ }
+    }
+    const effectivePrompt = onboardingPrefix
+      ? `${onboardingPrefix}\n\n${input.prompt}`
+      : input.prompt;
+
+    const bridgePrompt = await this.buildBridgePrompt(input.projectAlias, input.project, input.incomingMessage, effectivePrompt, memoryContext);
     const startedAt = Date.now();
     const projectRoot = this.resolveProjectRoot(input.project);
     const runId = input.runId ?? randomUUID();
@@ -708,6 +770,30 @@ export class FeiqueService {
       });
       this.metrics?.recordCodexTurn('success', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
 
+      // Direction 5: Record trust outcome
+      try {
+        const trustState = await this.trustStore.getOrCreate(input.projectAlias);
+        const updated = recordRunOutcome(trustState, true, DEFAULT_TRUST_POLICY);
+        await this.trustStore.update(input.projectAlias, updated);
+      } catch { /* trust tracking is best-effort */ }
+
+      // Direction 2: Auto-extract knowledge
+      if (this.config.service.memory_enabled && excerpt.length >= 100) {
+        try {
+          const insight = extractInsights(input.prompt, excerpt, input.projectAlias);
+          if (insight) {
+            await this.memoryStore.saveProjectMemory({
+              project_alias: insight.project_alias,
+              title: insight.title,
+              content: insight.content,
+              tags: insight.tags,
+              source: 'auto',
+              created_by: input.actorId,
+            });
+          }
+        } catch { /* auto-extraction is best-effort */ }
+      }
+
       await this.sendOrUpdateRunOutcome({
         input,
         runId,
@@ -760,6 +846,14 @@ export class FeiqueService {
         actor_id: input.actorId,
         error: message,
       });
+      // Direction 5: Record trust failure (only for actual failures, not cancellations)
+      if (!cancelled) {
+        try {
+          const trustState = await this.trustStore.getOrCreate(input.projectAlias);
+          const updated = recordRunOutcome(trustState, false, DEFAULT_TRUST_POLICY);
+          await this.trustStore.update(input.projectAlias, updated);
+        } catch { /* trust tracking is best-effort */ }
+      }
       if (cancelled) {
         this.logger.warn(
           {
@@ -972,6 +1066,44 @@ export class FeiqueService {
     }
     await this.sessionStore.selectProject(selectionKey, projectContext.projectAlias);
 
+    // Direction 1: Overlap detection — notify when another team member is on the same project
+    try {
+      const activeRuns = await this.runStateStore.listRuns();
+      const overlaps = detectOverlaps(
+        { actor_id: context.actor_id, project_alias: projectContext.projectAlias, project_root: projectContext.project.root },
+        activeRuns,
+      );
+      if (overlaps.length > 0) {
+        const alertText = formatOverlapAlerts(overlaps);
+        await this.sendTextReply(context.chat_id, alertText, context.message_id, context.text);
+      }
+    } catch { /* overlap detection is best-effort */ }
+
+    // Direction 5: Trust boundary check
+    try {
+      const trustState = await this.trustStore.getOrCreate(projectContext.projectAlias);
+      const operationClass = classifyOperation(prompt);
+      const decision = enforceTrustBoundary(trustState.current_level, operationClass);
+      if (!decision.allowed) {
+        await this.sendTextReply(
+          context.chat_id,
+          `🛡️ 信任边界拦截: ${decision.reason ?? '操作不被允许'}`,
+          context.message_id,
+          context.text,
+        );
+        return;
+      }
+      if (decision.requires_approval) {
+        await this.sendTextReply(
+          context.chat_id,
+          `⚠️ ${decision.reason ?? '此操作需要审批'}\n使用 /trust set execute 提升信任等级，或请管理员审批。`,
+          context.message_id,
+          context.text,
+        );
+        return;
+      }
+    } catch { /* trust enforcement is best-effort */ }
+
     const scheduled = await this.scheduleProjectExecution(
       projectContext,
       {
@@ -1161,6 +1293,323 @@ export class FeiqueService {
         return;
       }
     }
+  }
+
+  // ── Direction 1: Team Awareness ──
+
+  private async handleTeamCommand(context: IncomingMessageContext): Promise<void> {
+    const runs = await this.runStateStore.listRuns();
+    const activities = buildTeamActivityView(runs);
+    const text = formatTeamView(activities);
+    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+  }
+
+  // ── Direction 2: Knowledge Loop ──
+
+  private async handleLearnCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    value: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+    const input = buildLearnInput(value, projectContext.projectAlias, context.actor_id, context.chat_id);
+
+    await this.memoryStore.saveProjectMemory({
+      project_alias: input.project_alias,
+      title: input.title,
+      content: input.content,
+      tags: input.tags,
+      source: input.source,
+      created_by: context.actor_id,
+    });
+
+    await this.auditLog.append({
+      type: 'collaboration.knowledge.learned',
+      project_alias: input.project_alias,
+      actor_id: context.actor_id,
+      title: input.title,
+    });
+
+    await this.sendTextReply(
+      context.chat_id,
+      `💡 团队知识已记录: "${input.title}"\n项目: ${input.project_alias}`,
+      context.message_id,
+      context.text,
+    );
+  }
+
+  private async handleRecallCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    query: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+    const memories = await this.memoryStore.searchMemories(
+      { scope: 'project', project_alias: projectContext.projectAlias },
+      query,
+      10,
+    );
+    const text = formatRecallResults(memories, query);
+    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+  }
+
+  // ── Direction 3: Handoff & Review ──
+
+  private async handleHandoffCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    summary?: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+    const conversation = await this.sessionStore.getConversation(projectContext.sessionKey);
+    const projectState = conversation?.projects[projectContext.projectAlias];
+
+    const record = createHandoff({
+      from_actor_id: context.actor_id ?? 'unknown',
+      from_actor_name: context.actor_name,
+      project_alias: projectContext.projectAlias,
+      conversation_key: projectContext.sessionKey,
+      thread_id: projectState?.active_thread_id ?? projectState?.thread_id,
+      summary: summary ?? '会话交接',
+      last_prompt: projectState?.last_prompt,
+      last_response_excerpt: projectState?.last_response_excerpt,
+    });
+
+    await this.handoffStore.addHandoff(record);
+
+    await this.auditLog.append({
+      type: 'collaboration.handoff.created',
+      handoff_id: record.id,
+      from_actor_id: record.from_actor_id,
+      project_alias: record.project_alias,
+    });
+
+    await this.sendTextReply(context.chat_id, formatHandoff(record), context.message_id, context.text);
+  }
+
+  private async handlePickupCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    id?: string,
+  ): Promise<void> {
+    let handoff = id
+      ? await this.handoffStore.updateHandoff(id, {})  // just to find it
+      : await this.handoffStore.getPendingHandoffForActor(context.actor_id ?? '', undefined);
+
+    if (id) {
+      handoff = await this.handoffStore.getPendingHandoff();
+      if (handoff && !handoff.id.startsWith(id)) {
+        handoff = null;
+      }
+    }
+
+    if (!handoff || handoff.status !== 'pending') {
+      await this.sendTextReply(context.chat_id, '没有找到待接手的交接任务。', context.message_id, context.text);
+      return;
+    }
+
+    const accepted = acceptHandoff(handoff, context.actor_id ?? 'unknown');
+    await this.handoffStore.updateHandoff(handoff.id, {
+      status: 'accepted',
+      accepted_at: accepted.accepted_at,
+      accepted_by: accepted.accepted_by,
+    });
+
+    // Adopt the session if there's a thread_id
+    if (handoff.thread_id) {
+      const projectContext = await this.resolveProjectContext(context, selectionKey);
+      await this.sessionStore.setActiveProjectSession(
+        projectContext.sessionKey,
+        handoff.project_alias,
+        handoff.thread_id,
+      );
+    }
+
+    await this.auditLog.append({
+      type: 'collaboration.handoff.accepted',
+      handoff_id: handoff.id,
+      accepted_by: context.actor_id,
+      project_alias: handoff.project_alias,
+    });
+
+    await this.sendTextReply(
+      context.chat_id,
+      `✅ 已接手 ${handoff.from_actor_name ?? handoff.from_actor_id} 的交接任务 [${handoff.project_alias}]\n摘要: ${handoff.summary}`,
+      context.message_id,
+      context.text,
+    );
+  }
+
+  private async handleReviewCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+    const runs = await this.runStateStore.listRuns();
+    const latestRun = runs.find(
+      (r) => r.project_alias === projectContext.projectAlias && (r.status === 'success' || r.status === 'failure'),
+    );
+
+    if (!latestRun) {
+      await this.sendTextReply(context.chat_id, '没有找到最近的运行结果可供评审。', context.message_id, context.text);
+      return;
+    }
+
+    const review = createReview({
+      run_id: latestRun.run_id,
+      project_alias: projectContext.projectAlias,
+      chat_id: context.chat_id,
+      actor_id: context.actor_id ?? 'unknown',
+      content_excerpt: latestRun.prompt_excerpt,
+    });
+
+    await this.handoffStore.addReview(review);
+
+    await this.auditLog.append({
+      type: 'collaboration.review.created',
+      review_id: review.id,
+      run_id: review.run_id,
+      project_alias: review.project_alias,
+    });
+
+    await this.sendTextReply(context.chat_id, formatReview(review), context.message_id, context.text);
+  }
+
+  private async handleApproveCommand(
+    context: IncomingMessageContext,
+    comment?: string,
+  ): Promise<void> {
+    const pending = await this.handoffStore.getPendingReview(context.chat_id);
+    if (!pending) {
+      await this.sendTextReply(context.chat_id, '当前没有待评审的内容。', context.message_id, context.text);
+      return;
+    }
+
+    const resolved = resolveReview(pending, 'approved', context.actor_id ?? 'unknown', comment);
+    await this.handoffStore.updateReview(pending.id, {
+      status: 'approved',
+      reviewer_id: resolved.reviewer_id,
+      review_comment: resolved.review_comment,
+      resolved_at: resolved.resolved_at,
+    });
+
+    await this.auditLog.append({
+      type: 'collaboration.review.approved',
+      review_id: pending.id,
+      reviewer_id: context.actor_id,
+    });
+
+    await this.sendTextReply(context.chat_id, formatReviewResult(resolved), context.message_id, context.text);
+  }
+
+  private async handleRejectCommand(
+    context: IncomingMessageContext,
+    reason?: string,
+  ): Promise<void> {
+    const pending = await this.handoffStore.getPendingReview(context.chat_id);
+    if (!pending) {
+      await this.sendTextReply(context.chat_id, '当前没有待评审的内容。', context.message_id, context.text);
+      return;
+    }
+
+    const resolved = resolveReview(pending, 'rejected', context.actor_id ?? 'unknown', reason);
+    await this.handoffStore.updateReview(pending.id, {
+      status: 'rejected',
+      reviewer_id: resolved.reviewer_id,
+      review_comment: resolved.review_comment,
+      resolved_at: resolved.resolved_at,
+    });
+
+    await this.auditLog.append({
+      type: 'collaboration.review.rejected',
+      review_id: pending.id,
+      reviewer_id: context.actor_id,
+      reason,
+    });
+
+    await this.sendTextReply(context.chat_id, formatReviewResult(resolved), context.message_id, context.text);
+  }
+
+  // ── Direction 4: Insights ──
+
+  private async handleInsightsCommand(context: IncomingMessageContext): Promise<void> {
+    const runs = await this.runStateStore.listRuns();
+    const auditEvents = await this.auditLog.tail(500);
+    const insights = analyzeTeamHealth(runs, auditEvents);
+    const text = formatInsightsReport(insights);
+    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+  }
+
+  // ── Direction 5: Trust ──
+
+  private async handleTrustCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    action?: 'set',
+    level?: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+
+    if (action === 'set' && level) {
+      const validLevels = ['observe', 'suggest', 'execute', 'autonomous'];
+      if (!validLevels.includes(level)) {
+        await this.sendTextReply(
+          context.chat_id,
+          `无效的信任等级。有效值: ${validLevels.join(', ')}`,
+          context.message_id,
+          context.text,
+        );
+        return;
+      }
+
+      const state = await this.trustStore.getOrCreate(projectContext.projectAlias);
+      state.current_level = level as TrustLevel;
+      state.last_evaluated_at = new Date().toISOString();
+      await this.trustStore.update(projectContext.projectAlias, state);
+
+      await this.auditLog.append({
+        type: 'collaboration.trust.set',
+        project_alias: projectContext.projectAlias,
+        actor_id: context.actor_id,
+        level,
+      });
+
+      await this.sendTextReply(
+        context.chat_id,
+        `🛡️ 项目 ${projectContext.projectAlias} 的信任等级已设置为: ${level}`,
+        context.message_id,
+        context.text,
+      );
+      return;
+    }
+
+    const state = await this.trustStore.getOrCreate(projectContext.projectAlias);
+    await this.sendTextReply(context.chat_id, formatTrustState(state), context.message_id, context.text);
+  }
+
+  // ── Direction 6: Timeline ──
+
+  private async handleTimelineCommand(
+    context: IncomingMessageContext,
+    selectionKey: string,
+    projectArg?: string,
+  ): Promise<void> {
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+    const projectAlias = projectArg ?? projectContext.projectAlias;
+
+    const runs = await this.runStateStore.listRuns();
+    const auditEvents = await this.auditLog.tail(200);
+
+    const memories = this.config.service.memory_enabled
+      ? await this.memoryStore.listRecentMemories(
+          { scope: 'project', project_alias: projectAlias },
+          20,
+        )
+      : [];
+
+    const timeline = buildProjectTimeline(runs, memories, auditEvents, projectAlias, 20);
+    const text = formatTimeline(timeline);
+    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
   }
 
   private async handleAdminCommand(
