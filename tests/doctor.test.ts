@@ -118,7 +118,7 @@ describe('doctor', () => {
       embedding: {
         provider: 'local' as const,
         ollama_base_url: 'http://127.0.0.1:11434',
-        ollama_model: 'qwen3-embedding:8b',
+        ollama_model: 'auto',
         ollama_timeout_ms: 30000,
       },
       projects: {

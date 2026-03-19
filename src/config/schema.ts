@@ -217,14 +217,14 @@ export const bridgeConfigSchema = z.object({
     .object({
       provider: embeddingProviderSchema.default('local'),
       ollama_base_url: z.string().default('http://127.0.0.1:11434'),
-      ollama_model: z.string().default('qwen3-embedding:8b'),
+      ollama_model: z.string().default('auto'),
       ollama_timeout_ms: z.number().int().positive().default(30000),
     })
     .optional()
     .default({
       provider: 'local',
       ollama_base_url: 'http://127.0.0.1:11434',
-      ollama_model: 'qwen3-embedding:8b',
+      ollama_model: 'auto',
       ollama_timeout_ms: 30000,
     }),
   feishu: z.object({
