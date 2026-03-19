@@ -203,7 +203,7 @@ async function readLayerIfExists(filePath: string, behavior: { resolveEnv?: bool
 
 function resolveLayerBaseDir(configPath: string): string {
   const configDir = path.dirname(configPath);
-  if (path.basename(configDir) === '.feishu-bridge') {
+  if (path.basename(configDir) === '.feishu-bridge' || path.basename(configDir) === '.codex-feishu') {
     return path.dirname(configDir);
   }
   return configDir;
