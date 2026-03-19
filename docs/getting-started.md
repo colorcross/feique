@@ -20,7 +20,7 @@
 直接从 npm 全局安装：
 
 ```bash
-npm install -g feishu-bridge
+npm install -g feishu-ai-bridge
 feishu-bridge init --mode global
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "feishu-bridge",
+  "name": "feishu-ai-bridge",
   "version": "0.1.17",
   "description": "Feishu Bridge for Codex CLI and Claude Code with session routing, multi-backend support, project-scoped config, and production-ready operations.",
   "homepage": "https://colorcross.github.io/feishu-bridge/",

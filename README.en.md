@@ -4,9 +4,9 @@
 
 **Route Feishu into Codex / Claude Code's control plane.**
 
-[![npm version](https://img.shields.io/npm/v/feishu-bridge.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/feishu-bridge)
+[![npm version](https://img.shields.io/npm/v/feishu-ai-bridge.svg?style=flat-square&color=5bb8b0)](https://www.npmjs.com/package/feishu-ai-bridge)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=d4845a)](LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/feishu-bridge.svg?style=flat-square)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/node/v/feishu-ai-bridge.svg?style=flat-square)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 [简体中文](README.md) | [Website](https://colorcross.github.io/feishu-bridge/en.html) | [Getting Started](docs/getting-started.md) | [Architecture](docs/architecture.md) | [FAQ](docs/faq.md)
@@ -40,7 +40,7 @@ It routes Feishu messages directly into resumable Codex CLI or Claude Code sessi
 ### 1. Installation
 
 ```bash
-npm install -g feishu-bridge
+npm install -g feishu-ai-bridge
 feishu-bridge init --mode global
 
 # Create a new project directory and bind it

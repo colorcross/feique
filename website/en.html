@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feishu Bridge — Route Feishu into Codex's control plane</title>
+    <title>Feishu Bridge — AI Coding Control Plane for Feishu</title>
     <meta
       name="description"
-      content="Route Feishu into a real Codex control plane. Sticky project routing, local session adoption, repo-safe serialization, and visible runtime state on one path."
+      content="Feishu Bridge routes Feishu messages into Codex CLI or Claude Code sessions. Multi-backend switching via /backend, project binding, session resumption, repo serialization, and access control."
     />
-    <meta property="og:title" content="Feishu Bridge — Route Feishu into Codex's control plane" />
+    <meta property="og:title" content="Feishu Bridge — AI Coding Control Plane for Feishu" />
     <meta
       property="og:description"
-      content="A project-aware Feishu bridge for Codex CLI with sticky chat routing, local session adoption, queued run visibility, and production-grade runtime control."
+      content="Feishu Bridge routes Feishu messages into Codex CLI or Claude Code sessions. Multi-backend switching, project binding, session resumption, repo serialization, and access control."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://colorcross.github.io/feishu-bridge/en.html" />
@@ -20,7 +20,7 @@
     <meta name="twitter:title" content="Feishu Bridge" />
     <meta
       name="twitter:description"
-      content="Sticky project routing, local session adoption, repo-root locking, and queued run visibility for Feishu-driven Codex workflows."
+      content="AI Coding Control Plane for Feishu. Routes messages into Codex CLI or Claude Code with multi-backend switching, project binding, session resumption, and repo serialization."
     />
     <meta name="twitter:image" content="https://colorcross.github.io/feishu-bridge/social-preview.png" />
     <meta name="theme-color" content="#0a0e17" />
@@ -67,7 +67,7 @@
           <a href="./index.html" class="nav-link">中文</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/docs/getting-started.md" class="nav-link">Docs</a>
           <a href="https://github.com/colorcross/feishu-bridge/releases" class="nav-link">Releases</a>
-          <a href="https://www.npmjs.com/package/feishu-bridge" class="nav-link">npm</a>
+          <a href="https://www.npmjs.com/package/feishu-ai-bridge" class="nav-link">npm</a>
           <a href="https://github.com/colorcross/feishu-bridge" class="nav-cta">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
@@ -85,9 +85,9 @@
         <div class="announcement fade-in">
           <span class="announcement-badge">
             <span class="pulse-dot" aria-hidden="true"></span>
-            v0.1.16 released
+            v0.1.17 released
           </span>
-          <span class="announcement-text">Project roots can now be created directly from the CLI, Feishu admin commands, and MCP, and spaced natural-language project switches are fixed.</span>
+          <span class="announcement-text">Claude Code backend + /backend session-level switching</span>
           <a href="https://github.com/colorcross/feishu-bridge/releases" class="announcement-link">View Release →</a>
         </div>
 
@@ -100,15 +100,14 @@
               <span class="eyebrow-sub">Project-aware control plane</span>
             </div>
             <h1 class="hero-title">
-              <span class="title-line">Route Feishu into</span>
-              <span class="title-line">Codex / Claude Code's</span>
-              <span class="title-line title-accent">control plane.</span>
+              <span class="title-line">AI Coding Control Plane</span>
+              <span class="title-line title-accent">for Feishu.</span>
             </h1>
             <p class="hero-desc">
-              Feishu Bridge sends Feishu messages into resumable Codex CLI or Claude Code sessions. The active backend can be switched at any time via <code>/backend</code>, or set as defaults in project or global config. Project binding sticks by <code>chat_id</code>, local sessions can be adopted, shared repos are serialized safely, queued runtime state stays visible inside Feishu, and final replies now land as cleaner single-result rich text or cards, paired with direct natural-language commands and MCP access for external tools.
+              Feishu Bridge routes Feishu messages into Codex CLI or Claude Code sessions. Project binding, session resumption, repo serialization, backend switching, access control — one control plane.
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-bridge">
+              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-ai-bridge">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 0v16h16V0H0zm14 14H2V2h12v12z"/><path d="M3 3h10v10H3z" opacity=".3"/></svg>
                 Install from npm
               </a>
@@ -116,14 +115,12 @@
               <a class="btn btn-ghost" href="https://github.com/colorcross/feishu-bridge">View source</a>
             </div>
             <div class="hero-tags">
-              <span class="tag">chat_id project binding</span>
-              <span class="tag">/session adopt</span>
-              <span class="tag">project.root lock</span>
-              <span class="tag">queued visibility</span>
-              <span class="tag">HTTP/SSE MCP</span>
+              <span class="tag">project binding</span>
+              <span class="tag">session resume</span>
+              <span class="tag">repo lock</span>
               <span class="tag">multi-backend</span>
-              <span class="tag">single-result reply cards</span>
-              <span class="tag">capability ACLs</span>
+              <span class="tag">MCP</span>
+              <span class="tag">access control</span>
             </div>
           </div>
 
@@ -136,7 +133,7 @@
                 <span class="demo-title">Install / First Run</span>
                 <span class="demo-badge">latest on npm</span>
               </div>
-              <pre class="demo-code"><code><span class="c-muted">$</span> npm install -g feishu-bridge
+              <pre class="demo-code"><code><span class="c-muted">$</span> npm install -g feishu-ai-bridge
 <span class="c-muted">$</span> feishu-bridge init --mode global
 <span class="c-muted">$</span> export FEISHU_APP_ID=<span class="c-amber">cli_xxx</span>
 <span class="c-muted">$</span> export FEISHU_APP_SECRET=<span class="c-amber">***</span>
@@ -168,7 +165,7 @@ another chat. Queued with 1 task ahead.
               </div>
               <div class="signal-item">
                 <span class="signal-label">Session Adoption</span>
-                <span class="signal-text">Adopt live Codex sessions from <code>~/.codex/sessions</code>.</span>
+                <span class="signal-text">Adopt live sessions from <code>~/.codex/sessions</code> or <code>~/.claude/sessions</code>.</span>
               </div>
               <div class="signal-item">
                 <span class="signal-label">MCP Surface</span>
@@ -189,7 +186,7 @@ another chat. Queued with 1 task ahead.
           <div class="metric-item">
             <span class="metric-label">Resume</span>
             <strong class="metric-title">Resume bridge or adopt local sessions</strong>
-            <p class="metric-desc">The bridge can continue its own sessions and take over native Codex CLI sessions from local state.</p>
+            <p class="metric-desc">The bridge can continue its own sessions and take over native Codex/Claude sessions from local state.</p>
           </div>
           <div class="metric-divider" aria-hidden="true"></div>
           <div class="metric-item">
@@ -215,7 +212,7 @@ another chat. Queued with 1 task ahead.
         <section class="section fade-in">
           <div class="section-head">
             <span class="section-label">How it works</span>
-            <h2 class="section-title">Before a Feishu message reaches Codex, it passes through project, session, and runtime control.</h2>
+            <h2 class="section-title">Before reaching the backend, messages pass through routing, session, and concurrency control.</h2>
           </div>
           <div class="flow-grid">
             <div class="flow-card">
@@ -443,7 +440,7 @@ another chat. Queued with 1 task ahead.
                 <span class="qs-card-sub">install and bootstrap</span>
               </div>
               <pre class="qs-pre"><code><span class="c-muted"># Install</span>
-npm install -g feishu-bridge
+npm install -g feishu-ai-bridge
 feishu-bridge init --mode global
 
 <span class="c-muted"># Check</span>
@@ -487,7 +484,7 @@ Show detailed status</code></pre>
               <ul class="qs-list">
                 <li>
                   <strong>npm</strong>
-                  <span>Install directly with <code>npm install -g feishu-bridge</code></span>
+                  <span>Install directly with <code>npm install -g feishu-ai-bridge</code></span>
                 </li>
                 <li>
                   <strong>GitHub Release</strong>
@@ -562,10 +559,10 @@ Show detailed status</code></pre>
         <section class="cta fade-in">
           <div class="cta-content">
             <span class="section-label">Start where people already work</span>
-            <h2 class="cta-title">Turn Feishu into a manageable, resumable, production-ready entry point for Codex work.</h2>
-            <p class="cta-desc">Built for teams that need project routing, session continuity, concurrency guardrails, and visible runtime state.</p>
+            <h2 class="cta-title">One control plane for the full Feishu-to-AI-coding link.</h2>
+            <p class="cta-desc">For teams that need project routing, session continuity, concurrency protection, and multi-backend support.</p>
             <div class="cta-actions">
-              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-bridge">Install from npm</a>
+              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-ai-bridge">Install from npm</a>
               <a class="btn btn-secondary" href="https://github.com/colorcross/feishu-bridge/releases">View Releases</a>
               <a class="btn btn-ghost" href="https://github.com/colorcross/feishu-bridge/tree/main/docs">Open Docs</a>
             </div>
@@ -580,11 +577,11 @@ Show detailed status</code></pre>
       <footer class="site-footer">
         <div class="footer-brand">
           <span class="brand-name">Feishu Bridge</span>
-          <span class="footer-tagline">Route Feishu into a manageable Codex execution control plane.</span>
+          <span class="footer-tagline">AI Coding Control Plane for Feishu.</span>
         </div>
         <nav class="footer-nav" aria-label="Footer navigation">
           <a href="https://github.com/colorcross/feishu-bridge">GitHub</a>
-          <a href="https://www.npmjs.com/package/feishu-bridge">npm</a>
+          <a href="https://www.npmjs.com/package/feishu-ai-bridge">npm</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/SUPPORT.md">Support</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/CONTRIBUTING.md">Contributing</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/SECURITY.md">Security</a>

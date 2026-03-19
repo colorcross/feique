@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feishu Bridge — 把飞书接到 Codex 的控制面</title>
+    <title>Feishu Bridge — 飞书 AI 编程控制面</title>
     <meta
       name="description"
-      content="Feishu Bridge 让飞书消息直接进入可续接的 Codex CLI 会话。项目可路由，会话可接管，仓库并发有边界，运行状态在飞书里直接可见。"
+      content="Feishu Bridge 把飞书消息路由到 Codex CLI 或 Claude Code 会话。支持多后端切换（/backend）、项目绑定、会话续接、仓库串行和权限分层。"
     />
-    <meta property="og:title" content="Feishu Bridge — 把飞书接到 Codex 的控制面" />
+    <meta property="og:title" content="Feishu Bridge — 飞书 AI 编程控制面" />
     <meta
       property="og:description"
-      content="A project-aware Feishu bridge for Codex CLI with sticky chat routing, local session adoption, queued run visibility, and production-grade runtime control."
+      content="Feishu Bridge 把飞书消息路由到 Codex CLI 或 Claude Code 会话。支持多后端切换、项目绑定、会话续接、仓库串行和权限分层。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://colorcross.github.io/feishu-bridge/" />
@@ -20,7 +20,7 @@
     <meta name="twitter:title" content="Feishu Bridge" />
     <meta
       name="twitter:description"
-      content="把飞书接到 Codex 的控制面。项目可路由，会话可接管，仓库并发有边界，运行状态在飞书里可见。"
+      content="飞书 AI 编程控制面。把飞书消息路由到 Codex CLI 或 Claude Code，支持多后端切换、项目绑定、会话续接和仓库串行。"
     />
     <meta name="twitter:image" content="https://colorcross.github.io/feishu-bridge/social-preview.png" />
     <meta name="theme-color" content="#0a0e17" />
@@ -67,7 +67,7 @@
           <a href="./en.html" class="nav-link">EN</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/docs/getting-started.md" class="nav-link">文档</a>
           <a href="https://github.com/colorcross/feishu-bridge/releases" class="nav-link">Releases</a>
-          <a href="https://www.npmjs.com/package/feishu-bridge" class="nav-link">npm</a>
+          <a href="https://www.npmjs.com/package/feishu-ai-bridge" class="nav-link">npm</a>
           <a href="https://github.com/colorcross/feishu-bridge" class="nav-cta">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
@@ -85,9 +85,9 @@
         <div class="announcement fade-in">
           <span class="announcement-badge">
             <span class="pulse-dot" aria-hidden="true"></span>
-            v0.1.16 已发布
+            v0.1.17 已发布
           </span>
-          <span class="announcement-text">现在支持从 CLI、飞书管理员命令和 MCP 直接创建项目，并修复了带空格的自然语言切项目解析</span>
+          <span class="announcement-text">新增 Claude Code 后端 + /backend 命令会话级切换</span>
           <a href="https://github.com/colorcross/feishu-bridge/releases" class="announcement-link">查看 Release →</a>
         </div>
 
@@ -100,15 +100,14 @@
               <span class="eyebrow-sub">Project-aware control plane</span>
             </div>
             <h1 class="hero-title">
-              <span class="title-line">把飞书接到</span>
-              <span class="title-line">Codex / Claude Code</span>
-              <span class="title-line title-accent">的控制面。</span>
+              <span class="title-line">飞书 AI 编程</span>
+              <span class="title-line title-accent">控制面。</span>
             </h1>
             <p class="hero-desc">
-              Feishu Bridge 让飞书消息直接进入可续接的 Codex CLI 或 Claude Code 会话。后端可通过 <code>/backend</code> 命令随时切换，也可在项目或全局配置中设定默认值；项目绑定按 <code>chat_id</code> 持久化，本地会话可接管，同仓库自动串行，排队和运行态在飞书里直接可见；最终回复支持富文本和卡片，并默认收口成更干净的单条结果消息，再配合自然语言命令和 MCP 接口完成真实协作。
+              Feishu Bridge 把飞书消息路由到 Codex CLI 或 Claude Code 会话。项目绑定、会话续接、仓库串行、后端切换、权限分层——一个控制面管完。
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-bridge">
+              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-ai-bridge">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 0v16h16V0H0zm14 14H2V2h12v12z"/><path d="M3 3h10v10H3z" opacity=".3"/></svg>
                 npm 安装
               </a>
@@ -116,14 +115,12 @@
               <a class="btn btn-ghost" href="https://github.com/colorcross/feishu-bridge">查看源码</a>
             </div>
             <div class="hero-tags">
-              <span class="tag">chat_id 项目绑定</span>
-              <span class="tag">/session adopt</span>
-              <span class="tag">project.root 锁</span>
-              <span class="tag">queued 可见状态</span>
-              <span class="tag">HTTP/SSE MCP</span>
-              <span class="tag">多后端支持</span>
-              <span class="tag">单条最终结果卡片</span>
-              <span class="tag">能力级权限</span>
+              <span class="tag">项目绑定</span>
+              <span class="tag">会话续接</span>
+              <span class="tag">仓库串行</span>
+              <span class="tag">多后端</span>
+              <span class="tag">MCP</span>
+              <span class="tag">权限分层</span>
             </div>
           </div>
 
@@ -136,7 +133,7 @@
                 <span class="demo-title">Install / First Run</span>
                 <span class="demo-badge">latest on npm</span>
               </div>
-              <pre class="demo-code"><code><span class="c-muted">$</span> npm install -g feishu-bridge
+              <pre class="demo-code"><code><span class="c-muted">$</span> npm install -g feishu-ai-bridge
 <span class="c-muted">$</span> feishu-bridge init --mode global
 <span class="c-muted">$</span> export FEISHU_APP_ID=<span class="c-amber">cli_xxx</span>
 <span class="c-muted">$</span> export FEISHU_APP_SECRET=<span class="c-amber">***</span>
@@ -168,7 +165,7 @@
               </div>
               <div class="signal-item">
                 <span class="signal-label">Session Adoption</span>
-                <span class="signal-text">直接接管 <code>~/.codex/sessions</code> 里的本地会话。</span>
+                <span class="signal-text">直接接管 <code>~/.codex/sessions</code> 或 <code>~/.claude/sessions</code> 里的本地会话。</span>
               </div>
               <div class="signal-item">
                 <span class="signal-label">MCP Surface</span>
@@ -189,7 +186,7 @@
           <div class="metric-item">
             <span class="metric-label">Resume</span>
             <strong class="metric-title">既能 resume，也能 adopt</strong>
-            <p class="metric-desc">桥接器自己的 session 与本机 Codex 原生 session 能接到同一条链路里。</p>
+            <p class="metric-desc">桥接器自己的 session 与本机 Codex/Claude 原生 session 能接到同一条链路里。</p>
           </div>
           <div class="metric-divider" aria-hidden="true"></div>
           <div class="metric-item">
@@ -215,7 +212,7 @@
         <section class="section fade-in">
           <div class="section-head">
             <span class="section-label">How it works</span>
-            <h2 class="section-title">飞书消息进入 Codex 之前，会先经过项目、会话和运行控制。</h2>
+            <h2 class="section-title">消息进入后端之前，先经过路由、会话和并发控制。</h2>
           </div>
           <div class="flow-grid">
             <div class="flow-card">
@@ -443,7 +440,7 @@
                 <span class="qs-card-sub">install and bootstrap</span>
               </div>
               <pre class="qs-pre"><code><span class="c-muted"># 安装</span>
-npm install -g feishu-bridge
+npm install -g feishu-ai-bridge
 feishu-bridge init --mode global
 
 <span class="c-muted"># 检查</span>
@@ -487,7 +484,7 @@ feishu-bridge mcp</code></pre>
               <ul class="qs-list">
                 <li>
                   <strong>npm</strong>
-                  <span>直接 <code>npm install -g feishu-bridge</code></span>
+                  <span>直接 <code>npm install -g feishu-ai-bridge</code></span>
                 </li>
                 <li>
                   <strong>GitHub Release</strong>
@@ -644,10 +641,10 @@ session_scope = <span class="c-amber">"chat"</span></code></pre>
         <section class="cta fade-in">
           <div class="cta-content">
             <span class="section-label">Start where people already work</span>
-            <h2 class="cta-title">把飞书接成一个可管理、可续接、可落地的 Codex 工作入口。</h2>
-            <p class="cta-desc">适合需要项目路由、会话续接、并发保护和运行状态可见性的真实团队工作流。</p>
+            <h2 class="cta-title">一个控制面，管好飞书到 AI 编程工具的全部链路。</h2>
+            <p class="cta-desc">适合需要项目路由、会话续接、并发保护和多后端支持的团队工作流。</p>
             <div class="cta-actions">
-              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-bridge">npm 安装</a>
+              <a class="btn btn-primary" href="https://www.npmjs.com/package/feishu-ai-bridge">npm 安装</a>
               <a class="btn btn-secondary" href="https://github.com/colorcross/feishu-bridge/releases">查看 Release</a>
               <a class="btn btn-ghost" href="https://github.com/colorcross/feishu-bridge/tree/main/docs">打开 Docs</a>
             </div>
@@ -662,11 +659,11 @@ session_scope = <span class="c-amber">"chat"</span></code></pre>
       <footer class="site-footer">
         <div class="footer-brand">
           <span class="brand-name">Feishu Bridge</span>
-          <span class="footer-tagline">让沟通入口直接连到可管理的 Codex 执行控制面。</span>
+          <span class="footer-tagline">飞书 AI 编程控制面。</span>
         </div>
         <nav class="footer-nav" aria-label="页脚导航">
           <a href="https://github.com/colorcross/feishu-bridge">GitHub</a>
-          <a href="https://www.npmjs.com/package/feishu-bridge">npm</a>
+          <a href="https://www.npmjs.com/package/feishu-ai-bridge">npm</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/SUPPORT.md">Support</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/CONTRIBUTING.md">Contributing</a>
           <a href="https://github.com/colorcross/feishu-bridge/blob/main/SECURITY.md">Security</a>
