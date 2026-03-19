@@ -256,7 +256,7 @@ export class ClaudeBackend implements Backend {
   }
 
   private buildArgs(options: BackendRunOptions & { projectConfig?: ClaudeProjectConfig }): string[] {
-    const args: string[] = ['-p'];
+    const args: string[] = ['-p', '--verbose'];
     args.push('--output-format', 'stream-json');
 
     const permissionMode = options.projectConfig?.permissionMode ?? this.config.defaultPermissionMode;

@@ -75,7 +75,7 @@ vi.mock('node:child_process', () => ({
 // ---------------------------------------------------------------------------
 
 describe('ClaudeBackend args building', () => {
-  it('builds basic args: -p --output-format stream-json --permission-mode auto <prompt>', async () => {
+  it('builds basic args: -p --verbose --output-format stream-json --permission-mode auto <prompt>', async () => {
     spawnCalls.length = 0;
     const backend = new ClaudeBackend(baseConfig());
 
@@ -88,7 +88,7 @@ describe('ClaudeBackend args building', () => {
     expect(spawnCalls).toHaveLength(1);
     const { args } = spawnCalls[0]!;
     expect(args).toEqual([
-      '-p',
+      '-p', '--verbose',
       '--output-format', 'stream-json',
       '--permission-mode', 'auto',
       'hello world',
