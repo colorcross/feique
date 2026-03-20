@@ -56,8 +56,22 @@ export class CodexBackend implements Backend {
       onSpawn: options.onSpawn,
     });
 
+    // The thread_id from Codex JSON events is the OpenAI API thread ID,
+    // which differs from the Codex session file ID (payload.id).
+    // We need the session file ID for `codex exec resume` to work.
+    // Scan the session index to find the real session ID.
+    let sessionId = result.sessionId;
+    if (sessionId && options.workdir) {
+      try {
+        const latest = await this.sessionIndex.findLatestProjectSession(options.workdir);
+        if (latest) {
+          sessionId = latest.threadId;
+        }
+      } catch { /* best-effort: fall back to JSON event thread_id */ }
+    }
+
     return {
-      sessionId: result.sessionId,
+      sessionId,
       finalMessage: result.finalMessage,
       stderr: result.stderr,
       exitCode: result.exitCode,
