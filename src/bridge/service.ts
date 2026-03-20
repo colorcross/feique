@@ -120,9 +120,15 @@ export class FeiqueService {
     private readonly trustStore: TrustStore = new TrustStore(config.storage.dir),
   ) {
     if (config.service.intent_classifier_enabled) {
+      const defaultBackend = config.backend?.default ?? 'codex';
+      const isClaude = defaultBackend === 'claude';
       this.intentClassifier = new IntentClassifier({
         enabled: true,
-        ollama_base_url: config.embedding.ollama_base_url,
+        backend: defaultBackend,
+        backend_bin: isClaude ? (config.claude?.bin ?? 'claude') : config.codex.bin,
+        shell: isClaude ? config.claude?.shell : config.codex.shell,
+        pre_exec: isClaude ? config.claude?.pre_exec : config.codex.pre_exec,
+        ollama_base_url: config.embedding.provider === 'ollama' ? config.embedding.ollama_base_url : undefined,
         timeout_ms: config.service.intent_classifier_timeout_ms,
         min_confidence: config.service.intent_classifier_min_confidence,
       });
