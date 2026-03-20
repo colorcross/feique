@@ -560,6 +560,16 @@ function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
   if (/^(?:现在|当前)?用的(?:什么|哪个)(?:后端|backend)?$/.test(normalized)) {
     return { kind: 'backend' };
   }
+  // Pattern 6: English — "switch to claude" / "use codex" / "change to claude"
+  const backendEnglish = normalized.match(/^(?:switch(?:\s+backend)?(?:\s+to)?|use|change(?:\s+backend)?(?:\s+to)?|backend)\s+(codex|claude)$/i);
+  if (backendEnglish) {
+    return { kind: 'backend', name: backendEnglish[1]!.toLowerCase() };
+  }
+  // Pattern 7: English name-first — "claude please" / "codex go"
+  const backendEnglishNameFirst = normalized.match(/^(codex|claude)\s+(?:please|go|now|backend)$/i);
+  if (backendEnglishNameFirst) {
+    return { kind: 'backend', name: backendEnglishNameFirst[1]!.toLowerCase() };
+  }
 
   const projectWithPromptMatch = normalized.match(
     /^(?:把)?(?:当前)?(?:项目)?(?:切换到|切到|切换至|转到|进入|使用|换到|改到)\s*([^，,。；;：:\s]+?)\s*(?:项目)?(?:[，,。；;：:]\s*|\s*(?:然后|并且|并|再)\s*)(.+)$/,
