@@ -103,6 +103,8 @@ export class FeiqueService {
   private maintenanceTimer?: NodeJS.Timeout;
   private digestTimer?: NodeJS.Timeout;
   private readonly intentClassifier?: IntentClassifier;
+  /** Tracks the current incoming message for @mention in replies. */
+  private currentMessageContext?: IncomingMessageContext;
 
   public constructor(
     private readonly config: BridgeConfig,
@@ -319,6 +321,7 @@ export class FeiqueService {
   }
 
   public async handleIncomingMessage(context: IncomingMessageContext): Promise<void> {
+    this.currentMessageContext = context;
     if (!context.text.trim() && context.attachments.length === 0) {
       return;
     }
@@ -4267,9 +4270,19 @@ export class FeiqueService {
     replyToMessageId?: string,
     originalText?: string,
     presentation?: { status?: string; phase?: string; projectAlias?: string },
+    mentionActor?: { chat_type?: string; actor_id?: string; actor_name?: string },
   ): Promise<FeishuMessageResponse> {
+    // In group chats, prepend @mention to the reply so the requester gets notified
+    const actor = mentionActor ?? this.currentMessageContext;
+    let mentionPrefix = '';
+    if (actor?.chat_type === 'group' && actor.actor_id) {
+      const displayName = actor.actor_name || actor.actor_id;
+      mentionPrefix = `<at user_id="${actor.actor_id}">${displayName}</at>\n`;
+    }
+    const bodyWithMention = mentionPrefix ? mentionPrefix + body : body;
+
     const title = this.buildReplyTitle(this.sanitizeUserVisibleReply(body));
-    const formattedBody = this.sanitizeUserVisibleReply(this.formatQuotedReply(body, originalText));
+    const formattedBody = this.sanitizeUserVisibleReply(this.formatQuotedReply(bodyWithMention, originalText));
     if (this.config.service.reply_mode === 'card') {
       const card = buildMessageCard({
         title,
@@ -4311,7 +4324,7 @@ export class FeiqueService {
       return response;
     }
     if (this.config.service.reply_quote_user_message && replyToMessageId) {
-      const response = await this.feishuClient.sendText(chatId, this.sanitizeUserVisibleReply(body), { replyToMessageId });
+      const response = await this.feishuClient.sendText(chatId, this.sanitizeUserVisibleReply(bodyWithMention), { replyToMessageId });
       await this.auditLog.append({
         type: 'message.replied',
         chat_id: chatId,
