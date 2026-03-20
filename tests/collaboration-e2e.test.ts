@@ -125,7 +125,7 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
       memory_pin_age_basis: 'updated_at',
       team_digest_enabled: false,
       team_digest_interval_hours: 24,
-      team_digest_chat_ids: [],
+      team_digest_chat_ids: [], intent_classifier_enabled: false, intent_classifier_model: 'qwen3.5:latest', intent_classifier_timeout_ms: 5000, intent_classifier_min_confidence: 0.8,
     },
     codex: {
       bin: 'codex',

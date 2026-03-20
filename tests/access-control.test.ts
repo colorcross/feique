@@ -120,7 +120,7 @@ function buildConfig(overrides: Partial<BridgeConfig> = {}): BridgeConfig {
       audit_cleanup_interval_seconds: 3600,
       memory_max_pinned_per_scope: 5,
       memory_pin_overflow_strategy: 'age-out',
-      memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [],
+      memory_pin_age_basis: 'updated_at', team_digest_enabled: false, team_digest_interval_hours: 24, team_digest_chat_ids: [], intent_classifier_enabled: false, intent_classifier_model: 'qwen3.5:latest', intent_classifier_timeout_ms: 5000, intent_classifier_min_confidence: 0.8,
       ...(overrides.service ?? {}),
     },
     codex: {

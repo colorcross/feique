@@ -51,6 +51,7 @@ import { classifyOperation, enforceTrustBoundary, recordRunOutcome, formatTrustS
 import { buildProjectTimeline, buildOnboardingContext, formatTimeline, isNewActor } from '../collaboration/timeline.js';
 import { HandoffStore } from '../state/handoff-store.js';
 import { TrustStore } from '../state/trust-store.js';
+import { IntentClassifier } from './intent-classifier.js';
 import { buildTeamDigest, formatTeamDigest, createDigestPeriod } from '../collaboration/digest.js';
 import { estimateCost } from '../observability/cost.js';
 
@@ -99,6 +100,7 @@ export class FeiqueService {
   private readonly chatRateWindows = new Map<string, number[]>();
   private maintenanceTimer?: NodeJS.Timeout;
   private digestTimer?: NodeJS.Timeout;
+  private readonly intentClassifier?: IntentClassifier;
 
   public constructor(
     private readonly config: BridgeConfig,
@@ -116,7 +118,17 @@ export class FeiqueService {
     private readonly configHistoryStore: ConfigHistoryStore = new ConfigHistoryStore(config.storage.dir),
     private readonly handoffStore: HandoffStore = new HandoffStore(config.storage.dir),
     private readonly trustStore: TrustStore = new TrustStore(config.storage.dir),
-  ) {}
+  ) {
+    if (config.service.intent_classifier_enabled) {
+      this.intentClassifier = new IntentClassifier({
+        enabled: true,
+        ollama_base_url: config.embedding.ollama_base_url,
+        model: config.service.intent_classifier_model,
+        timeout_ms: config.service.intent_classifier_timeout_ms,
+        min_confidence: config.service.intent_classifier_min_confidence,
+      });
+    }
+  }
 
   public async recoverRuntimeState(): Promise<RunState[]> {
     const recovered = await this.runStateStore.recoverOrphanedRuns();
@@ -318,7 +330,19 @@ export class FeiqueService {
 
     const normalizedText = normalizeIncomingText(context.text);
     const selectionKey = await this.getSelectionConversationKey(context);
-    const command = parseBridgeCommand(context.text);
+    let command = parseBridgeCommand(context.text);
+
+    // AI intent fallback: when regex doesn't match, try AI classification
+    if (command.kind === 'prompt' && this.intentClassifier) {
+      try {
+        const aiCommand = await this.intentClassifier.classify(normalizedText);
+        if (aiCommand) {
+          command = aiCommand;
+          this.logger.info({ originalText: normalizedText, aiCommand: command.kind }, 'AI intent classifier matched');
+        }
+      } catch { /* AI classification is best-effort */ }
+    }
+
     this.metrics?.recordIncomingMessage(context.chat_type, command.kind);
     await this.auditLog.append({
       type: 'message.received',

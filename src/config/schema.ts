@@ -85,6 +85,10 @@ export const bridgeConfigSchema = z.object({
       team_digest_enabled: z.boolean().default(false),
       team_digest_interval_hours: z.number().int().positive().default(24),
       team_digest_chat_ids: z.array(z.string()).default([]),
+      intent_classifier_enabled: z.boolean().default(false),
+      intent_classifier_model: z.string().default('qwen3.5:latest'),
+      intent_classifier_timeout_ms: z.number().int().positive().default(5000),
+      intent_classifier_min_confidence: z.number().min(0).max(1).default(0.8),
     })
     .default({
       name: 'feique',
@@ -120,6 +124,10 @@ export const bridgeConfigSchema = z.object({
       team_digest_enabled: false,
       team_digest_interval_hours: 24,
       team_digest_chat_ids: [],
+      intent_classifier_enabled: false,
+      intent_classifier_model: 'qwen3.5:latest',
+      intent_classifier_timeout_ms: 5000,
+      intent_classifier_min_confidence: 0.8,
     }),
   codex: z
     .object({
