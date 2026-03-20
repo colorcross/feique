@@ -607,7 +607,28 @@ export class FeiqueService {
         tenant_key: input.tenantKey,
         scope: input.project.session_scope,
       }));
-    const currentSession = conversation.projects[input.projectAlias];
+    let currentSession = conversation.projects[input.projectAlias];
+
+    // Auto-adopt latest local session when no active session exists
+    if (!currentSession?.thread_id && this.config.service.project_switch_auto_adopt_latest) {
+      try {
+        const sessionBackendOverrideForAdopt = await this.sessionStore.getProjectBackend(input.sessionKey, input.projectAlias);
+        const backendForAdopt = this.resolveBackendByName(input.projectAlias, sessionBackendOverrideForAdopt);
+        const latestLocal = await backendForAdopt.findLatestSession(input.project.root);
+        if (latestLocal) {
+          await this.sessionStore.upsertProjectSession(input.sessionKey, input.projectAlias, {
+            thread_id: latestLocal.sessionId,
+          });
+          const refreshed = await this.sessionStore.getConversation(input.sessionKey);
+          currentSession = refreshed?.projects[input.projectAlias];
+          this.logger.info(
+            { projectAlias: input.projectAlias, sessionId: latestLocal.sessionId, backend: latestLocal.backend },
+            'Auto-adopted latest local session for prompt execution',
+          );
+        }
+      } catch { /* auto-adopt is best-effort */ }
+    }
+
     if (this.config.service.memory_enabled) {
       await this.memoryStore.cleanupExpiredMemories();
     }
