@@ -536,6 +536,31 @@ function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
     return { kind: 'digest' };
   }
 
+  // ── /backend: 后端切换（必须在项目切换之前，否则 "切到 claude" 会被误判为切换项目）──
+  // Pattern 1: 带"后端"关键词 — "切换后端到 claude" / "后端换成 codex"
+  const backendWithKeyword = normalized.match(/^(?:切换(?:到|为)?|使用|换(?:到|成)?|改(?:到|为|用)?)?\s*(?:后端(?:(?:切换)?(?:到|为)?)?)\s*(codex|claude)\s*(?:后端)?$/i);
+  if (backendWithKeyword) {
+    return { kind: 'backend', name: backendWithKeyword[1]!.toLowerCase() };
+  }
+  // Pattern 2: 不带"后端"— "用 claude" / "换成 codex" / "切到 claude" / "改用 codex"
+  const backendDirect = normalized.match(/^(?:用|使用|换(?:成|到)?|切(?:换?(?:到|成)?)?|改(?:用|成|到)?|转(?:到|成)?)\s*(codex|claude)(?:\s*(?:吧|看看|试试|帮我|来))?$/i);
+  if (backendDirect) {
+    return { kind: 'backend', name: backendDirect[1]!.toLowerCase() };
+  }
+  // Pattern 3: "codex/claude + 动词" — "claude 来" / "codex 帮我"
+  const backendNameFirst = normalized.match(/^(codex|claude)\s*(?:来(?:吧)?|帮我|试试|处理|干活|上)$/i);
+  if (backendNameFirst) {
+    return { kind: 'backend', name: backendNameFirst[1]!.toLowerCase() };
+  }
+  // Pattern 4: 查看当前后端
+  if (/^(?:(?:查看|看|查)(?:一下|下)?|看看)?(?:当前)?(?:后端|backend)(?:是什么|是哪个)?$/.test(normalized)) {
+    return { kind: 'backend' };
+  }
+  // Pattern 5: "用的什么/哪个" — "现在用的什么" / "当前用的哪个"
+  if (/^(?:现在|当前)?用的(?:什么|哪个)(?:后端|backend)?$/.test(normalized)) {
+    return { kind: 'backend' };
+  }
+
   const projectWithPromptMatch = normalized.match(
     /^(?:把)?(?:当前)?(?:项目)?(?:切换到|切到|切换至|转到|进入|使用|换到|改到)\s*([^，,。；;：:\s]+?)\s*(?:项目)?(?:[，,。；;：:]\s*|\s*(?:然后|并且|并|再)\s*)(.+)$/,
   );
@@ -563,13 +588,6 @@ function parseNaturalLanguageCommand(input: string): BridgeCommand | null {
     return { kind: 'session', action: 'adopt', target: adoptSessionMatch[1] };
   }
 
-  const backendMatch = normalized.match(/^(?:切换(?:到|为)?|使用|换(?:到|成)?|改(?:到|为)?)?\s*(?:后端(?:(?:切换)?(?:到|为)?)?)\s*(codex|claude)\s*(?:后端)?$/i);
-  if (backendMatch) {
-    return { kind: 'backend', name: backendMatch[1]!.toLowerCase() };
-  }
-  if (/^(?:(?:查看|看|查)(?:一下|下)?|看看)?(?:当前)?后端(?:是什么|是哪个)?$/.test(normalized)) {
-    return { kind: 'backend' };
-  }
 
   if (/^(管理员状态|查看管理员状态|看一下管理员状态)$/.test(normalized)) {
     return { kind: 'admin', resource: 'service', action: 'status' };

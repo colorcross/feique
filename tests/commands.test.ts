@@ -274,6 +274,59 @@ describe('bridge commands', () => {
       expect(parseBridgeCommand('查看当前后端')).toEqual({ kind: 'backend' });
     });
 
+    // ── 高命中率自然语言：不含"后端"关键词 ──
+    it('parses "用 claude"', () => {
+      expect(parseBridgeCommand('用 claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "用claude"', () => {
+      expect(parseBridgeCommand('用claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "换成 codex"', () => {
+      expect(parseBridgeCommand('换成 codex')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+    it('parses "切到 claude"', () => {
+      expect(parseBridgeCommand('切到 claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "改用 codex"', () => {
+      expect(parseBridgeCommand('改用 codex')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+    it('parses "使用 claude"', () => {
+      expect(parseBridgeCommand('使用 claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "切换 codex"', () => {
+      expect(parseBridgeCommand('切换 codex')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+    it('parses "换 claude"', () => {
+      expect(parseBridgeCommand('换 claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "转到 codex"', () => {
+      expect(parseBridgeCommand('转到 codex')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+    it('parses "claude 来"', () => {
+      expect(parseBridgeCommand('claude 来')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "codex 帮我"', () => {
+      expect(parseBridgeCommand('codex 帮我')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+    it('parses "claude 试试"', () => {
+      expect(parseBridgeCommand('claude 试试')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "用codex吧"', () => {
+      expect(parseBridgeCommand('用codex吧')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+    it('parses "切claude"', () => {
+      expect(parseBridgeCommand('切claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "现在用的什么"', () => {
+      expect(parseBridgeCommand('现在用的什么')).toEqual({ kind: 'backend' });
+    });
+    it('parses "帮我切到 claude" (with prefix strip)', () => {
+      expect(parseBridgeCommand('帮我切到 claude')).toEqual({ kind: 'backend', name: 'claude' });
+    });
+    it('parses "请用 codex" (with prefix strip)', () => {
+      expect(parseBridgeCommand('请用 codex')).toEqual({ kind: 'backend', name: 'codex' });
+    });
+
     it('isReadOnlyCommand returns true for /backend (no name)', () => {
       const cmd = parseBridgeCommand('/backend');
       expect(isReadOnlyCommand(cmd)).toBe(true);
