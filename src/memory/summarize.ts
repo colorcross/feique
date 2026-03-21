@@ -22,19 +22,28 @@ export function summarizeThreadTurn(input: ThreadSummaryInput): ThreadSummaryDra
   const decisions = extractNumberedItems(afterMarker(input.responseExcerpt, ['决定', '变更', '已完成', '已实现'])).slice(0, 4);
   const openTasks = extractNumberedItems(afterMarker(input.responseExcerpt, ['建议下一步', '下一步', 'todo', '后续'])).slice(0, 4);
 
-  const sections = [
-    `最近目标: ${compactLine(input.prompt, 220)}`,
-    `最近结果: ${compactLine(input.responseExcerpt, 420)}`,
+  const currentTurn = [
+    `目标: ${compactLine(input.prompt, 220)}`,
+    `结果: ${compactLine(input.responseExcerpt, 420)}`,
     ...(files.length > 0 ? [`涉及文件: ${files.join(', ')}`] : []),
     ...(decisions.length > 0 ? [`关键结论: ${decisions.join('；')}`] : []),
     ...(openTasks.length > 0 ? [`待办: ${openTasks.join('；')}`] : []),
-  ];
+  ].join('\n');
 
-  const previous = input.previousSummary ? compactLine(input.previousSummary, 360) : undefined;
-  const summary = truncateToBudget(
-    [previous ? `上次摘要: ${previous}` : undefined, ...sections].filter(Boolean).join('\n'),
-    input.maxChars,
-  );
+  // Build rolling summary: keep only the core of previous context,
+  // strip any nested "历史上下文:" prefixes to prevent recursive growth.
+  let summary: string;
+  if (input.previousSummary) {
+    const cleanPrevious = stripNestedPrefixes(input.previousSummary);
+    // Allocate: 40% to history, 60% to current turn
+    const historyBudget = Math.floor(input.maxChars * 0.4);
+    const currentBudget = input.maxChars - historyBudget - 20; // 20 for separator
+    const compactHistory = truncateToBudget(cleanPrevious, historyBudget);
+    const compactCurrent = truncateToBudget(currentTurn, currentBudget);
+    summary = `历史上下文: ${compactHistory}\n---\n${compactCurrent}`;
+  } else {
+    summary = truncateToBudget(currentTurn, input.maxChars);
+  }
 
   return {
     summary,
@@ -42,6 +51,26 @@ export function summarizeThreadTurn(input: ThreadSummaryInput): ThreadSummaryDra
     openTasks,
     decisions,
   };
+}
+
+/**
+ * Strip recursive prefixes like "上次摘要: 上次摘要: ..." or "历史上下文: 历史上下文: ..."
+ * to prevent summary from growing with nested layers.
+ */
+function stripNestedPrefixes(text: string): string {
+  let result = text;
+  const prefixes = ['上次摘要:', '上次摘要：', '历史上下文:', '历史上下文：'];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const prefix of prefixes) {
+      if (result.startsWith(prefix)) {
+        result = result.slice(prefix.length).trimStart();
+        changed = true;
+      }
+    }
+  }
+  return result;
 }
 
 function extractFilePaths(input: string): string[] {

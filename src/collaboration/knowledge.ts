@@ -29,17 +29,35 @@ export function extractInsights(
   const combined = `${prompt}\n${response}`;
   const lower = combined.toLowerCase();
 
-  // Look for strong signal patterns
+  // Look for signal patterns — both explicit labels and natural phrasing
   const patterns: Array<{ regex: RegExp; tag: string }> = [
+    // Explicit labels (original)
     { regex: /root\s*cause[：:]\s*(.+)/i, tag: 'root-cause' },
     { regex: /根因[：:]\s*(.+)/i, tag: 'root-cause' },
     { regex: /solution[：:]\s*(.+)/i, tag: 'solution' },
     { regex: /解决方案[：:]\s*(.+)/i, tag: 'solution' },
-    { regex: /(?:found|discovered)\s+that\s+(.+)/i, tag: 'finding' },
-    { regex: /发现[：:]\s*(.+)/i, tag: 'finding' },
     { regex: /workaround[：:]\s*(.+)/i, tag: 'workaround' },
-    { regex: /(?:关键|重要)(?:发现|结论)[：:]\s*(.+)/i, tag: 'conclusion' },
     { regex: /breaking\s*change[：:]\s*(.+)/i, tag: 'breaking-change' },
+
+    // Natural language — English
+    { regex: /(?:the\s+)?(?:root\s+)?(?:cause|issue|problem)\s+(?:was|is|turned out to be)\s+(.+)/i, tag: 'root-cause' },
+    { regex: /(?:fixed|resolved|solved)\s+(?:by|this by|it by)\s+(.+)/i, tag: 'solution' },
+    { regex: /(?:the\s+)?(?:fix|solution|resolution)\s+(?:was|is)\s+(?:to\s+)?(.+)/i, tag: 'solution' },
+    { regex: /(?:found|discovered|noticed|identified)\s+(?:that\s+)?(.{20,})/i, tag: 'finding' },
+    { regex: /(?:the\s+)?(?:key\s+)?(?:takeaway|insight|lesson|learning)\s+(?:is|was|here)\s*[：:]\s*(.+)/i, tag: 'conclusion' },
+    { regex: /(?:important|note|warning|caution)[：:]\s*(.+)/i, tag: 'warning' },
+    { regex: /(?:turns out|it appears|apparently)\s+(.{20,})/i, tag: 'finding' },
+
+    // Natural language — Chinese
+    { regex: /(?:原因|问题)(?:是|在于|出在)\s*(.+)/i, tag: 'root-cause' },
+    { regex: /(?:通过|已经?|已通过)\s*(.{10,}?)(?:解决|修复|修好|搞定)/i, tag: 'solution' },
+    { regex: /(?:需要|应该|建议)\s*(.{10,}?)(?:才能|就可以|来解决|来修复)/i, tag: 'solution' },
+    { regex: /发现\s*(.{10,})/i, tag: 'finding' },
+    { regex: /(?:关键|重要|核心)(?:发现|结论|原因|问题)[：:]\s*(.+)/i, tag: 'conclusion' },
+    { regex: /(?:注意|警告|小心)[：:]\s*(.+)/i, tag: 'warning' },
+    { regex: /(?:之所以|导致).{5,}?(?:是因为|原因是)\s*(.+)/i, tag: 'root-cause' },
+    { regex: /(?:改成|改为|换成|调整为)\s*(.{10,}?)(?:就好了|就可以了|解决了|正常了)/i, tag: 'solution' },
+    { regex: /(?:踩坑|坑|教训)[：:]\s*(.+)/i, tag: 'pitfall' },
   ];
 
   const findings: Array<{ text: string; tag: string }> = [];

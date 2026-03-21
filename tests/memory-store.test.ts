@@ -98,7 +98,7 @@ describe('memory store', () => {
       conversation_key: 'tenant/chat',
       project_alias: 'default',
       thread_id: 'thread-1',
-      summary: '最近目标: 修复构建问题\n最近结果: 已补测试并通过。',
+      summary: '目标: 修复构建问题\n结果: 已补测试并通过。',
       recent_prompt: '修复构建问题',
       recent_response_excerpt: '已补测试并通过。',
       files_touched: ['src/app.ts'],
@@ -108,7 +108,7 @@ describe('memory store', () => {
     expect(threadSummary.files_touched).toContain('src/app.ts');
 
     const loaded = await store.getThreadSummary('tenant/chat', 'default', 'thread-1');
-    expect(loaded?.summary).toContain('最近目标');
+    expect(loaded?.summary).toContain('目标');
     expect(loaded?.open_tasks).toContain('补一次真实联调');
   });
 });

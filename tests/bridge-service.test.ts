@@ -1056,7 +1056,7 @@ describe('bridge service', () => {
 
     const secondPrompt = runCodexTurnMock.mock.calls[1]?.[0]?.prompt as string;
     expect(secondPrompt).toContain('Thread summary:');
-    expect(secondPrompt).toContain('最近目标');
+    expect(secondPrompt).toContain('目标');
     expect(secondPrompt).toContain('Project memory');
     expect(secondPrompt).toContain('发布前必须先 pnpm build');
   });
