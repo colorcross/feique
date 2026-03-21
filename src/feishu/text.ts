@@ -55,11 +55,30 @@ export function splitTextForFeishu(input: string, maxChars: number = DEFAULT_FEI
   return chunks;
 }
 
+/**
+ * Smart truncation for Feishu cards. Keeps the beginning AND the last
+ * paragraph (conclusions/status often appear at the end).
+ */
 export function truncateForFeishuCard(input: string, maxChars: number = DEFAULT_FEISHU_CARD_SUMMARY_LIMIT): string {
   const text = input.trim();
   if (text.length <= maxChars) {
     return text;
   }
+
+  // Try to keep the last meaningful paragraph
+  const paragraphs = text.split(/\n{2,}/);
+  if (paragraphs.length >= 3) {
+    const lastParagraph = paragraphs[paragraphs.length - 1]!.trim();
+    // Reserve space for the ending: "...\n\n[last paragraph]"
+    const endingLen = lastParagraph.length + 6; // "\n\n…\n\n" + content
+    if (endingLen < maxChars * 0.4 && lastParagraph.length > 10) {
+      const headBudget = maxChars - endingLen;
+      const head = text.slice(0, Math.max(0, headBudget - 1)).trimEnd();
+      return `${head}…\n\n${lastParagraph}`;
+    }
+  }
+
+  // Fallback: simple truncation
   return `${text.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 

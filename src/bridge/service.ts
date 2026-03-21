@@ -3802,9 +3802,20 @@ export class FeiqueService {
     const lines = [
       reason === 'project' ? `当前项目 ${projectAlias} 已有任务在处理，已进入排队。` : '当前仓库正在被其他会话操作，已进入排队。',
       frontCount > 0 ? `前方还有 ${frontCount} 个任务。` : null,
-      blockingRun ? `阻塞状态: ${blockingRun.status}` : null,
-      reason === 'project-root' && blockingRun?.project_alias && blockingRun.project_alias !== projectAlias ? `占用项目: ${blockingRun.project_alias}` : null,
     ];
+    if (blockingRun) {
+      const actorName = blockingRun.actor_name ?? blockingRun.actor_id ?? '其他成员';
+      lines.push(`当前执行: ${actorName}`);
+      const elapsedMs = Date.now() - new Date(blockingRun.started_at).getTime();
+      const elapsedMin = Math.round(elapsedMs / 60_000);
+      if (elapsedMin > 0) {
+        lines.push(`已运行: ${elapsedMin} 分钟`);
+      }
+      if (reason === 'project-root' && blockingRun.project_alias && blockingRun.project_alias !== projectAlias) {
+        lines.push(`占用项目: ${blockingRun.project_alias}`);
+      }
+    }
+    lines.push(`排队时间: ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`);
     return lines.filter(Boolean).join('\n');
   }
 
