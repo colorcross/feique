@@ -847,7 +847,23 @@ export class FeiqueService {
           'Codex run completed without a displayable final message',
         );
       }
-      const cardSummary = truncateForFeishuCard(excerpt || `${backendLabel} 已完成，但没有返回可显示文本。`);
+      // Extract and send any [SEND_FILE:path] markers before text reply
+      const { cleanText: excerptWithoutFiles, filePaths } = extractFileMarkers(excerpt);
+      if (filePaths.length > 0) {
+        for (const filePath of filePaths) {
+          try {
+            await this.feishuClient.sendFile(input.chatId, filePath);
+            this.logger.info({ chatId: input.chatId, filePath }, 'Sent file to Feishu');
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.warn({ chatId: input.chatId, filePath, error: msg }, 'Failed to send file to Feishu');
+            // Notify user about the failure inline
+            excerptWithoutFiles === excerpt || await this.feishuClient.sendText(input.chatId, `⚠️ 文件发送失败: ${filePath}\n${msg}`);
+          }
+        }
+      }
+      const finalExcerpt = excerptWithoutFiles.trim() || excerpt;
+      const cardSummary = truncateForFeishuCard(finalExcerpt || `${backendLabel} 已完成，但没有返回可显示文本。`);
       await this.auditLog.append({
         type: 'codex.run.completed',
         run_id: runId,
@@ -977,7 +993,7 @@ export class FeiqueService {
         input,
         runId,
         title: `${backendLabel} 已完成`,
-        body: excerpt || `${backendLabel} 已完成，但没有返回可显示文本。`,
+        body: finalExcerpt || `${backendLabel} 已完成，但没有返回可显示文本。`,
         runStatus: 'success',
         runPhase: '已完成',
         cardSummary,
@@ -3467,7 +3483,7 @@ export class FeiqueService {
     const prefixParts = [
       'You are replying through Feique, a team AI collaboration hub connected via Feishu.',
       'Your response text will be forwarded to the user via Feishu. Do NOT directly call Feishu APIs, send Feishu messages, or use any Feishu MCP tools — the bridge handles all Feishu communication. Sending messages directly would cause duplicates.',
-      'You CANNOT send files, images, or attachments to Feishu. If the user asks you to send/share a file, explain this limitation and suggest alternatives: provide the file content as text, give the file path for them to access locally, or paste key excerpts in your response.',
+      'To send a file to the user via Feishu, include [SEND_FILE:/absolute/path/to/file] in your response. The bridge will upload and deliver it. You can include multiple [SEND_FILE:...] markers. The markers will be stripped from the text shown to the user. Example: "Here is the build log:\n[SEND_FILE:/project/build.log]"',
       'Keep the final response concise and action-oriented.',
       'When files change, summarize key paths and verification.',
       'Do not expose session IDs, run IDs, chat IDs, conversation keys, secrets, raw logs, or absolute local filesystem paths to Feishu users unless they explicitly ask for them.',
@@ -4797,6 +4813,26 @@ function buildCardDedupeKey(context: IncomingCardActionContext, action: string):
     return null;
   }
   return ['card', context.tenant_key ?? 'tenant', context.chat_id ?? 'chat', context.actor_id ?? 'actor', context.open_message_id, action].join('::');
+}
+
+/**
+ * Extract [SEND_FILE:/path/to/file] markers from AI response text.
+ * Returns cleaned text (markers removed) and list of file paths.
+ */
+function extractFileMarkers(text: string): { cleanText: string; filePaths: string[] } {
+  const FILE_MARKER_RE = /\[SEND_FILE:([^\]]+)\]/g;
+  const filePaths: string[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = FILE_MARKER_RE.exec(text)) !== null) {
+    const filePath = match[1]?.trim();
+    if (filePath) {
+      filePaths.push(filePath);
+    }
+  }
+
+  const cleanText = text.replace(FILE_MARKER_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+  return { cleanText, filePaths };
 }
 
 function truncateExcerpt(text: string, limit: number = 160): string {

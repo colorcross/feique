@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import * as lark from '@larksuiteoapi/node-sdk';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -94,6 +96,53 @@ export class FeishuClient {
     return this.sendMessage('chat_id', chatId, 'post', JSON.stringify(post), options);
   }
 
+  /**
+   * Upload a local file to Feishu and send it as a file message.
+   * Supports any file type. Images sent as image messages, others as file messages.
+   */
+  public async sendFile(chatId: string, filePath: string, options: FeishuSendOptions = {}): Promise<FeishuMessageResponse> {
+    const absolutePath = path.resolve(filePath);
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(`文件不存在: ${absolutePath}`);
+    }
+
+    const stat = fs.statSync(absolutePath);
+    if (stat.size > 30 * 1024 * 1024) {
+      throw new Error(`文件过大 (${Math.round(stat.size / 1024 / 1024)}MB)，飞书限制 30MB`);
+    }
+
+    const fileName = path.basename(absolutePath);
+    const isImage = /\.(png|jpg|jpeg|gif|bmp|webp)$/i.test(fileName);
+
+    if (this.config.dry_run) {
+      this.logger.info({ chatId, filePath: absolutePath, fileName, isImage }, 'Skipped Feishu file send (dry_run)');
+      return { message_id: `dry-run-file-${Date.now()}` };
+    }
+
+    const sdkClient = this.createSdkClient?.();
+    if (!sdkClient) {
+      throw new Error('飞书 SDK 客户端不可用，无法上传文件');
+    }
+
+    if (isImage) {
+      // Upload image → get image_key → send image message
+      const uploadRes = await sdkClient.im.image.create({
+        data: { image_type: 'message', image: fs.createReadStream(absolutePath) },
+      }) as unknown as { data?: { image_key?: string } };
+      const imageKey = uploadRes?.data?.image_key;
+      if (!imageKey) throw new Error('飞书图片上传成功但未返回 image_key');
+      return this.sendMessage('chat_id', chatId, 'image', JSON.stringify({ image_key: imageKey }), options);
+    }
+
+    // Upload file → get file_key → send file message
+    const uploadRes = await sdkClient.im.file.create({
+      data: { file_type: 'stream', file_name: fileName, file: fs.createReadStream(absolutePath) },
+    }) as unknown as { data?: { file_key?: string } };
+    const fileKey = uploadRes?.data?.file_key;
+    if (!fileKey) throw new Error('飞书文件上传成功但未返回 file_key');
+    return this.sendMessage('chat_id', chatId, 'file', JSON.stringify({ file_key: fileKey }), options);
+  }
+
   public async updateText(messageId: string, text: string): Promise<FeishuMessageResponse> {
     return this.updateMessage(messageId, 'text', JSON.stringify({ text }));
   }
@@ -153,7 +202,7 @@ export class FeishuClient {
   private async sendMessage(
     receiveIdType: FeishuReceiveIdType,
     receiveId: string,
-    msgType: 'text' | 'interactive' | 'post',
+    msgType: 'text' | 'interactive' | 'post' | 'image' | 'file',
     content: string,
     options: FeishuSendOptions = {},
   ): Promise<FeishuMessageResponse> {

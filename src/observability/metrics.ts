@@ -169,7 +169,7 @@ export class MetricsRegistry implements MetricsSink {
     }
   }
 
-  public recordOutboundMessage(msgType: 'text' | 'interactive' | 'post', status: 'success' | 'failure'): void {
+  public recordOutboundMessage(msgType: string, status: 'success' | 'failure'): void {
     this.incrementCounter('feique_outbound_messages_total', { msg_type: msgType, status });
     const timestampMetric =
       status === 'success'
