@@ -1,4 +1,4 @@
-# 飞鹊 (Feique) v1.1.0
+# 飞鹊 (Feique) v1.3.0
 
 <div align="center">
 
@@ -42,6 +42,10 @@
 | **上下文连续性 (Context Continuity)** | `/timeline` 项目时间线，新人自动获得历史上下文。 |
 | **团队日报 (Team Digest)** | `/digest` 定时推送团队 AI 协作日报。 |
 | **Web 仪表板 (Dashboard)** | `GET /dashboard` 嵌入式 Web UI，可视化查看运行态和团队状态。 |
+| **项目级定制 (Per-project Customization)** | 每个项目可独立配置 AI 模型版本、沙箱策略、MCP 工具服务器和技能包，并支持三层人格设定（全局 → 项目 → 后端指令）。 |
+| **飞书文件发送 (File Sending)** | AI 可通过 `[SEND_FILE:path]` 标记或直接调 API 发送文件/图片到飞书对话。 |
+| **主动告警 (Proactive Alerts)** | 连续失败、重试循环、成本阈值、长时间运行自动推送飞书告警。 |
+| **知识缺口检测 (Knowledge Gaps)** | `/gaps` 命令分析团队反复提问但尚未沉淀的知识盲区。 |
 | **成本追踪 (Cost Tracking)** | token 用量按项目 / 用户统计，预估成本。 |
 
 ## 🚀 快速开始

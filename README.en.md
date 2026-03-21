@@ -1,4 +1,4 @@
-# 飞鹊 (Feique) v1.1.0
+# 飞鹊 (Feique) v1.3.0
 
 <div align="center">
 
@@ -42,6 +42,10 @@ Currently supports the full AI coding workflow: project bindings persist by `cha
 | **Context Continuity** | `/timeline` shows the project timeline; newcomers automatically receive historical context. |
 | **Team Digest** | `/digest` sends scheduled team AI collaboration daily digests. |
 | **Dashboard** | `GET /dashboard` provides an embedded Web UI for runtime and team status visualization. |
+| **Per-project Customization** | Each project can independently configure AI model version, sandbox policy, MCP tool servers, and skill packs, with three-layer persona settings (global → project → backend instructions). |
+| **File Sending** | AI can send files and images to Feishu conversations via `[SEND_FILE:path]` markers or direct API calls. |
+| **Proactive Alerts** | Consecutive failures, retry loops, cost thresholds, and long-running tasks automatically push alerts to Feishu. |
+| **Knowledge Gaps** | `/gaps` analyzes frequently asked but undocumented knowledge gaps across the team. |
 | **Cost Tracking** | Token usage stats broken down by project and user, with estimated costs. |
 
 ## 🚀 Quick Start

@@ -59,3 +59,16 @@ session_scope = "chat-user"
 mention_required = true
 
 description = "Primary repository"
+
+# ── 人格设定 (三层: 全局 → 项目 → 后端指令) ──
+# [service]
+# persona = "你是团队的 AI 协作伙伴「小鹊」。回复简洁直接，用中文。"
+
+# ── 项目级定制示例 ──
+# [projects.example]
+# root = "/srv/repos/example"
+# persona = "项目专属角色设定"
+# codex_model = "o3"
+# claude_model = "claude-sonnet-4-5-20250514"
+# skills = ["flutter", "dart"]
+# mcp_servers = []

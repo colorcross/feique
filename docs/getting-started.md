@@ -27,7 +27,7 @@ feique init --mode global
 如果你想固定到某个 release 产物，也可以直接安装 GitHub Release 的 tgz：
 
 ```bash
-npm install -g https://github.com/colorcross/feique/releases/download/v1.1.0/feique-1.1.0.tgz
+npm install -g https://github.com/colorcross/feique/releases/download/v1.3.0/feique-1.3.0.tgz
 feique init --mode global
 ```
 
@@ -468,6 +468,35 @@ temp_dir = "/srv/feique/tmp/repo-a"
 [embedding]
 provider = "ollama"
 ollama_model = "auto"  # 自动探测本地最优模型
+```
+
+## 人格设定与项目级定制
+
+飞鹊支持三层人格设定，让 AI 在不同场景下呈现不同的角色和风格：
+
+```toml
+# 全局人格：所有项目的默认角色
+[service]
+persona = "你是团队的 AI 协作伙伴「小鹊」。回复简洁直接，用中文。"
+
+# 项目级人格：覆盖全局设定
+[projects.frontend]
+root = "/srv/repos/frontend"
+persona = "你是前端技术专家，熟悉 React 和 TypeScript。"
+
+# 后端指令（codex.bridge_instructions / claude.append_system_prompt）
+# 作为最内层补充，叠加在 persona 之上
+```
+
+每个项目还可以独立配置模型版本、技能包和 MCP 工具服务器：
+
+```toml
+[projects.backend-api]
+root = "/srv/repos/backend"
+codex_model = "o3"
+claude_model = "claude-sonnet-4-5-20250514"
+skills = ["python", "fastapi"]
+mcp_servers = []
 ```
 
 ## 常见联调问题
