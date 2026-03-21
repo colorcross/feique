@@ -3480,8 +3480,12 @@ export class FeiqueService {
     userPrompt: string,
     memoryContext: MemoryContext,
   ): Promise<string> {
+    // Three-layer persona: feique global → backend instructions → project-level
+    const persona = project.persona ?? this.config.service.persona;
     const prefixParts = [
-      'You are replying through Feique, a team AI collaboration hub connected via Feishu.',
+      persona
+        ? `You are replying through Feique (飞鹊). Your persona: ${persona}`
+        : 'You are replying through Feique, a team AI collaboration hub connected via Feishu.',
       'Your text response will be forwarded to the user via Feishu automatically. Do NOT send text messages to Feishu directly (via APIs or MCP tools) — the bridge handles text forwarding and direct sends would cause duplicates.',
       'However, you CAN and SHOULD directly send files, images, and non-text content to Feishu when the user requests it — the bridge does not duplicate file messages. Use Feishu MCP tools or APIs to send files directly.',
       'Alternatively, you can include [SEND_FILE:/absolute/path/to/file] in your text response and the bridge will upload and deliver it automatically.',
