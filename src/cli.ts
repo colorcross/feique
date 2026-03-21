@@ -239,6 +239,9 @@ const serveCommand = program
     const recoveredRuns = await service.recoverRuntimeState();
     await service.runMaintenanceCycle();
     service.startMaintenanceLoop();
+    if (mutableConfigPath) {
+      service.startConfigWatcher(mutableConfigPath);
+    }
     const dashboardRunStateStore = new RunStateStore(config.storage.dir);
     const dashboardTrustStore = new TrustStore(config.storage.dir);
     const dashboardHandoffStore = new HandoffStore(config.storage.dir);

@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { watch as watchFile, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { BridgeConfig, ProjectConfig, SessionScope } from '../config/schema.js';
@@ -103,12 +104,13 @@ export class FeiqueService {
   private readonly chatRateWindows = new Map<string, number[]>();
   private maintenanceTimer?: NodeJS.Timeout;
   private digestTimer?: NodeJS.Timeout;
+  private configWatcher?: FSWatcher;
   private readonly intentClassifier?: IntentClassifier;
   /** Tracks the current incoming message for @mention in replies. */
   private currentMessageContext?: IncomingMessageContext;
 
   public constructor(
-    private readonly config: BridgeConfig,
+    private config: BridgeConfig,
     private readonly feishuClient: FeishuClient,
     private readonly sessionStore: SessionStore,
     private readonly auditLog: AuditLog,
@@ -155,6 +157,52 @@ export class FeiqueService {
     return recovered;
   }
 
+  /**
+   * Reload config from disk without restarting the service.
+   * Called automatically when config file changes, or manually via admin command.
+   */
+  public async reloadConfig(configPath: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { config } = await loadBridgeConfigFile(configPath);
+      this.config = config;
+      this.logger.info({ configPath }, 'Config reloaded');
+      return { ok: true };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error({ configPath, error: msg }, 'Config reload failed');
+      return { ok: false, error: msg };
+    }
+  }
+
+  /**
+   * Watch config file for changes and auto-reload.
+   */
+  public startConfigWatcher(configPath: string): void {
+    if (this.configWatcher) return;
+    try {
+      let debounce: NodeJS.Timeout | undefined;
+      this.configWatcher = watchFile(configPath, () => {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(async () => {
+          const result = await this.reloadConfig(configPath);
+          if (result.ok) {
+            this.logger.info('Config auto-reloaded after file change');
+          }
+        }, 500); // debounce 500ms to avoid multiple triggers
+        debounce.unref?.();
+      });
+      this.configWatcher.unref?.();
+      this.logger.info({ configPath }, 'Config file watcher started');
+    } catch (error) {
+      this.logger.warn({ error, configPath }, 'Failed to start config file watcher');
+    }
+  }
+
+  public stopConfigWatcher(): void {
+    this.configWatcher?.close();
+    this.configWatcher = undefined;
+  }
+
   public startMaintenanceLoop(): void {
     if (this.maintenanceTimer) {
       return;
@@ -184,6 +232,7 @@ export class FeiqueService {
       clearInterval(this.digestTimer);
       this.digestTimer = undefined;
     }
+    this.stopConfigWatcher();
   }
 
   public startDigestLoop(): void {
