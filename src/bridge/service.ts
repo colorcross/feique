@@ -87,6 +87,7 @@ import {
   resolveRunLifecycleReplyMode,
   buildRunLifecycleCard,
 } from './reply-builders.js';
+import { executePrompt as executePromptImpl } from './run-pipeline.js';
 import {
   recoverRuntimeState as recoverRuntimeStateImpl,
   reloadConfig as reloadConfigImpl,
@@ -132,7 +133,7 @@ import { checkRunAlerts, checkLongRunningAlerts, formatAlert, type AlertRules, D
 import { detectKnowledgeGaps, formatKnowledgeGaps } from '../collaboration/knowledge-gaps.js';
 import { estimateCost } from '../observability/cost.js';
 
-interface ActiveRunHandle {
+export interface ActiveRunHandle {
   runId: string;
   controller: AbortController;
   pid?: number;
@@ -161,8 +162,8 @@ interface RunLifecycleReplyDraft {
 export class FeiqueService {
   public readonly queue = new TaskQueue();
   public readonly projectRootQueue = new TaskQueue();
-  private readonly activeRuns = new Map<string, ActiveRunHandle>();
-  private readonly runReplyTargets = new Map<string, RunReplyTarget>();
+  public readonly activeRuns = new Map<string, ActiveRunHandle>();
+  public readonly runReplyTargets = new Map<string, RunReplyTarget>();
   private readonly chatRateWindows = new Map<string, number[]>();
   /** Dedupe admin notifications for backend failover: one alert per (from→to) direction per process lifetime. */
   private readonly failoverNotified = new Set<string>();
@@ -185,7 +186,7 @@ export class FeiqueService {
     private readonly idempotencyStore: IdempotencyStore = new IdempotencyStore(config.storage.dir),
     public readonly runStateStore: RunStateStore = new RunStateStore(config.storage.dir),
     public readonly memoryStore: MemoryStore = new MemoryStore(config.storage.dir),
-    private readonly codexSessionIndex: CodexSessionIndex = new CodexSessionIndex(),
+    public readonly codexSessionIndex: CodexSessionIndex = new CodexSessionIndex(),
     public readonly runtimeControl?: RuntimeControl,
     public readonly adminAuditLog: AuditLog = new AuditLog(config.storage.dir, 'admin-audit.jsonl'),
     public readonly configHistoryStore: ConfigHistoryStore = new ConfigHistoryStore(config.storage.dir),
@@ -637,462 +638,7 @@ export class FeiqueService {
     queueKey: string;
     replyToMessageId?: string;
   }): Promise<void> {
-    const conversation =
-      (await this.sessionStore.getConversation(input.sessionKey)) ??
-      (await this.sessionStore.ensureConversation(input.sessionKey, {
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        tenant_key: input.tenantKey,
-        scope: input.project.session_scope,
-      }));
-    let currentSession = conversation.projects[input.projectAlias];
-
-    // Auto-adopt latest local session when no active session exists
-    if (!currentSession?.thread_id && this.config.service.project_switch_auto_adopt_latest) {
-      try {
-        const sessionBackendOverrideForAdopt = await this.sessionStore.getProjectBackend(input.sessionKey, input.projectAlias);
-        const backendForAdopt = this.resolveBackendByName(input.projectAlias, sessionBackendOverrideForAdopt);
-        const latestLocal = await backendForAdopt.findLatestSession(input.project.root);
-        if (latestLocal) {
-          await this.sessionStore.upsertProjectSession(input.sessionKey, input.projectAlias, {
-            thread_id: latestLocal.sessionId,
-          });
-          const refreshed = await this.sessionStore.getConversation(input.sessionKey);
-          currentSession = refreshed?.projects[input.projectAlias];
-          this.logger.info(
-            { projectAlias: input.projectAlias, sessionId: latestLocal.sessionId, backend: latestLocal.backend },
-            'Auto-adopted latest local session for prompt execution',
-          );
-        }
-      } catch { /* auto-adopt is best-effort */ }
-    }
-
-    if (this.config.service.memory_enabled) {
-      await this.memoryStore.cleanupExpiredMemories();
-    }
-    const memoryContext = this.config.service.memory_enabled
-      ? await retrieveMemoryContext(this.memoryStore, {
-          conversationKey: input.sessionKey,
-          projectAlias: input.projectAlias,
-          threadId: currentSession?.thread_id,
-          query: input.prompt,
-          searchLimit: this.config.service.memory_search_limit,
-          groupChatId: input.incomingMessage.chat_type === 'group' ? input.incomingMessage.chat_id : undefined,
-          includeGroupMemories: this.config.service.memory_group_enabled && input.incomingMessage.chat_type === 'group',
-        })
-      : { pinnedMemories: [], relevantMemories: [], pinnedGroupMemories: [], relevantGroupMemories: [] };
-    // Direction 6: Inject onboarding context for new actors
-    let onboardingPrefix = '';
-    if (input.actorId && this.config.service.memory_enabled) {
-      try {
-        const allRuns = await this.runStateStore.listRuns();
-        if (isNewActor(input.actorId, allRuns, input.projectAlias)) {
-          const memories = await this.memoryStore.listRecentMemories(
-            { scope: 'project', project_alias: input.projectAlias },
-            10,
-          );
-          const timeline = buildProjectTimeline(allRuns, memories, [], input.projectAlias, 10);
-          onboardingPrefix = buildOnboardingContext(timeline, memories, input.projectAlias);
-        }
-      } catch { /* onboarding injection is best-effort */ }
-    }
-    const effectivePrompt = onboardingPrefix
-      ? `${onboardingPrefix}\n\n${input.prompt}`
-      : input.prompt;
-
-    const bridgePrompt = await this.buildBridgePrompt(input.projectAlias, input.project, input.incomingMessage, effectivePrompt, memoryContext);
-    const startedAt = Date.now();
-    const projectRoot = path.resolve(input.project.root);
-    const runId = input.runId ?? randomUUID();
-    let lastProgressUpdate = 0;
-    const activeRun: ActiveRunHandle = {
-      runId,
-      controller: new AbortController(),
-    };
-    this.activeRuns.set(input.queueKey, activeRun);
-    const sessionBackendOverride = await this.sessionStore.getProjectBackend(input.sessionKey, input.projectAlias);
-    const failoverResolution = await resolveProjectBackendWithFailover(
-      this.config,
-      input.projectAlias,
-      sessionBackendOverride,
-      this.codexSessionIndex,
-    );
-    const backend = failoverResolution.backend;
-    if (failoverResolution.failover) {
-      await this.handleBackendFailover(input.chatId, input.projectAlias, runId, failoverResolution.failover);
-    }
-    const backendLabel = backend.name === 'claude' ? 'Claude' : 'Codex';
-    await this.updateRunStartedReply(input.chatId, input.projectAlias, runId, backendLabel);
-
-    await this.runStateStore.upsertRun(runId, {
-      queue_key: input.queueKey,
-      conversation_key: input.sessionKey,
-      project_alias: input.projectAlias,
-      chat_id: input.chatId,
-      actor_id: input.actorId,
-      actor_name: input.incomingMessage.actor_name,
-      session_id: currentSession?.thread_id,
-      project_root: projectRoot,
-      prompt_excerpt: truncateExcerpt(input.prompt),
-      status: 'running',
-      status_detail: undefined,
-    });
-    await this.auditLog.append({
-      type: 'codex.run.started',
-      run_id: runId,
-      chat_id: input.chatId,
-      actor_id: input.actorId,
-      project_alias: input.projectAlias,
-      conversation_key: input.sessionKey,
-      session_id: currentSession?.thread_id,
-      prompt: input.prompt,
-    });
-    await this.appendProjectAuditEvent(input.projectAlias, input.project, {
-      type: 'codex.run.started',
-      run_id: runId,
-      chat_id: input.chatId,
-      actor_id: input.actorId,
-      session_id: currentSession?.thread_id,
-      project_root: projectRoot,
-    });
-    this.logger.info(
-      {
-        runId,
-        queueKey: input.queueKey,
-        sessionKey: input.sessionKey,
-        projectAlias: input.projectAlias,
-        projectRoot,
-        sessionId: currentSession?.thread_id,
-      },
-      'Codex run started',
-    );
-
-    this.metrics?.recordCodexTurnStarted(input.projectAlias, runId);
-
-    try {
-      const outputTokenLimit = backend.name === 'claude'
-        ? (this.config.claude?.output_token_limit ?? this.config.codex.output_token_limit)
-        : this.config.codex.output_token_limit;
-      const result = await backend.run({
-        workdir: input.project.root,
-        prompt: bridgePrompt,
-        sessionId: currentSession?.thread_id,
-        timeoutMs: backend.name === 'claude'
-          ? (this.config.claude?.run_timeout_ms ?? this.config.codex.run_timeout_ms)
-          : this.config.codex.run_timeout_ms,
-        signal: activeRun.controller.signal,
-        logger: this.logger,
-        projectConfig: backend.name === 'codex'
-          ? {
-              profile: input.project.profile ?? this.config.codex.default_profile,
-              model: input.project.codex_model,
-              sandbox: input.project.codex_sandbox ?? input.project.sandbox ?? this.config.codex.default_sandbox,
-              tempDir: this.resolveProjectTempDir(input.projectAlias, input.project),
-              cacheDir: this.resolveProjectCacheDir(input.projectAlias, input.project),
-            }
-          : {
-              permissionMode: input.project.claude_permission_mode ?? this.config.claude?.default_permission_mode,
-              model: input.project.claude_model ?? this.config.claude?.default_model,
-              maxBudgetUsd: input.project.claude_max_budget_usd ?? this.config.claude?.max_budget_usd,
-              allowedTools: input.project.claude_allowed_tools ?? this.config.claude?.allowed_tools,
-              systemPromptAppend: input.project.claude_system_prompt_append ?? this.config.claude?.system_prompt_append,
-            },
-        onSpawn: async (pid) => {
-          activeRun.pid = pid;
-          await this.runStateStore.upsertRun(runId, {
-            queue_key: input.queueKey,
-            conversation_key: input.sessionKey,
-            project_alias: input.projectAlias,
-            chat_id: input.chatId,
-            actor_id: input.actorId,
-            session_id: currentSession?.thread_id,
-            project_root: projectRoot,
-            prompt_excerpt: truncateExcerpt(input.prompt),
-            status: 'running',
-            status_detail: undefined,
-            pid,
-          });
-        },
-        onEvent: async (event: BackendEvent) => {
-          if (!this.config.service.emit_progress_updates) {
-            return;
-          }
-          const message = backend.summarizeEvent(event);
-          if (!message) {
-            return;
-          }
-          const now = Date.now();
-          if (now - lastProgressUpdate < this.config.service.progress_update_interval_ms) {
-            return;
-          }
-          lastProgressUpdate = now;
-          await this.updateRunProgressReply(input, runId, message, backendLabel);
-        },
-      });
-
-      const excerpt = result.finalMessage.slice(0, outputTokenLimit);
-      if (!excerpt.trim()) {
-        this.logger.warn(
-          {
-            runId,
-            queueKey: input.queueKey,
-            sessionKey: input.sessionKey,
-            projectAlias: input.projectAlias,
-            sessionId: result.sessionId,
-            durationMs: Date.now() - startedAt,
-          },
-          'Codex run completed without a displayable final message',
-        );
-      }
-      // Extract and send any [SEND_FILE:path] markers before text reply
-      const { cleanText: excerptWithoutFiles, filePaths } = extractFileMarkers(excerpt);
-      if (filePaths.length > 0) {
-        for (const filePath of filePaths) {
-          try {
-            await this.feishuClient.sendFile(input.chatId, filePath);
-            this.logger.info({ chatId: input.chatId, filePath }, 'Sent file to Feishu');
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            this.logger.warn({ chatId: input.chatId, filePath, error: msg }, 'Failed to send file to Feishu');
-            // Notify user about the failure inline
-            excerptWithoutFiles === excerpt || await this.feishuClient.sendText(input.chatId, `⚠️ 文件发送失败: ${filePath}\n${msg}`);
-          }
-        }
-      }
-      const finalExcerpt = excerptWithoutFiles.trim() || excerpt;
-      const cardSummary = truncateForFeishuCard(finalExcerpt || `${backendLabel} 已完成，但没有返回可显示文本。`);
-      await this.auditLog.append({
-        type: 'codex.run.completed',
-        run_id: runId,
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        project_alias: input.projectAlias,
-        conversation_key: input.sessionKey,
-        session_id: result.sessionId,
-        exit_code: result.exitCode,
-        duration_ms: Date.now() - startedAt,
-        backend: backend.name,
-      });
-      await this.appendProjectAuditEvent(input.projectAlias, input.project, {
-        type: 'codex.run.completed',
-        run_id: runId,
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        session_id: result.sessionId,
-        duration_ms: Date.now() - startedAt,
-        backend: backend.name,
-      });
-      this.logger.info(
-        {
-          runId,
-          queueKey: input.queueKey,
-          sessionKey: input.sessionKey,
-          projectAlias: input.projectAlias,
-          sessionId: result.sessionId,
-          exitCode: result.exitCode,
-          finalMessageChars: excerpt.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Codex run completed',
-      );
-      await this.sessionStore.upsertProjectSession(input.sessionKey, input.projectAlias, {
-        thread_id: result.sessionId,
-        last_prompt: input.prompt,
-        last_response_excerpt: excerpt,
-      });
-      if (this.config.service.memory_enabled && result.sessionId) {
-        const summaryDraft = summarizeThreadTurn({
-          previousSummary: memoryContext.threadSummary?.summary,
-          prompt: input.prompt,
-          responseExcerpt: excerpt,
-          maxChars: this.config.service.thread_summary_max_chars,
-        });
-        const threadSummary = await this.memoryStore.upsertThreadSummary({
-          conversation_key: input.sessionKey,
-          project_alias: input.projectAlias,
-          thread_id: result.sessionId,
-          summary: summaryDraft.summary,
-          recent_prompt: input.prompt,
-          recent_response_excerpt: excerpt,
-          files_touched: summaryDraft.filesTouched,
-          open_tasks: summaryDraft.openTasks,
-          decisions: summaryDraft.decisions,
-        });
-        await this.auditLog.append({
-          type: 'memory.thread_summary.updated',
-          run_id: runId,
-          project_alias: input.projectAlias,
-          conversation_key: input.sessionKey,
-          thread_id: result.sessionId,
-          files_touched: threadSummary.files_touched,
-        });
-      }
-      await this.enforceSessionHistoryLimit(input.sessionKey, input.projectAlias);
-      await this.runStateStore.upsertRun(runId, {
-        queue_key: input.queueKey,
-        conversation_key: input.sessionKey,
-        project_alias: input.projectAlias,
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        session_id: result.sessionId,
-        project_root: projectRoot,
-        pid: activeRun.pid,
-        prompt_excerpt: truncateExcerpt(input.prompt),
-        status: 'success',
-        status_detail: undefined,
-        input_tokens: result.inputTokens,
-        output_tokens: result.outputTokens,
-        estimated_cost_usd: estimateCost(result.inputTokens, result.outputTokens, backend.name),
-      });
-      this.metrics?.recordCodexTurn('success', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
-
-      // Record cost and token metrics
-      if (result.inputTokens || result.outputTokens) {
-        const costUsd = estimateCost(result.inputTokens, result.outputTokens, backend.name) ?? 0;
-        this.metrics?.recordCost(input.projectAlias, backend.name, costUsd);
-        this.metrics?.recordTokens(input.projectAlias, backend.name, result.inputTokens ?? 0, result.outputTokens ?? 0);
-      }
-
-      // Direction 5: Record trust outcome
-      try {
-        const trustState = await this.trustStore.getOrCreate(input.projectAlias);
-        const updated = recordRunOutcome(trustState, true, DEFAULT_TRUST_POLICY);
-        await this.trustStore.update(input.projectAlias, updated);
-        this.metrics?.recordTrustLevel(input.projectAlias, updated.current_level);
-      } catch { /* trust tracking is best-effort */ }
-
-      // Proactive alerts: check if this run triggers any team alerts
-      try {
-        const completedRunState = await this.runStateStore.getRun(runId);
-        if (completedRunState) {
-          await this.checkAndSendAlerts(completedRunState);
-        }
-      } catch { /* alerts are best-effort */ }
-
-      // Direction 2: Auto-extract knowledge
-      if (this.config.service.memory_enabled && excerpt.length >= 100) {
-        try {
-          const insight = extractInsights(input.prompt, excerpt, input.projectAlias);
-          if (insight) {
-            await this.memoryStore.saveProjectMemory({
-              project_alias: insight.project_alias,
-              title: insight.title,
-              content: insight.content,
-              tags: insight.tags,
-              source: 'auto',
-              created_by: input.actorId,
-            });
-          }
-        } catch { /* auto-extraction is best-effort */ }
-      }
-
-      await this.sendOrUpdateRunOutcome({
-        input,
-        runId,
-        title: `${backendLabel} 已完成`,
-        body: finalExcerpt || `${backendLabel} 已完成，但没有返回可显示文本。`,
-        runStatus: 'success',
-        runPhase: '已完成',
-        cardSummary,
-        sessionId: result.sessionId,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const cancelled = error instanceof Error && error.name === 'AbortError' && activeRun.cancelReason === 'user';
-      const status = cancelled ? 'cancelled' : 'failure';
-      if (!cancelled && error instanceof Error && error.name === 'AbortError') {
-        activeRun.cancelReason = 'timeout';
-      }
-      if (!cancelled && activeRun.cancelReason === 'timeout') {
-        this.metrics?.recordCodexTurn('failure', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
-      } else {
-        this.metrics?.recordCodexTurn(cancelled ? 'cancelled' : 'failure', input.projectAlias, (Date.now() - startedAt) / 1000, runId);
-      }
-      await this.runStateStore.upsertRun(runId, {
-        queue_key: input.queueKey,
-        conversation_key: input.sessionKey,
-        project_alias: input.projectAlias,
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        session_id: currentSession?.thread_id,
-        project_root: projectRoot,
-        pid: activeRun.pid,
-        prompt_excerpt: truncateExcerpt(input.prompt),
-        status,
-        status_detail: undefined,
-        error: message,
-      });
-      await this.auditLog.append({
-        type: cancelled ? 'codex.run.cancelled' : 'codex.run.failed',
-        run_id: runId,
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        project_alias: input.projectAlias,
-        conversation_key: input.sessionKey,
-        error: message,
-      });
-      await this.appendProjectAuditEvent(input.projectAlias, input.project, {
-        type: cancelled ? 'codex.run.cancelled' : 'codex.run.failed',
-        run_id: runId,
-        chat_id: input.chatId,
-        actor_id: input.actorId,
-        error: message,
-      });
-      // Direction 5: Record trust failure (only for actual failures, not cancellations)
-      if (!cancelled) {
-        try {
-          const trustState = await this.trustStore.getOrCreate(input.projectAlias);
-          const updated = recordRunOutcome(trustState, false, DEFAULT_TRUST_POLICY);
-          await this.trustStore.update(input.projectAlias, updated);
-        } catch { /* trust tracking is best-effort */ }
-        // Notify project chats about the failure
-        await this.notifyProjectChats(input.projectAlias,
-          `❌ 运行失败 [${input.projectAlias}]\n${message.slice(0, 200)}`);
-        // Proactive alerts on failure
-        try {
-          const failedRunState = await this.runStateStore.getRun(runId);
-          if (failedRunState) {
-            await this.checkAndSendAlerts(failedRunState);
-          }
-        } catch { /* alerts are best-effort */ }
-      }
-      if (cancelled) {
-        this.logger.warn(
-          {
-            runId,
-            queueKey: input.queueKey,
-            sessionKey: input.sessionKey,
-            projectAlias: input.projectAlias,
-            durationMs: Date.now() - startedAt,
-          },
-          'Codex run cancelled',
-        );
-      } else {
-        this.logger.error(
-          {
-            error,
-            runId,
-            queueKey: input.queueKey,
-            sessionKey: input.sessionKey,
-            projectAlias: input.projectAlias,
-            durationMs: Date.now() - startedAt,
-          },
-          'Codex run failed',
-        );
-      }
-      await this.sendOrUpdateRunOutcome({
-        input,
-        runId,
-        title: cancelled ? '运行已取消' : '执行失败',
-        body: cancelled ? '当前运行已取消。' : ['执行失败。', '', friendlyErrorMessage(message)].join('\n'),
-        runStatus: cancelled ? 'cancelled' : 'failure',
-        runPhase: cancelled ? '已取消' : '失败',
-        cardSummary: truncateForFeishuCard(cancelled ? '当前运行已取消。' : friendlyErrorMessage(message)),
-      });
-    } finally {
-      this.activeRuns.delete(input.queueKey);
-      this.runReplyTargets.delete(runId);
-    }
+    return executePromptImpl(this, input);
   }
 
   private async handleProjectCommand(
@@ -1659,7 +1205,7 @@ export class FeiqueService {
 
   // ── Proactive Alerts ──
 
-  private async checkAndSendAlerts(completedRun: RunState): Promise<void> {
+  public async checkAndSendAlerts(completedRun: RunState): Promise<void> {
     const recentRuns = await this.runStateStore.listRuns();
     const projectConfig = this.config.projects[completedRun.project_alias];
     const dailyQuota = projectConfig?.daily_token_quota;
@@ -2298,7 +1844,7 @@ export class FeiqueService {
     });
   }
 
-  private async buildBridgePrompt(
+  public async buildBridgePrompt(
     projectAlias: string,
     project: ProjectConfig,
     incomingMessage: IncomingMessageContext,
@@ -2722,15 +2268,15 @@ export class FeiqueService {
     return getProjectDownloadsDir(this.config.storage.dir, projectAlias, project);
   }
 
-  private resolveProjectTempDir(projectAlias: string, project: ProjectConfig): string {
+  public resolveProjectTempDir(projectAlias: string, project: ProjectConfig): string {
     return getProjectTempDir(this.config.storage.dir, projectAlias, project);
   }
 
-  private resolveProjectCacheDir(projectAlias: string, project: ProjectConfig): string {
+  public resolveProjectCacheDir(projectAlias: string, project: ProjectConfig): string {
     return getProjectCacheDir(this.config.storage.dir, projectAlias, project);
   }
 
-  private async appendProjectAuditEvent(projectAlias: string, project: ProjectConfig, event: { type: string; [key: string]: unknown }): Promise<void> {
+  public async appendProjectAuditEvent(projectAlias: string, project: ProjectConfig, event: { type: string; [key: string]: unknown }): Promise<void> {
     const auditLog = new AuditLog(getProjectAuditDir(this.config.storage.dir, projectAlias, project), 'project-audit.jsonl');
     await auditLog.append(event);
   }
@@ -2802,7 +2348,7 @@ export class FeiqueService {
   }
 
 
-  private resolveBackendByName(projectAlias: string, sessionOverride?: BackendName): Backend {
+  public resolveBackendByName(projectAlias: string, sessionOverride?: BackendName): Backend {
     return resolveProjectBackendWithOverride(this.config, projectAlias, sessionOverride, this.codexSessionIndex);
   }
 
@@ -2815,7 +2361,7 @@ export class FeiqueService {
    *   - Send a user-visible notice into the current chat so the user knows
    *     why their run is on a different backend than expected
    */
-  private async handleBackendFailover(
+  public async handleBackendFailover(
     chatId: string,
     projectAlias: string,
     runId: string,
@@ -2904,7 +2450,7 @@ export class FeiqueService {
     }
   }
 
-  private async enforceSessionHistoryLimit(conversationKey: string, projectAlias: string): Promise<void> {
+  public async enforceSessionHistoryLimit(conversationKey: string, projectAlias: string): Promise<void> {
     const sessions = await this.sessionStore.listProjectSessions(conversationKey, projectAlias);
     const overflow = sessions.slice(this.config.service.session_history_limit);
     for (const session of overflow) {
@@ -3132,7 +2678,7 @@ export class FeiqueService {
     });
   }
 
-  private async updateRunStartedReply(chatId: string, projectAlias: string, runId: string, backendLabel?: string): Promise<void> {
+  public async updateRunStartedReply(chatId: string, projectAlias: string, runId: string, backendLabel?: string): Promise<void> {
     const target = this.runReplyTargets.get(runId);
     if (!target?.messageId) {
       return;
@@ -3150,7 +2696,7 @@ export class FeiqueService {
     });
   }
 
-  private async updateRunProgressReply(
+  public async updateRunProgressReply(
     input: {
       chatId: string;
       projectAlias: string;
@@ -3188,7 +2734,7 @@ export class FeiqueService {
     }
   }
 
-  private async sendOrUpdateRunOutcome(input: {
+  public async sendOrUpdateRunOutcome(input: {
     input: {
       chatId: string;
       projectAlias: string;
