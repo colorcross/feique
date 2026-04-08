@@ -66,6 +66,20 @@ import {
   handleWikiCommand as handleWikiCommandImpl,
 } from './feishu-commands.js';
 import { handleMemoryCommand as handleMemoryCommandImpl } from './memory-commands.js';
+import {
+  handleLearnCommand as handleLearnCommandImpl,
+  handleRecallCommand as handleRecallCommandImpl,
+  handleHandoffCommand as handleHandoffCommandImpl,
+  handlePickupCommand as handlePickupCommandImpl,
+  handleReviewCommand as handleReviewCommandImpl,
+  handleApproveCommand as handleApproveCommandImpl,
+  handleRejectCommand as handleRejectCommandImpl,
+  handleInsightsCommand as handleInsightsCommandImpl,
+  handleTrustCommand as handleTrustCommandImpl,
+  handleDigestCommand as handleDigestCommandImpl,
+  handleGapsCommand as handleGapsCommandImpl,
+  handleTimelineCommand as handleTimelineCommandImpl,
+} from './collab-commands.js';
 import { bindProjectAlias, createProjectAlias, removeProjectAlias, updateProjectConfig, updateStringList } from '../config/mutate.js';
 import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
 import { ConfigHistoryStore, type ConfigSnapshot } from '../state/config-history-store.js';
@@ -149,16 +163,16 @@ export class FeiqueService {
     public readonly sessionStore: SessionStore,
     public readonly auditLog: AuditLog,
     private readonly logger: Logger,
-    private readonly metrics?: MetricsRegistry,
+    public readonly metrics?: MetricsRegistry,
     private readonly idempotencyStore: IdempotencyStore = new IdempotencyStore(config.storage.dir),
-    private readonly runStateStore: RunStateStore = new RunStateStore(config.storage.dir),
+    public readonly runStateStore: RunStateStore = new RunStateStore(config.storage.dir),
     public readonly memoryStore: MemoryStore = new MemoryStore(config.storage.dir),
     private readonly codexSessionIndex: CodexSessionIndex = new CodexSessionIndex(),
     private readonly runtimeControl?: RuntimeControl,
     private readonly adminAuditLog: AuditLog = new AuditLog(config.storage.dir, 'admin-audit.jsonl'),
     private readonly configHistoryStore: ConfigHistoryStore = new ConfigHistoryStore(config.storage.dir),
-    private readonly handoffStore: HandoffStore = new HandoffStore(config.storage.dir),
-    private readonly trustStore: TrustStore = new TrustStore(config.storage.dir),
+    public readonly handoffStore: HandoffStore = new HandoffStore(config.storage.dir),
+    public readonly trustStore: TrustStore = new TrustStore(config.storage.dir),
   ) {
     if (config.service.intent_classifier_enabled) {
       const defaultBackend = config.backend?.default ?? 'codex';
@@ -1727,30 +1741,7 @@ export class FeiqueService {
     value: string,
   ): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    const input = buildLearnInput(value, projectContext.projectAlias, context.actor_id, context.chat_id);
-
-    await this.memoryStore.saveProjectMemory({
-      project_alias: input.project_alias,
-      title: input.title,
-      content: input.content,
-      tags: input.tags,
-      source: input.source,
-      created_by: context.actor_id,
-    });
-
-    await this.auditLog.append({
-      type: 'collaboration.knowledge.learned',
-      project_alias: input.project_alias,
-      actor_id: context.actor_id,
-      title: input.title,
-    });
-
-    await this.sendTextReply(
-      context.chat_id,
-      `💡 团队知识已记录: "${input.title}"\n项目: ${input.project_alias}`,
-      context.message_id,
-      context.text,
-    );
+    return handleLearnCommandImpl(this, context, projectContext, value);
   }
 
   private async handleRecallCommand(
@@ -1759,16 +1750,8 @@ export class FeiqueService {
     query: string,
   ): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    const memories = await this.memoryStore.searchMemories(
-      { scope: 'project', project_alias: projectContext.projectAlias },
-      query,
-      10,
-    );
-    const text = formatRecallResults(memories, query);
-    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+    return handleRecallCommandImpl(this, context, projectContext, query);
   }
-
-  // ── Direction 3: Handoff & Review ──
 
   private async handleHandoffCommand(
     context: IncomingMessageContext,
@@ -1776,30 +1759,7 @@ export class FeiqueService {
     summary?: string,
   ): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    const conversation = await this.sessionStore.getConversation(projectContext.sessionKey);
-    const projectState = conversation?.projects[projectContext.projectAlias];
-
-    const record = createHandoff({
-      from_actor_id: context.actor_id ?? 'unknown',
-      from_actor_name: context.actor_name,
-      project_alias: projectContext.projectAlias,
-      conversation_key: projectContext.sessionKey,
-      thread_id: projectState?.active_thread_id ?? projectState?.thread_id,
-      summary: summary ?? '会话交接',
-      last_prompt: projectState?.last_prompt,
-      last_response_excerpt: projectState?.last_response_excerpt,
-    });
-
-    await this.handoffStore.addHandoff(record);
-
-    await this.auditLog.append({
-      type: 'collaboration.handoff.created',
-      handoff_id: record.id,
-      from_actor_id: record.from_actor_id,
-      project_alias: record.project_alias,
-    });
-
-    await this.sendTextReply(context.chat_id, formatHandoff(record), context.message_id, context.text);
+    return handleHandoffCommandImpl(this, context, projectContext, summary);
   }
 
   private async handlePickupCommand(
@@ -1807,52 +1767,8 @@ export class FeiqueService {
     selectionKey: string,
     id?: string,
   ): Promise<void> {
-    let handoff = id
-      ? await this.handoffStore.updateHandoff(id, {})  // just to find it
-      : await this.handoffStore.getPendingHandoffForActor(context.actor_id ?? '', undefined);
-
-    if (id) {
-      handoff = await this.handoffStore.getPendingHandoff();
-      if (handoff && !handoff.id.startsWith(id)) {
-        handoff = null;
-      }
-    }
-
-    if (!handoff || handoff.status !== 'pending') {
-      await this.sendTextReply(context.chat_id, '没有找到待接手的交接任务。', context.message_id, context.text);
-      return;
-    }
-
-    const accepted = acceptHandoff(handoff, context.actor_id ?? 'unknown');
-    await this.handoffStore.updateHandoff(handoff.id, {
-      status: 'accepted',
-      accepted_at: accepted.accepted_at,
-      accepted_by: accepted.accepted_by,
-    });
-
-    // Adopt the session if there's a thread_id
-    if (handoff.thread_id) {
-      const projectContext = await this.resolveProjectContext(context, selectionKey);
-      await this.sessionStore.setActiveProjectSession(
-        projectContext.sessionKey,
-        handoff.project_alias,
-        handoff.thread_id,
-      );
-    }
-
-    await this.auditLog.append({
-      type: 'collaboration.handoff.accepted',
-      handoff_id: handoff.id,
-      accepted_by: context.actor_id,
-      project_alias: handoff.project_alias,
-    });
-
-    await this.sendTextReply(
-      context.chat_id,
-      `✅ 已接手 ${handoff.from_actor_name ?? handoff.from_actor_id} 的交接任务 [${handoff.project_alias}]\n摘要: ${handoff.summary}`,
-      context.message_id,
-      context.text,
-    );
+    const projectContext = await this.resolveProjectContext(context, selectionKey);
+    return handlePickupCommandImpl(this, context, projectContext, id);
   }
 
   private async handleReviewCommand(
@@ -1860,102 +1776,26 @@ export class FeiqueService {
     selectionKey: string,
   ): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    const runs = await this.runStateStore.listRuns();
-    const latestRun = runs.find(
-      (r) => r.project_alias === projectContext.projectAlias && (r.status === 'success' || r.status === 'failure'),
-    );
-
-    if (!latestRun) {
-      await this.sendTextReply(context.chat_id, '没有找到最近的运行结果可供评审。', context.message_id, context.text);
-      return;
-    }
-
-    const review = createReview({
-      run_id: latestRun.run_id,
-      project_alias: projectContext.projectAlias,
-      chat_id: context.chat_id,
-      actor_id: context.actor_id ?? 'unknown',
-      content_excerpt: latestRun.prompt_excerpt,
-    });
-
-    await this.handoffStore.addReview(review);
-
-    await this.auditLog.append({
-      type: 'collaboration.review.created',
-      review_id: review.id,
-      run_id: review.run_id,
-      project_alias: review.project_alias,
-    });
-
-    await this.sendTextReply(context.chat_id, formatReview(review), context.message_id, context.text);
+    return handleReviewCommandImpl(this, context, projectContext);
   }
 
   private async handleApproveCommand(
     context: IncomingMessageContext,
     comment?: string,
   ): Promise<void> {
-    const pending = await this.handoffStore.getPendingReview(context.chat_id);
-    if (!pending) {
-      await this.sendTextReply(context.chat_id, '当前没有待评审的内容。', context.message_id, context.text);
-      return;
-    }
-
-    const resolved = resolveReview(pending, 'approved', context.actor_id ?? 'unknown', comment);
-    await this.handoffStore.updateReview(pending.id, {
-      status: 'approved',
-      reviewer_id: resolved.reviewer_id,
-      review_comment: resolved.review_comment,
-      resolved_at: resolved.resolved_at,
-    });
-
-    await this.auditLog.append({
-      type: 'collaboration.review.approved',
-      review_id: pending.id,
-      reviewer_id: context.actor_id,
-    });
-
-    await this.sendTextReply(context.chat_id, formatReviewResult(resolved), context.message_id, context.text);
+    return handleApproveCommandImpl(this, context, comment);
   }
 
   private async handleRejectCommand(
     context: IncomingMessageContext,
     reason?: string,
   ): Promise<void> {
-    const pending = await this.handoffStore.getPendingReview(context.chat_id);
-    if (!pending) {
-      await this.sendTextReply(context.chat_id, '当前没有待评审的内容。', context.message_id, context.text);
-      return;
-    }
-
-    const resolved = resolveReview(pending, 'rejected', context.actor_id ?? 'unknown', reason);
-    await this.handoffStore.updateReview(pending.id, {
-      status: 'rejected',
-      reviewer_id: resolved.reviewer_id,
-      review_comment: resolved.review_comment,
-      resolved_at: resolved.resolved_at,
-    });
-
-    await this.auditLog.append({
-      type: 'collaboration.review.rejected',
-      review_id: pending.id,
-      reviewer_id: context.actor_id,
-      reason,
-    });
-
-    await this.sendTextReply(context.chat_id, formatReviewResult(resolved), context.message_id, context.text);
+    return handleRejectCommandImpl(this, context, reason);
   }
-
-  // ── Direction 4: Insights ──
 
   private async handleInsightsCommand(context: IncomingMessageContext): Promise<void> {
-    const runs = await this.runStateStore.listRuns();
-    const auditEvents = await this.auditLog.tail(500);
-    const insights = analyzeTeamHealth(runs, auditEvents);
-    const text = formatInsightsReport(insights);
-    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+    return handleInsightsCommandImpl(this, context);
   }
-
-  // ── Direction 5: Trust ──
 
   private async handleTrustCommand(
     context: IncomingMessageContext,
@@ -1964,77 +1804,11 @@ export class FeiqueService {
     level?: string,
   ): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-
-    if (action === 'set' && level) {
-      const TRUST_ORDER: TrustLevel[] = ['observe', 'suggest', 'execute', 'autonomous'];
-      const validLevels = [...TRUST_ORDER];
-      const state = await this.trustStore.getOrCreate(projectContext.projectAlias);
-
-      // Handle relative promote/demote from natural language
-      let resolvedLevel = level;
-      if (level === '_promote') {
-        const idx = TRUST_ORDER.indexOf(state.current_level);
-        if (idx >= TRUST_ORDER.length - 1) {
-          await this.sendTextReply(context.chat_id, `已经是最高信任等级 (${state.current_level})，无法继续提升。`, context.message_id, context.text);
-          return;
-        }
-        resolvedLevel = TRUST_ORDER[idx + 1]!;
-      } else if (level === '_demote') {
-        const idx = TRUST_ORDER.indexOf(state.current_level);
-        if (idx <= 0) {
-          await this.sendTextReply(context.chat_id, `已经是最低信任等级 (${state.current_level})，无法继续降低。`, context.message_id, context.text);
-          return;
-        }
-        resolvedLevel = TRUST_ORDER[idx - 1]!;
-      }
-
-      if (!validLevels.includes(resolvedLevel as TrustLevel)) {
-        await this.sendTextReply(
-          context.chat_id,
-          `无效的信任等级。有效值: ${validLevels.join(', ')}`,
-          context.message_id,
-          context.text,
-        );
-        return;
-      }
-
-      state.current_level = resolvedLevel as TrustLevel;
-      state.last_evaluated_at = new Date().toISOString();
-      await this.trustStore.update(projectContext.projectAlias, state);
-      this.metrics?.recordTrustLevel(projectContext.projectAlias, resolvedLevel);
-
-      await this.auditLog.append({
-        type: 'collaboration.trust.set',
-        project_alias: projectContext.projectAlias,
-        actor_id: context.actor_id,
-        level,
-      });
-
-      await this.sendTextReply(
-        context.chat_id,
-        `🛡️ 项目 ${projectContext.projectAlias} 的信任等级已设置为: ${level}`,
-        context.message_id,
-        context.text,
-      );
-      return;
-    }
-
-    const state = await this.trustStore.getOrCreate(projectContext.projectAlias);
-    await this.sendTextReply(context.chat_id, formatTrustState(state), context.message_id, context.text);
+    return handleTrustCommandImpl(this, context, projectContext, action, level);
   }
 
-  // ── Team Digest ──
-
   private async handleDigestCommand(context: IncomingMessageContext): Promise<void> {
-    const period = createDigestPeriod(this.config.service.team_digest_interval_hours);
-    const runs = await this.runStateStore.listRuns();
-    const memories = this.config.service.memory_enabled
-      ? await this.memoryStore.listRecentMemories({ scope: 'project', project_alias: '' }, 100)
-      : [];
-    const auditEvents = await this.auditLog.tail(500);
-    const digest = buildTeamDigest(runs, memories, auditEvents, period);
-    const text = formatTeamDigest(digest);
-    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+    return handleDigestCommandImpl(this, context);
   }
 
   // ── Proactive Alerts ──
@@ -2071,13 +1845,7 @@ export class FeiqueService {
   // ── Knowledge Gap Detection ──
 
   private async handleGapsCommand(context: IncomingMessageContext): Promise<void> {
-    const runs = await this.runStateStore.listRuns();
-    const memories = this.config.service.memory_enabled
-      ? await this.memoryStore.listRecentMemories({ scope: 'project', project_alias: '' }, 200)
-      : [];
-    const gaps = detectKnowledgeGaps(runs, memories);
-    const text = formatKnowledgeGaps(gaps);
-    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+    return handleGapsCommandImpl(this, context);
   }
 
   // ── Direction 6: Timeline ──
@@ -2088,21 +1856,7 @@ export class FeiqueService {
     projectArg?: string,
   ): Promise<void> {
     const projectContext = await this.resolveProjectContext(context, selectionKey);
-    const projectAlias = projectArg ?? projectContext.projectAlias;
-
-    const runs = await this.runStateStore.listRuns();
-    const auditEvents = await this.auditLog.tail(200);
-
-    const memories = this.config.service.memory_enabled
-      ? await this.memoryStore.listRecentMemories(
-          { scope: 'project', project_alias: projectAlias },
-          20,
-        )
-      : [];
-
-    const timeline = buildProjectTimeline(runs, memories, auditEvents, projectAlias, 20);
-    const text = formatTimeline(timeline);
-    await this.sendTextReply(context.chat_id, text, context.message_id, context.text);
+    return handleTimelineCommandImpl(this, context, projectContext, projectArg);
   }
 
   private async handleAdminCommand(
