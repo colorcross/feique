@@ -71,6 +71,14 @@ import {
   parseProjectPatch as parseProjectPatchImpl,
 } from './admin-config.js';
 import {
+  scheduleProjectExecution as scheduleProjectExecutionImpl,
+  buildAcknowledgedRunReply,
+  buildQueuedStatusDetail,
+  buildRunStatusSummary,
+  type QueuedExecutionNotice,
+  type ScheduledProjectExecution,
+} from './run-scheduler.js';
+import {
   formatQuotedReply,
   buildReplyTitle,
   sanitizeUserVisibleReply,
@@ -131,18 +139,7 @@ interface ActiveRunHandle {
   cancelReason?: 'user' | 'timeout' | 'recovery';
 }
 
-interface QueuedExecutionNotice {
-  runId: string;
-  detail: string;
-  reason: 'project' | 'project-root';
-}
-
-interface ScheduledProjectExecution {
-  runId: string;
-  queued: QueuedExecutionNotice | null;
-  release: () => void;
-  completion: Promise<void>;
-}
+// QueuedExecutionNotice and ScheduledProjectExecution now live in run-scheduler.ts
 
 interface RuntimeControl {
   configPath?: string;
@@ -162,8 +159,8 @@ interface RunLifecycleReplyDraft {
 }
 
 export class FeiqueService {
-  private readonly queue = new TaskQueue();
-  private readonly projectRootQueue = new TaskQueue();
+  public readonly queue = new TaskQueue();
+  public readonly projectRootQueue = new TaskQueue();
   private readonly activeRuns = new Map<string, ActiveRunHandle>();
   private readonly runReplyTargets = new Map<string, RunReplyTarget>();
   private readonly chatRateWindows = new Map<string, number[]>();
@@ -705,7 +702,7 @@ export class FeiqueService {
 
     const bridgePrompt = await this.buildBridgePrompt(input.projectAlias, input.project, input.incomingMessage, effectivePrompt, memoryContext);
     const startedAt = Date.now();
-    const projectRoot = this.resolveProjectRoot(input.project);
+    const projectRoot = path.resolve(input.project.root);
     const runId = input.runId ?? randomUUID();
     let lastProgressUpdate = 0;
     const activeRun: ActiveRunHandle = {
@@ -2259,7 +2256,7 @@ export class FeiqueService {
     const actionChatId = conversation?.chat_id ?? activeRun?.chat_id ?? fallbackChatId;
     return buildStatusCard({
       title: '当前会话状态',
-      summary: this.buildRunStatusSummary(session?.last_response_excerpt, activeRun),
+      summary: buildRunStatusSummary(session?.last_response_excerpt, activeRun),
       projectAlias,
       sessionId: session?.thread_id,
       runStatus: activeRun?.status,
@@ -2501,152 +2498,7 @@ export class FeiqueService {
     },
     task: (runId?: string) => Promise<void>,
   ): Promise<ScheduledProjectExecution> {
-    const runId = randomUUID();
-    const queued = await this.prepareQueuedExecution(projectContext, metadata, runId);
-    const rootKey = buildProjectRootQueueKey(projectContext.project.root);
-    const startGate = createDeferred<void>();
-    // Record queue depth when enqueuing
-    this.metrics?.recordQueueDepth(
-      projectContext.projectAlias,
-      this.queue.getPendingCount(projectContext.queueKey) + 1,
-    );
-    return {
-      runId,
-      queued,
-      release: () => startGate.resolve(),
-      completion: this.queue.run(projectContext.queueKey, async () => {
-        await this.projectRootQueue.run(rootKey, async () => {
-          await startGate.promise;
-          await task(runId);
-        }, { priority: projectContext.project.run_priority });
-        // Record queue depth after dequeue
-        this.metrics?.recordQueueDepth(
-          projectContext.projectAlias,
-          this.queue.getPendingCount(projectContext.queueKey),
-        );
-      }),
-    };
-  }
-
-  private async prepareQueuedExecution(
-    projectContext: {
-      projectAlias: string;
-      project: ProjectConfig;
-      sessionKey: string;
-      queueKey: string;
-    },
-    metadata: {
-      chatId: string;
-      actorId?: string;
-      actorName?: string;
-      prompt: string;
-    },
-    runId: string,
-  ): Promise<QueuedExecutionNotice | null> {
-    const queuePending = this.queue.getPendingCount(projectContext.queueKey);
-    const rootKey = buildProjectRootQueueKey(projectContext.project.root);
-    const rootPending = this.projectRootQueue.getPendingCount(rootKey);
-    if (queuePending <= 0 && rootPending <= 0) {
-      return null;
-    }
-
-    const projectRoot = this.resolveProjectRoot(projectContext.project);
-    const reason = queuePending > 0 ? 'project' : 'project-root';
-    const frontCount = reason === 'project' ? queuePending : rootPending;
-    const blockingRun =
-      reason === 'project'
-        ? await this.runStateStore.getActiveRun(projectContext.queueKey)
-        : await this.runStateStore.getExecutionRunByProjectRoot(projectRoot);
-    const detail = this.buildQueuedStatusDetail(projectContext.projectAlias, reason, frontCount, blockingRun);
-    await this.runStateStore.upsertRun(runId, {
-      queue_key: projectContext.queueKey,
-      conversation_key: projectContext.sessionKey,
-      project_alias: projectContext.projectAlias,
-      chat_id: metadata.chatId,
-      actor_id: metadata.actorId,
-      actor_name: metadata.actorName,
-      project_root: projectRoot,
-      prompt_excerpt: truncateExcerpt(metadata.prompt),
-      status: 'queued',
-      status_detail: detail,
-    });
-    await this.auditLog.append({
-      type: 'codex.run.queued',
-      run_id: runId,
-      chat_id: metadata.chatId,
-      actor_id: metadata.actorId,
-      project_alias: projectContext.projectAlias,
-      conversation_key: projectContext.sessionKey,
-      project_root: projectRoot,
-      queue_reason: reason,
-      blocking_run_id: blockingRun?.run_id,
-      front_count: frontCount,
-    });
-    this.logger.warn(
-      {
-        runId,
-        queueKey: projectContext.queueKey,
-        sessionKey: projectContext.sessionKey,
-        projectAlias: projectContext.projectAlias,
-        projectRoot,
-        reason,
-        frontCount,
-        blockingStatus: blockingRun?.status,
-        blockingProjectAlias: blockingRun?.project_alias,
-      },
-      'Codex run queued',
-    );
-
-    return {
-      runId,
-      detail,
-      reason,
-    };
-  }
-
-  private buildAcknowledgedRunReply(
-    projectAlias: string,
-    phase: '已接收' | '排队中' | '处理中',
-    detail: string,
-    mode: BridgeConfig['service']['reply_mode'],
-  ): string {
-    if (mode === 'text') {
-      return [`项目: ${projectAlias}`, `状态: ${phase}`, '', detail].join('\n');
-    }
-    return detail;
-  }
-
-  private buildQueuedStatusDetail(
-    projectAlias: string,
-    reason: QueuedExecutionNotice['reason'],
-    frontCount: number,
-    blockingRun: RunState | null,
-  ): string {
-    const lines = [
-      reason === 'project' ? `当前项目 ${projectAlias} 已有任务在处理，已进入排队。` : '当前仓库正在被其他会话操作，已进入排队。',
-      frontCount > 0 ? `前方还有 ${frontCount} 个任务。` : null,
-    ];
-    if (blockingRun) {
-      const actorName = blockingRun.actor_name ?? blockingRun.actor_id ?? '其他成员';
-      lines.push(`当前执行: ${actorName}`);
-      const elapsedMs = Date.now() - new Date(blockingRun.started_at).getTime();
-      const elapsedMin = Math.round(elapsedMs / 60_000);
-      if (elapsedMin > 0) {
-        lines.push(`已运行: ${elapsedMin} 分钟`);
-      }
-      if (reason === 'project-root' && blockingRun.project_alias && blockingRun.project_alias !== projectAlias) {
-        lines.push(`占用项目: ${blockingRun.project_alias}`);
-      }
-    }
-    lines.push(`排队时间: ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`);
-    return lines.filter(Boolean).join('\n');
-  }
-
-  private buildRunStatusSummary(lastResponseExcerpt?: string, activeRun?: RunState | null): string {
-    if (activeRun?.status === 'queued' && activeRun.status_detail) {
-      return [activeRun.status_detail, lastResponseExcerpt ? `\n上一轮摘要:\n${lastResponseExcerpt}` : null].filter(Boolean).join('\n');
-    }
-    return lastResponseExcerpt ?? '暂无会话摘要。';
+    return scheduleProjectExecutionImpl(this, projectContext, metadata, task);
   }
 
   private isAdminChat(chatId: string): boolean {
@@ -2949,9 +2801,6 @@ export class FeiqueService {
     this.config.feishu.allowed_chat_ids = values;
   }
 
-  private resolveProjectRoot(project: ProjectConfig): string {
-    return path.resolve(project.root);
-  }
 
   private resolveBackendByName(projectAlias: string, sessionOverride?: BackendName): Backend {
     return resolveProjectBackendWithOverride(this.config, projectAlias, sessionOverride, this.codexSessionIndex);
@@ -3230,7 +3079,7 @@ export class FeiqueService {
     if (queued) {
       return {
         title: '已加入排队',
-        body: this.buildAcknowledgedRunReply(projectAlias, '排队中', queued.detail, mode),
+        body: buildAcknowledgedRunReply(projectAlias, '排队中', queued.detail, mode),
         runStatus: 'queued',
         runPhase: '排队中',
       };
@@ -3238,7 +3087,7 @@ export class FeiqueService {
 
     return {
       title: '已接收请求',
-      body: this.buildAcknowledgedRunReply(projectAlias, '已接收', '已收到你的消息，正在准备处理。', mode),
+      body: buildAcknowledgedRunReply(projectAlias, '已接收', '已收到你的消息，正在准备处理。', mode),
       runStatus: 'running',
       runPhase: '已接收',
     };
@@ -3289,7 +3138,7 @@ export class FeiqueService {
       return;
     }
     const label = backendLabel ?? 'AI';
-    const body = this.buildAcknowledgedRunReply(projectAlias, '处理中', '桥接器已开始处理你的请求。', target.mode);
+    const body = buildAcknowledgedRunReply(projectAlias, '处理中', '桥接器已开始处理你的请求。', target.mode);
     await this.updateRunLifecycleReply({
       chatId,
       projectAlias,
@@ -3319,7 +3168,7 @@ export class FeiqueService {
     }
     const label = backendLabel ?? 'AI';
     const body = [
-      this.buildAcknowledgedRunReply(input.projectAlias, '处理中', '桥接器正在持续处理你的请求。', target.mode),
+      buildAcknowledgedRunReply(input.projectAlias, '处理中', '桥接器正在持续处理你的请求。', target.mode),
       '最新进展:',
       progress,
     ]
