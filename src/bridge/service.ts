@@ -1,12 +1,10 @@
 import fs from 'node:fs/promises';
 import { watch as watchFile, type FSWatcher } from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
 import type { BridgeConfig, ProjectConfig, SessionScope } from '../config/schema.js';
 import {
   buildHelpText,
   buildFullHelpText,
-  describeBridgeCommand,
   isReadOnlyCommand,
   normalizeIncomingText,
   parseBridgeCommand,
@@ -25,39 +23,27 @@ import { IdempotencyStore } from '../state/idempotency-store.js';
 import { RunStateStore, type RunState } from '../state/run-state-store.js';
 import { isProcessAlive, terminateProcess } from '../runtime/process.js';
 import { resolveKnowledgeRoots, searchKnowledgeBase } from '../knowledge/search.js';
-import { FeishuWikiClient } from '../feishu/wiki.js';
-import { FeishuDocClient } from '../feishu/doc.js';
-import { FeishuBaseClient } from '../feishu/base.js';
-import { FeishuTaskClient } from '../feishu/task.js';
 import { resolveMessageResources } from '../feishu/message-resource.js';
 import { MemoryStore } from '../state/memory-store.js';
-import { retrieveMemoryContext, type MemoryContext } from '../memory/retrieve.js';
-import { summarizeThreadTurn } from '../memory/summarize.js';
+import type { MemoryContext } from '../memory/retrieve.js';
 import { CodexSessionIndex } from '../codex/session-index.js';
-import type { Backend, BackendEvent, BackendName } from '../backend/types.js';
-import { resolveProjectBackendWithOverride, resolveProjectBackendName, resolveProjectBackendWithFailover, type FailoverInfo } from '../backend/factory.js';
+import type { Backend, BackendName } from '../backend/types.js';
+import { resolveProjectBackendWithOverride, resolveProjectBackendName, type FailoverInfo } from '../backend/factory.js';
 import {
   buildQueueKey,
-  buildProjectRootQueueKey,
   isExecutionRunStatus,
   isVisibleRunStatus,
   mapRunStatusToPhase,
   buildMessageDedupeKey,
   buildCardDedupeKey,
-  extractFileMarkers,
-  diffConfigs,
   truncateExcerpt,
   friendlyErrorMessage,
-  splitCommaSeparatedValues,
   resolveAdminListTarget,
   buildConversationKeyForConversation,
   renderMemorySection,
   formatAgeFromNow,
-  parseJsonObject,
-  clampListLimit,
   replaceObject,
   replaceProjects,
-  createDeferred,
 } from './service-utils.js';
 import {
   handleDocCommand as handleDocCommandImpl,
@@ -73,7 +59,6 @@ import {
 import {
   scheduleProjectExecution as scheduleProjectExecutionImpl,
   buildAcknowledgedRunReply,
-  buildQueuedStatusDetail,
   buildRunStatusSummary,
   type QueuedExecutionNotice,
   type ScheduledProjectExecution,
@@ -82,7 +67,6 @@ import {
   formatQuotedReply,
   buildReplyTitle,
   sanitizeUserVisibleReply,
-  stripLifecycleMetadata,
   supportsInteractiveCardActions,
   resolveRunLifecycleReplyMode,
   buildRunLifecycleCard,
@@ -111,27 +95,25 @@ import {
   handleTimelineCommand as handleTimelineCommandImpl,
 } from './collab-commands.js';
 import { bindProjectAlias, createProjectAlias, removeProjectAlias, updateProjectConfig, updateStringList } from '../config/mutate.js';
-import { buildFeishuPost, truncateForFeishuCard } from '../feishu/text.js';
+import { buildFeishuPost } from '../feishu/text.js';
 import { ConfigHistoryStore, type ConfigSnapshot } from '../state/config-history-store.js';
 import { loadBridgeConfigFile } from '../config/load.js';
 import { ensureDir, writeUtf8Atomic } from '../utils/fs.js';
 import { expandHomePath } from '../utils/path.js';
 import { canAccessGlobalCapability, canAccessProject, canAccessProjectCapability, describeMinimumRole, filterAccessibleProjects, resolveProjectAccessRole, type AccessRole } from '../security/access.js';
 import { adoptProjectSession as adoptSharedProjectSession, listBridgeSessions as listSharedBridgeSessions, switchProjectBinding as switchSharedProjectBinding } from '../control-plane/project-session.js';
-import { getProjectArchiveDir, getProjectAuditDir, getProjectAuditFile, getProjectCacheDir, getProjectDownloadsDir, getProjectTempDir } from '../projects/paths.js';
+import { getProjectAuditDir, getProjectCacheDir, getProjectDownloadsDir, getProjectTempDir } from '../projects/paths.js';
 import { buildTeamActivityView, detectOverlaps, formatTeamView, formatOverlapAlerts } from '../collaboration/awareness.js';
-import { extractInsights, buildLearnInput, formatRecallResults } from '../collaboration/knowledge.js';
-import { createHandoff, acceptHandoff, createReview, resolveReview, formatHandoff, formatReview, formatReviewResult } from '../collaboration/handoff.js';
+import { buildLearnInput, formatRecallResults } from '../collaboration/knowledge.js';
+import { createReview } from '../collaboration/handoff.js';
 import { analyzeTeamHealth, formatInsightsReport } from '../collaboration/insights.js';
-import { classifyOperation, enforceTrustBoundary, recordRunOutcome, formatTrustState, DEFAULT_TRUST_POLICY, type TrustLevel } from '../collaboration/trust.js';
+import { classifyOperation, enforceTrustBoundary } from '../collaboration/trust.js';
 import { buildProjectTimeline, buildOnboardingContext, formatTimeline, isNewActor } from '../collaboration/timeline.js';
 import { HandoffStore } from '../state/handoff-store.js';
 import { TrustStore } from '../state/trust-store.js';
 import { IntentClassifier } from './intent-classifier.js';
-import { buildTeamDigest, formatTeamDigest, createDigestPeriod } from '../collaboration/digest.js';
-import { checkRunAlerts, checkLongRunningAlerts, formatAlert, type AlertRules, DEFAULT_ALERT_RULES } from '../collaboration/proactive-alerts.js';
+import { checkRunAlerts, formatAlert, DEFAULT_ALERT_RULES } from '../collaboration/proactive-alerts.js';
 import { detectKnowledgeGaps, formatKnowledgeGaps } from '../collaboration/knowledge-gaps.js';
-import { estimateCost } from '../observability/cost.js';
 
 export interface ActiveRunHandle {
   runId: string;
@@ -2176,10 +2158,6 @@ export class FeiqueService {
 
   private canMutateRuntimeConfig(chatId: string): boolean {
     return canAccessGlobalCapability(this.config, chatId, 'config:mutate');
-  }
-
-  private canReadConfigHistory(chatId: string): boolean {
-    return canAccessGlobalCapability(this.config, chatId, 'config:history') || this.canMutateRuntimeConfig(chatId);
   }
 
   private canAccessAdminCommand(
