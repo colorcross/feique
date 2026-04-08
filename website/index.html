@@ -85,9 +85,9 @@
         <div class="announcement fade-in">
           <span class="announcement-badge">
             <span class="pulse-dot" aria-hidden="true"></span>
-            v1.3.3 已发布
+            v1.4.0 已发布
           </span>
-          <span class="announcement-text">项目级定制 + 人格设定 + 文件发送 + 主动告警 + 配置热加载</span>
+          <span class="announcement-text">Backend 启动级 failover + 陌生 chat pairing UX + 大型 service.ts 拆分重构（-46%）</span>
           <a href="https://github.com/colorcross/feique/releases" class="announcement-link">查看 Release →</a>
         </div>
 
@@ -422,7 +422,7 @@
               </div>
               <span class="cap-label">Multi-Backend</span>
               <h3 class="cap-title"><code>/backend codex|claude</code> 会话级后端切换</h3>
-              <p class="cap-desc">通过 <code>/backend</code> 命令或自然语言"后端切换到 claude"随时切换当前项目的后端。优先级链：会话级覆盖 → 项目 <code>backend</code> 配置 → 全局 <code>backend.default</code>。项目路由、会话续接、排队和权限体系对两种后端统一生效。</p>
+              <p class="cap-desc">通过 <code>/backend</code> 命令或自然语言"后端切换到 claude"随时切换当前项目的后端。优先级链：会话级覆盖 → 项目 <code>backend</code> 配置 → 全局 <code>backend.default</code>。项目路由、会话续接、排队和权限体系对两种后端统一生效。<strong>v1.4 新增启动级 failover</strong>：主 backend 的 CLI 不可用时（二进制缺失 / PATH 坏掉），自动切到另一个 backend 跑当前请求并通知 admin。</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-teal" aria-hidden="true">

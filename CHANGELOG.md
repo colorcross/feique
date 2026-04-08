@@ -1,6 +1,46 @@
 # Changelog
 
-## Unreleased
+## [1.4.0] — 2026-04-09
+
+### 新功能
+- **Backend 启动级 failover**: 当默认 backend 的 CLI 不可用（二进制缺失、PATH 坏掉、pre_exec 失败）时，自动临时切换到另一个 backend 跑当前请求
+  - 60 秒 probe 结果缓存，避免重复探测
+  - 双向支持（codex ↔ claude），可通过 `backend.failover = false` 全局关闭或 `projects.<alias>.failover = false` 单项目关闭
+  - 触发时在用户回复中加一行 `⚠️ claude 不可用，已临时切换到 codex`
+  - 向 `security.admin_chat_ids` 发送一次性通知（同一方向进程内只通知一次）
+  - 审计事件 `backend.failover`
+- **陌生 chat 的 pairing UX**: 陌生人首次 @ bot 时从「静默丢包」变为提示用户贴出自己的 chat_id 并联系 admin，同时通知 admin 有新接入请求
+  - 旧行为：非空白名单下消息直接 drop，admin 不知情；空白名单下直接返回泛泛的"未授权"
+  - 新行为：回复包含自己的 chat_id + 所需白名单字段名 + 申请指引；admin 收到带 `/admin chat add <id>` 可复制命令的通知
+  - 进程内按 chat_id 去重，避免 admin 被反复骚扰
+  - 审计事件 `chat.rejected`
+
+### 重大重构 — `src/bridge/service.ts` 拆分
+将 5344 行的 `src/bridge/service.ts` 拆分到 9 个聚焦模块，**净减少 2491 行（-46.6%）**。最终 service.ts 2853 行，只保留状态、构造器、消息分发、status/admin/project 命令分派。
+
+拆出的 9 个新模块:
+- `src/bridge/service-utils.ts` — 21 个纯 helper（queue key、diff、dedupe、memory section 渲染等）
+- `src/bridge/feishu-commands.ts` — `/doc`、`/task`、`/base`、`/wiki` 四个 Feishu 子 SDK 命令
+- `src/bridge/memory-commands.ts` — `/memory` 命令及内部 helper
+- `src/bridge/collab-commands.ts` — `/learn`、`/recall`、`/handoff`、`/pickup`、`/review`、`/approve`、`/reject`、`/insights`、`/trust`、`/digest`、`/gaps`、`/timeline` 12 个协作命令
+- `src/bridge/lifecycle.ts` — 运行时恢复、配置热重载、周期性 digest / memory maintenance / audit cleanup
+- `src/bridge/reply-builders.ts` — 7 个纯回复 / 卡片构造器
+- `src/bridge/admin-config.ts` — `/admin config history|rollback` + 项目字段 patch 解析
+- `src/bridge/run-scheduler.ts` — 双 TaskQueue 调度 + 排队状态提示构造
+- `src/bridge/run-pipeline.ts` — `executePrompt` 完整 20-phase run pipeline
+
+### 修复与打磨
+- 消除 `bridge-service.test.ts` 和 `collaboration-e2e.test.ts` 的长期 flake（v1.3.3 baseline 26-37 failed → v1.4.0 **529/529 全绿**）
+  - 新增 `vitest.config.ts` 将默认 `testTimeout` 从 5s 提到 15s，`hookTimeout` 同步提升
+  - 将 bridge-service.test.ts 内部 `waitFor` 的 deadline 从 3s 提到 10s，允许队列排队测试等待完整 pipeline 落盘
+- 删除 `src/config/paths.ts` 和 `src/config/load.ts` 中对 `~/.codex-feishu` / `~/.feishu-bridge` 的 legacy fallback（**潜在 breaking**：仍在用老目录的用户需要迁移到 `~/.feique/`，否则配置会找不到）
+- 清理 service.ts 里 ~35 个 dead imports 和 4 个 dead locals
+- 新增 `examples/service/` 目录提供静态的 launchd plist / systemd unit 预览（README 读者无需安装 feique 就能看到模板）
+- 新增 `docs/service-ts-map.md` — service.ts 的职责测绘文档，作为后续结构性重构的参考
+
+### 内部测试
+- 新增 `tests/backend-probe.test.ts`（5 cases）: 覆盖 probe cache / ENOENT / 非零退出 / 多 backend 隔离
+- 新增 `tests/backend-factory-failover.test.ts`（7 cases）: 覆盖主 backend ok / 主挂次成功 / 双挂 / per-project opt-out / 全局 opt-out / per-project 覆盖全局 / session override 作为 primary
 
 ## [1.3.1] — 2026-03-21
 

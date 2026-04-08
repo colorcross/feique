@@ -1,4 +1,4 @@
-# 飞鹊 (Feique) v1.3.3
+# 飞鹊 (Feique) v1.4.0
 
 <div align="center">
 
@@ -33,7 +33,8 @@ Currently supports the full AI coding workflow: project bindings persist by `cha
 | **Memory System** | Supports project memory and group shared memory, SQLite + FTS5 retrieval, configurable TTL, pin strategies, and background cleanup. |
 | **Project Isolation** | Downloads, temp files, cache, and project audit logs default to `state/projects/<alias>/...`, with per-project overrides available. |
 | **Observability** | Built-in `/healthz`, `/readyz`, and `/metrics`, plus structured audit trails and Prometheus / Alertmanager / Grafana integration. |
-| **Multi-Backend** | A single bridge can manage both Codex and Claude Code backends, configurable globally via `[backend]` or per-project. The Claude backend supports `--model`, `--permission-mode`, `--max-budget-usd`, and other advanced options. |
+| **Multi-Backend** | A single bridge can manage both Codex and Claude Code backends, configurable globally via `[backend]` or per-project. The Claude backend supports `--model`, `--permission-mode`, `--max-budget-usd`, and other advanced options. **v1.4 adds startup-level failover**: if the default backend CLI is unavailable, runs auto-switch to the alternate backend for that turn. |
+| **Pairing UX (v1.4)** | Unauthorized chats knocking for the first time now get a friendly reply with their chat_id and instructions to contact an admin; admins get a one-shot notification. No more silent drops. |
 | **Team Awareness** | `/team` shows who is using AI on what in real time, with automatic conflict warnings. |
 | **Knowledge Loop** | `/learn` and `/recall` for team knowledge capture and semantic retrieval, with AI-powered auto-extraction. |
 | **Handoff & Review** | `/handoff` `/pickup` `/review` `/approve` `/reject` for session handoffs and code review workflows. |

@@ -21,6 +21,8 @@
 
 后端选择优先级：`/backend` 会话级覆盖 > `project.backend` > `backend.default`（默认 `codex`）。
 
+**启动级 failover（v1.4+）**：每次 run 开始前会对候选 backend 的 CLI 做一次轻量级探测（`<bin> --version`，3s timeout，60s 缓存）。如果主 backend 探测失败（二进制缺失 / PATH 问题 / `pre_exec` 失败等）且另一个 backend 探测成功，会自动切换到它跑当前这一 run，并在飞书回复头部标注；admin 收到一次性通知。运行时抛错**不**触发 failover —— 避免白烧 token。可通过 `backend.failover = false`（全局）或 `projects.<alias>.failover = false`（单项目）关闭。
+
 ### Session Store
 
 持久化在 `~/.feique/state/sessions.json`：

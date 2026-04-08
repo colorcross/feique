@@ -85,9 +85,9 @@
         <div class="announcement fade-in">
           <span class="announcement-badge">
             <span class="pulse-dot" aria-hidden="true"></span>
-            v1.3.3 released
+            v1.4.0 released
           </span>
-          <span class="announcement-text">Per-project customization + persona + file sending + alerts + config hot-reload</span>
+          <span class="announcement-text">Backend startup failover + pairing UX for unknown chats + major service.ts split refactor (-46%)</span>
           <a href="https://github.com/colorcross/feique/releases" class="announcement-link">View Release →</a>
         </div>
 
@@ -422,7 +422,7 @@ another chat. Queued with 1 task ahead.
               </div>
               <span class="cap-label">Multi-Backend</span>
               <h3 class="cap-title"><code>/backend codex|claude</code> — session-level backend switching</h3>
-              <p class="cap-desc">Switch the active backend for the current project at any time with <code>/backend</code> or natural language ("switch backend to claude"). Priority chain: session override → project <code>backend</code> config → global <code>backend.default</code>. Project routing, session continuity, queuing, and access control apply uniformly to both backends.</p>
+              <p class="cap-desc">Switch the active backend for the current project at any time with <code>/backend</code> or natural language ("switch backend to claude"). Priority chain: session override → project <code>backend</code> config → global <code>backend.default</code>. Project routing, session continuity, queuing, and access control apply uniformly to both backends. <strong>v1.4 adds startup-level failover</strong>: when the primary backend's CLI is unavailable (missing binary / broken PATH), runs auto-switch to the alternate backend with a one-shot admin notification.</p>
             </div>
             <div class="cap-card">
               <div class="cap-icon cap-icon-teal" aria-hidden="true">

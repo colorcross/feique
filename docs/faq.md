@@ -85,6 +85,11 @@ allowed_group_ids = ["oc_group_1", "oc_group_2"]
 feique audit tail --limit 20
 ```
 
+**v1.4+ 更简单**：把 bot 加入目标 chat 或群组后，让任意用户 @ 一下 bot。桥接器会自动：
+1. 回复该 chat 一条友好提示，附上它自己的 `chat_id`
+2. 同时通知所有 `security.admin_chat_ids` 里配置的管理员，附上可直接复制的 `/admin chat add <chat_id>` 或 `/admin group add <chat_id>` 命令
+3. 同一 chat 在进程生命周期内只通知一次，不会刷屏
+
 ## 6. 回复为什么现在看起来像“回复某条消息”？
 
 这是刻意做的。
