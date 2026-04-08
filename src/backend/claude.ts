@@ -310,66 +310,47 @@ export class ClaudeBackend implements Backend {
       return [];
     }
 
+    // Claude Code stores sessions as flat JSON files: ~/.claude/sessions/<PID>.json
+    // Format: {"pid":12673,"sessionId":"uuid","cwd":"/path","startedAt":1774239981398}
     for (const entry of entries) {
-      const sessionDir = path.join(sessionsDir, entry);
-      const stat = await fs.stat(sessionDir).catch(() => null);
-      if (!stat?.isDirectory()) continue;
+      if (!entry.endsWith('.json')) continue;
+      const filePath = path.join(sessionsDir, entry);
+      const stat = await fs.stat(filePath).catch(() => null);
+      if (!stat?.isFile()) continue;
 
-      // Claude sessions are stored as directories with session files inside
-      // The directory name is the session ID
-      const sessionId = entry;
-      const sessionFiles = await fs.readdir(sessionDir).catch(() => [] as string[]);
+      try {
+        const content = await fs.readFile(filePath, 'utf8');
+        const parsed = JSON.parse(content) as {
+          pid?: number;
+          sessionId?: string;
+          cwd?: string;
+          startedAt?: number;
+        };
 
-      // Look for session metadata - Claude stores conversation.jsonl or similar
-      let cwd = '';
-      let updatedAt = new Date(stat.mtimeMs).toISOString();
-      let createdAt: string | undefined;
+        const sessionId = parsed.sessionId;
+        const cwd = parsed.cwd;
+        if (!sessionId || !cwd) continue;
 
-      // Try to read session metadata from the first jsonl file
-      for (const file of sessionFiles) {
-        if (!file.endsWith('.jsonl')) continue;
-        const filePath = path.join(sessionDir, file);
-        try {
-          const content = await fs.readFile(filePath, 'utf8');
-          const firstLine = content.split(/\r?\n/, 1)[0]?.trim();
-          if (!firstLine) continue;
-          const parsed = JSON.parse(firstLine);
-          if (parsed.cwd || parsed.working_directory) {
-            cwd = parsed.cwd ?? parsed.working_directory ?? '';
-          }
-          if (parsed.timestamp) {
-            createdAt = parsed.timestamp;
-          }
-          break;
-        } catch {
-          continue;
+        const startedAt = typeof parsed.startedAt === 'number' ? parsed.startedAt : undefined;
+        const createdAt = startedAt ? new Date(startedAt).toISOString() : undefined;
+        const updatedAt = new Date(
+          startedAt ? Math.max(startedAt, stat.mtimeMs) : stat.mtimeMs,
+        ).toISOString();
+
+        const existing = sessions.get(sessionId);
+        if (!existing || existing.updatedAt < updatedAt) {
+          sessions.set(sessionId, {
+            sessionId,
+            cwd,
+            updatedAt,
+            createdAt,
+            filePath,
+            source: 'sessions',
+            backend: 'claude',
+          });
         }
-      }
-
-      // If no cwd found from jsonl, try reading from session config
-      if (!cwd) {
-        try {
-          const configPath = path.join(sessionDir, 'config.json');
-          const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
-          cwd = config.cwd ?? config.working_directory ?? '';
-        } catch {
-          // ignore
-        }
-      }
-
-      if (!cwd) continue;
-
-      const existing = sessions.get(sessionId);
-      if (!existing || existing.updatedAt < updatedAt) {
-        sessions.set(sessionId, {
-          sessionId,
-          cwd,
-          updatedAt,
-          createdAt,
-          filePath: sessionDir,
-          source: 'sessions',
-          backend: 'claude',
-        });
+      } catch {
+        continue;
       }
     }
 

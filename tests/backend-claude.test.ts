@@ -1,6 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 import { ClaudeBackend } from '../src/backend/claude.js';
 import type { ClaudeBackendConfig, ClaudeProjectConfig } from '../src/backend/claude.js';
 import type { Logger } from '../src/logging.js';
@@ -231,5 +234,77 @@ describe('ClaudeBackend args building', () => {
     const { args } = spawnCalls[0]!;
     expect(args).toContain('--append-system-prompt');
     expect(args).toContain('Always respond in English');
+  });
+});
+
+describe('ClaudeBackend session scanning', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-sessions-test-'));
+    await fs.mkdir(path.join(tmpDir, 'sessions'), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('scans flat JSON session files and matches by project root', async () => {
+    // Write two session files in the Claude Code format
+    await fs.writeFile(
+      path.join(tmpDir, 'sessions', '12345.json'),
+      JSON.stringify({ pid: 12345, sessionId: 'uuid-aaa', cwd: '/Users/test/Documents/EBook', startedAt: 1774239981398 }),
+    );
+    await fs.writeFile(
+      path.join(tmpDir, 'sessions', '67890.json'),
+      JSON.stringify({ pid: 67890, sessionId: 'uuid-bbb', cwd: '/Users/test/Documents/Other', startedAt: 1774239900000 }),
+    );
+
+    const backend = new ClaudeBackend(baseConfig(), tmpDir);
+
+    // Should find sessions matching EBook project
+    const sessions = await backend.listProjectSessions('/Users/test/Documents/EBook', 10);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]!.sessionId).toBe('uuid-aaa');
+    expect(sessions[0]!.matchKind).toBe('exact-root');
+    expect(sessions[0]!.backend).toBe('claude');
+
+    // findLatestSession should return it
+    const latest = await backend.findLatestSession('/Users/test/Documents/EBook');
+    expect(latest).not.toBeNull();
+    expect(latest!.sessionId).toBe('uuid-aaa');
+  });
+
+  it('returns empty array when sessions directory does not exist', async () => {
+    const backend = new ClaudeBackend(baseConfig(), path.join(tmpDir, 'nonexistent'));
+    const sessions = await backend.listProjectSessions('/some/path', 10);
+    expect(sessions).toHaveLength(0);
+  });
+
+  it('ignores non-json files and malformed json', async () => {
+    await fs.writeFile(path.join(tmpDir, 'sessions', 'readme.txt'), 'not a session');
+    await fs.writeFile(path.join(tmpDir, 'sessions', 'bad.json'), '{broken');
+    await fs.writeFile(
+      path.join(tmpDir, 'sessions', 'good.json'),
+      JSON.stringify({ pid: 1, sessionId: 'uuid-ok', cwd: '/test/project', startedAt: 1774239981398 }),
+    );
+
+    const backend = new ClaudeBackend(baseConfig(), tmpDir);
+    const sessions = await backend.listProjectSessions('/test/project', 10);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]!.sessionId).toBe('uuid-ok');
+  });
+
+  it('finds session by id', async () => {
+    await fs.writeFile(
+      path.join(tmpDir, 'sessions', '111.json'),
+      JSON.stringify({ pid: 111, sessionId: 'uuid-find-me', cwd: '/test/repo', startedAt: 1774239981398 }),
+    );
+
+    const backend = new ClaudeBackend(baseConfig(), tmpDir);
+    const found = await backend.findSessionById('/test/repo', 'uuid-find-me');
+    expect(found).not.toBeNull();
+    expect(found!.sessionId).toBe('uuid-find-me');
+    expect(found!.matchKind).toBe('exact-root');
   });
 });

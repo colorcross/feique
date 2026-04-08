@@ -7,7 +7,7 @@ export interface MemoryCommandFilters {
 
 export type AdminResource = 'viewer' | 'operator' | 'admin' | 'service-observer' | 'service-restart' | 'config-admin' | 'group' | 'chat' | 'project' | 'service' | 'config';
 export type AdminListAction = 'status' | 'list' | 'add' | 'remove';
-export type AdminProjectAction = 'add' | 'create' | 'remove' | 'set' | 'list';
+export type AdminProjectAction = 'add' | 'create' | 'remove' | 'set' | 'list' | 'setup';
 export type AdminConfigAction = 'history' | 'rollback';
 
 export type BridgeCommand =
@@ -784,6 +784,9 @@ function parseAdminCommand(argument: string): BridgeCommand {
         field: rest[1],
         value: rest.slice(2).join(' ').trim() || undefined,
       };
+    }
+    if (action === 'setup') {
+      return { kind: 'admin', resource: 'project', action: 'setup', alias: rest[0], value: rest.slice(1).join(' ').trim() || undefined };
     }
     return { kind: 'prompt', prompt: `/admin${argument ? ` ${argument}` : ''}`.trim() };
   }

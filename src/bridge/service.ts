@@ -2143,7 +2143,7 @@ export class FeiqueService {
         );
         return;
       }
-      if (command.action === 'add' || command.action === 'create') {
+      if (command.action === 'add' || command.action === 'create' || command.action === 'setup') {
         if (!(globalAdmin || globalConfigAdmin)) {
           await this.sendTextReply(context.chat_id, '当前 chat_id 无权动态接入项目。', context.message_id, context.text);
           return;
@@ -2151,33 +2151,38 @@ export class FeiqueService {
         if (!command.alias || !command.value) {
           await this.sendTextReply(
             context.chat_id,
-            command.action === 'create' ? '用法: /admin project create <alias> <root>' : '用法: /admin project add <alias> <root>',
+            command.action === 'setup'
+              ? '用法: /admin project setup <alias> <root>\n一键创建项目并将当前群设为 operator。'
+              : command.action === 'create' ? '用法: /admin project create <alias> <root>' : '用法: /admin project add <alias> <root>',
             context.message_id,
             context.text,
           );
           return;
         }
-        if (command.action === 'create' && this.config.projects[command.alias]) {
+        const isCreate = command.action === 'create' || command.action === 'setup';
+        if (isCreate && this.config.projects[command.alias]) {
           await this.sendTextReply(context.chat_id, `项目已存在: ${command.alias}`, context.message_id, context.text);
           return;
         }
         const resolvedRoot = path.resolve(expandHomePath(command.value));
         const snapshot = await this.snapshotConfigForAdminMutation(context, `project.${command.action}`, `${command.alias} -> ${resolvedRoot}`);
-        if (command.action === 'create') {
+        if (isCreate) {
           await createProjectAlias({ configPath: runtimeConfigPath!, alias: command.alias, root: command.value });
         } else {
           await bindProjectAlias({ configPath: runtimeConfigPath!, alias: command.alias, root: command.value });
         }
+        // For setup: auto-add current chat as operator + viewer
+        const autoOperator = command.action === 'setup' ? [context.chat_id] : [];
         this.config.projects[command.alias] = {
           root: resolvedRoot,
           session_scope: 'chat',
           mention_required: true,
           knowledge_paths: [],
           wiki_space_ids: [],
-          viewer_chat_ids: [],
-          operator_chat_ids: [],
+          viewer_chat_ids: [...autoOperator],
+          operator_chat_ids: [...autoOperator],
           admin_chat_ids: [],
-          notification_chat_ids: [],
+          notification_chat_ids: [...autoOperator],
           session_operator_chat_ids: [],
           run_operator_chat_ids: [],
           config_admin_chat_ids: [],
@@ -2187,9 +2192,29 @@ export class FeiqueService {
           chat_rate_limit_window_seconds: 60,
           chat_rate_limit_max_runs: 20,
         };
+        // Persist the auto-added chat_ids to config file for setup
+        if (command.action === 'setup') {
+          await updateProjectConfig(runtimeConfigPath!, command.alias, {
+            viewer_chat_ids: autoOperator,
+            operator_chat_ids: autoOperator,
+            notification_chat_ids: autoOperator,
+          });
+        }
+        const replyLines = [
+          `${isCreate ? '已创建并接入项目' : '已接入项目'}: ${command.alias}`,
+          `根目录: ${resolvedRoot}`,
+        ];
+        if (command.action === 'setup') {
+          replyLines.push(`已自动将当前群设为 operator + viewer + notification`);
+          replyLines.push('');
+          replyLines.push('可在其他群执行以下命令添加权限:');
+          replyLines.push(`/admin project set ${command.alias} operator_chat_ids +<chat_id>`);
+          replyLines.push('');
+          replyLines.push(`切换到此项目: /project ${command.alias}`);
+        }
         await this.sendTextReply(
           context.chat_id,
-          `${command.action === 'create' ? '已创建并接入项目' : '已接入项目'}: ${command.alias}\n根目录: ${resolvedRoot}`,
+          replyLines.join('\n'),
           context.message_id,
           context.text,
         );
@@ -2200,10 +2225,11 @@ export class FeiqueService {
           project_alias: command.alias,
           root: resolvedRoot,
           snapshot_id: snapshot.id,
+          auto_operator: command.action === 'setup' ? context.chat_id : undefined,
         });
         this.logger.info(
-          { alias: command.alias, root: resolvedRoot, actorId: context.actor_id, created: command.action === 'create' },
-          command.action === 'create' ? 'Project created by Feishu admin' : 'Project added by Feishu admin',
+          { alias: command.alias, root: resolvedRoot, actorId: context.actor_id, created: isCreate, setup: command.action === 'setup' },
+          command.action === 'setup' ? 'Project setup by Feishu admin' : isCreate ? 'Project created by Feishu admin' : 'Project added by Feishu admin',
         );
         return;
       }
@@ -2242,11 +2268,11 @@ export class FeiqueService {
         await this.sendTextReply(context.chat_id, `当前 chat_id 无权修改项目 ${command.alias}。`, context.message_id, context.text);
         return;
       }
-      const patch = this.parseProjectPatch(command.field, command.value);
+      const patch = this.parseProjectPatch(command.field, command.value, command.alias);
       if (!patch) {
         await this.sendTextReply(
           context.chat_id,
-          '支持字段: root, profile, sandbox, session_scope, mention_required, description, viewer_chat_ids, operator_chat_ids, admin_chat_ids, session_operator_chat_ids, run_operator_chat_ids, config_admin_chat_ids, download_dir, temp_dir, cache_dir, log_dir, run_priority, chat_rate_limit_window_seconds, chat_rate_limit_max_runs',
+          '支持字段: root, profile, sandbox, session_scope, mention_required, description, viewer_chat_ids, operator_chat_ids, admin_chat_ids, notification_chat_ids, session_operator_chat_ids, run_operator_chat_ids, config_admin_chat_ids, download_dir, temp_dir, cache_dir, log_dir, run_priority, chat_rate_limit_window_seconds, chat_rate_limit_max_runs\n\n列表字段支持增量操作: +value 添加, -value 移除',
           context.message_id,
           context.text,
         );
@@ -4220,7 +4246,7 @@ export class FeiqueService {
     replaceProjects(this.config.projects, nextConfig.projects);
   }
 
-  private parseProjectPatch(field: string, value: string): Partial<ProjectConfig> | null {
+  private parseProjectPatch(field: string, value: string, projectAlias?: string): Partial<ProjectConfig> | null {
     switch (field) {
       case 'root':
         return { root: value };
@@ -4244,17 +4270,13 @@ export class FeiqueService {
       case 'description':
         return { description: value };
       case 'viewer_chat_ids':
-        return { viewer_chat_ids: splitCommaSeparatedValues(value) };
       case 'operator_chat_ids':
-        return { operator_chat_ids: splitCommaSeparatedValues(value) };
       case 'admin_chat_ids':
-        return { admin_chat_ids: splitCommaSeparatedValues(value) };
       case 'session_operator_chat_ids':
-        return { session_operator_chat_ids: splitCommaSeparatedValues(value) };
       case 'run_operator_chat_ids':
-        return { run_operator_chat_ids: splitCommaSeparatedValues(value) };
       case 'config_admin_chat_ids':
-        return { config_admin_chat_ids: splitCommaSeparatedValues(value) };
+      case 'notification_chat_ids':
+        return { [field]: this.resolveListPatch(field, value, projectAlias) };
       case 'download_dir':
         return { download_dir: value };
       case 'temp_dir':
@@ -4278,6 +4300,31 @@ export class FeiqueService {
       default:
         return null;
     }
+  }
+
+  /**
+   * Resolve a list field patch with incremental add (+value) / remove (-value) support.
+   * Plain values (no prefix) replace the entire list for backward compatibility.
+   */
+  private resolveListPatch(field: string, value: string, projectAlias?: string): string[] {
+    const trimmed = value.trim();
+
+    // Incremental add: "+oc_xxx" or "+oc_xxx,oc_yyy"
+    if (trimmed.startsWith('+')) {
+      const toAdd = splitCommaSeparatedValues(trimmed.slice(1));
+      const existing = projectAlias ? (this.config.projects[projectAlias]?.[field as keyof ProjectConfig] as string[] ?? []) : [];
+      return Array.from(new Set([...existing, ...toAdd]));
+    }
+
+    // Incremental remove: "-oc_xxx" or "-oc_xxx,oc_yyy"
+    if (trimmed.startsWith('-')) {
+      const toRemove = new Set(splitCommaSeparatedValues(trimmed.slice(1)));
+      const existing = projectAlias ? (this.config.projects[projectAlias]?.[field as keyof ProjectConfig] as string[] ?? []) : [];
+      return existing.filter((id) => !toRemove.has(id));
+    }
+
+    // Replace: "oc_xxx,oc_yyy"
+    return splitCommaSeparatedValues(value);
   }
 
   private resolveProjectDownloadDir(projectAlias: string, project: ProjectConfig): string {
