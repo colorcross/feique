@@ -168,6 +168,10 @@ ollama_model = "auto"
 
 ## 用户级服务安装
 
+> 想在不安装 feique 的情况下先预览模板长什么样，可看
+> [`examples/service/`](../examples/service/README.md)。`feique service print`
+> 子命令可以在本机直接渲染一份不落盘的预览。
+
 ### macOS
 
 1. 生成并写入 LaunchAgent：
