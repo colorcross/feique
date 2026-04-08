@@ -98,22 +98,17 @@ import { bindProjectAlias, createProjectAlias, removeProjectAlias, updateProject
 import { buildFeishuPost } from '../feishu/text.js';
 import { ConfigHistoryStore, type ConfigSnapshot } from '../state/config-history-store.js';
 import { loadBridgeConfigFile } from '../config/load.js';
-import { ensureDir, writeUtf8Atomic } from '../utils/fs.js';
 import { expandHomePath } from '../utils/path.js';
 import { canAccessGlobalCapability, canAccessProject, canAccessProjectCapability, describeMinimumRole, filterAccessibleProjects, resolveProjectAccessRole, type AccessRole } from '../security/access.js';
 import { adoptProjectSession as adoptSharedProjectSession, listBridgeSessions as listSharedBridgeSessions, switchProjectBinding as switchSharedProjectBinding } from '../control-plane/project-session.js';
 import { getProjectAuditDir, getProjectCacheDir, getProjectDownloadsDir, getProjectTempDir } from '../projects/paths.js';
 import { buildTeamActivityView, detectOverlaps, formatTeamView, formatOverlapAlerts } from '../collaboration/awareness.js';
-import { buildLearnInput, formatRecallResults } from '../collaboration/knowledge.js';
 import { createReview } from '../collaboration/handoff.js';
-import { analyzeTeamHealth, formatInsightsReport } from '../collaboration/insights.js';
 import { classifyOperation, enforceTrustBoundary } from '../collaboration/trust.js';
-import { buildProjectTimeline, buildOnboardingContext, formatTimeline, isNewActor } from '../collaboration/timeline.js';
 import { HandoffStore } from '../state/handoff-store.js';
 import { TrustStore } from '../state/trust-store.js';
 import { IntentClassifier } from './intent-classifier.js';
 import { checkRunAlerts, formatAlert, DEFAULT_ALERT_RULES } from '../collaboration/proactive-alerts.js';
-import { detectKnowledgeGaps, formatKnowledgeGaps } from '../collaboration/knowledge-gaps.js';
 
 export interface ActiveRunHandle {
   runId: string;
