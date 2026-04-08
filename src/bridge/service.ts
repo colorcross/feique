@@ -67,6 +67,10 @@ import {
 } from './feishu-commands.js';
 import { handleMemoryCommand as handleMemoryCommandImpl } from './memory-commands.js';
 import {
+  handleAdminConfigCommand as handleAdminConfigCommandImpl,
+  parseProjectPatch as parseProjectPatchImpl,
+} from './admin-config.js';
+import {
   formatQuotedReply,
   buildReplyTitle,
   sanitizeUserVisibleReply,
@@ -185,9 +189,9 @@ export class FeiqueService {
     public readonly runStateStore: RunStateStore = new RunStateStore(config.storage.dir),
     public readonly memoryStore: MemoryStore = new MemoryStore(config.storage.dir),
     private readonly codexSessionIndex: CodexSessionIndex = new CodexSessionIndex(),
-    private readonly runtimeControl?: RuntimeControl,
-    private readonly adminAuditLog: AuditLog = new AuditLog(config.storage.dir, 'admin-audit.jsonl'),
-    private readonly configHistoryStore: ConfigHistoryStore = new ConfigHistoryStore(config.storage.dir),
+    public readonly runtimeControl?: RuntimeControl,
+    public readonly adminAuditLog: AuditLog = new AuditLog(config.storage.dir, 'admin-audit.jsonl'),
+    public readonly configHistoryStore: ConfigHistoryStore = new ConfigHistoryStore(config.storage.dir),
     public readonly handoffStore: HandoffStore = new HandoffStore(config.storage.dir),
     public readonly trustStore: TrustStore = new TrustStore(config.storage.dir),
   ) {
@@ -1910,7 +1914,7 @@ export class FeiqueService {
         await this.sendTextReply(context.chat_id, `当前 chat_id 无权修改项目 ${command.alias}。`, context.message_id, context.text);
         return;
       }
-      const patch = this.parseProjectPatch(command.field, command.value, command.alias);
+      const patch = parseProjectPatchImpl(this.config, command.field, command.value, command.alias);
       if (!patch) {
         await this.sendTextReply(
           context.chat_id,
@@ -2826,66 +2830,10 @@ export class FeiqueService {
     context: IncomingMessageContext,
     command: { kind: 'admin'; resource: 'config'; action: 'history' | 'rollback'; value?: string },
   ): Promise<void> {
-    if (command.action === 'history' && !this.canReadConfigHistory(context.chat_id)) {
-      await this.sendTextReply(context.chat_id, '当前 chat_id 无权查看配置历史。', context.message_id, context.text);
-      return;
-    }
-    if (command.action === 'rollback' && !this.canMutateRuntimeConfig(context.chat_id)) {
-      await this.sendTextReply(context.chat_id, '当前 chat_id 无权回滚配置。', context.message_id, context.text);
-      return;
-    }
-    if (!this.runtimeControl?.configPath) {
-      await this.sendTextReply(context.chat_id, '当前运行实例没有可写配置路径，无法执行配置历史操作。', context.message_id, context.text);
-      return;
-    }
-
-    if (command.action === 'history') {
-      const snapshots = await this.configHistoryStore.listSnapshots();
-      if (snapshots.length === 0) {
-        await this.sendTextReply(context.chat_id, '当前没有可回滚的配置快照。', context.message_id, context.text);
-        return;
-      }
-      const lines = ['最近配置快照:'];
-      for (const snapshot of snapshots) {
-        lines.push(`- ${snapshot.id} | ${snapshot.at} | ${snapshot.action}${snapshot.summary ? ` | ${snapshot.summary}` : ''}`);
-      }
-      await this.sendTextReply(context.chat_id, lines.join('\n'), context.message_id, context.text);
-      return;
-    }
-
-    const target = await this.configHistoryStore.getSnapshot(command.value);
-    if (!target) {
-      await this.sendTextReply(context.chat_id, '未找到指定配置快照。可先执行 `/admin config history`。', context.message_id, context.text);
-      return;
-    }
-
-    const rollbackSnapshot = await this.snapshotConfigForAdminMutation(context, 'config.rollback', `rollback -> ${target.id}`);
-    const previousContent = rollbackSnapshot.content;
-    try {
-      await writeUtf8Atomic(this.runtimeControl.configPath, target.content);
-      await this.reloadRuntimeConfigFromDisk(this.runtimeControl.configPath);
-    } catch (error) {
-      await writeUtf8Atomic(this.runtimeControl.configPath, previousContent);
-      await this.reloadRuntimeConfigFromDisk(this.runtimeControl.configPath);
-      throw error;
-    }
-    await this.appendAdminAudit({
-      type: 'admin.config.rollback',
-      chat_id: context.chat_id,
-      actor_id: context.actor_id,
-      target_snapshot_id: target.id,
-      snapshot_id: rollbackSnapshot.id,
-      config_path: this.runtimeControl.configPath,
-    });
-    await this.sendTextReply(
-      context.chat_id,
-      `已回滚配置。\n目标快照: ${target.id}\n回滚前快照: ${rollbackSnapshot.id}\n如需生效到某些运行时状态，请再执行 /admin service restart。`,
-      context.message_id,
-      context.text,
-    );
+    return handleAdminConfigCommandImpl(this, context, command);
   }
 
-  private async snapshotConfigForAdminMutation(
+  public async snapshotConfigForAdminMutation(
     context: IncomingMessageContext,
     action: string,
     summary?: string,
@@ -2903,11 +2851,11 @@ export class FeiqueService {
     });
   }
 
-  private async appendAdminAudit(event: { type: string; [key: string]: unknown }): Promise<void> {
+  public async appendAdminAudit(event: { type: string; [key: string]: unknown }): Promise<void> {
     await this.adminAuditLog.append(event);
   }
 
-  private async reloadRuntimeConfigFromDisk(configPath: string): Promise<void> {
+  public async reloadRuntimeConfigFromDisk(configPath: string): Promise<void> {
     const { config: nextConfig } = await loadBridgeConfigFile(configPath);
     replaceObject(this.config.service, nextConfig.service);
     replaceObject(this.config.codex, nextConfig.codex);
@@ -2917,86 +2865,6 @@ export class FeiqueService {
     replaceProjects(this.config.projects, nextConfig.projects);
   }
 
-  private parseProjectPatch(field: string, value: string, projectAlias?: string): Partial<ProjectConfig> | null {
-    switch (field) {
-      case 'root':
-        return { root: value };
-      case 'profile':
-        return { profile: value };
-      case 'sandbox':
-        if (value === 'read-only' || value === 'workspace-write' || value === 'danger-full-access') {
-          return { sandbox: value };
-        }
-        return null;
-      case 'session_scope':
-        if (value === 'chat' || value === 'chat-user') {
-          return { session_scope: value };
-        }
-        return null;
-      case 'mention_required':
-        if (value === 'true' || value === 'false') {
-          return { mention_required: value === 'true' };
-        }
-        return null;
-      case 'description':
-        return { description: value };
-      case 'viewer_chat_ids':
-      case 'operator_chat_ids':
-      case 'admin_chat_ids':
-      case 'session_operator_chat_ids':
-      case 'run_operator_chat_ids':
-      case 'config_admin_chat_ids':
-      case 'notification_chat_ids':
-        return { [field]: this.resolveListPatch(field, value, projectAlias) };
-      case 'download_dir':
-        return { download_dir: value };
-      case 'temp_dir':
-        return { temp_dir: value };
-      case 'cache_dir':
-        return { cache_dir: value };
-      case 'log_dir':
-        return { log_dir: value };
-      case 'run_priority': {
-        const parsed = Number(value);
-        return Number.isInteger(parsed) && parsed >= 1 && parsed <= 1000 ? { run_priority: parsed } : null;
-      }
-      case 'chat_rate_limit_window_seconds': {
-        const parsed = Number(value);
-        return Number.isInteger(parsed) && parsed > 0 ? { chat_rate_limit_window_seconds: parsed } : null;
-      }
-      case 'chat_rate_limit_max_runs': {
-        const parsed = Number(value);
-        return Number.isInteger(parsed) && parsed > 0 ? { chat_rate_limit_max_runs: parsed } : null;
-      }
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * Resolve a list field patch with incremental add (+value) / remove (-value) support.
-   * Plain values (no prefix) replace the entire list for backward compatibility.
-   */
-  private resolveListPatch(field: string, value: string, projectAlias?: string): string[] {
-    const trimmed = value.trim();
-
-    // Incremental add: "+oc_xxx" or "+oc_xxx,oc_yyy"
-    if (trimmed.startsWith('+')) {
-      const toAdd = splitCommaSeparatedValues(trimmed.slice(1));
-      const existing = projectAlias ? (this.config.projects[projectAlias]?.[field as keyof ProjectConfig] as string[] ?? []) : [];
-      return Array.from(new Set([...existing, ...toAdd]));
-    }
-
-    // Incremental remove: "-oc_xxx" or "-oc_xxx,oc_yyy"
-    if (trimmed.startsWith('-')) {
-      const toRemove = new Set(splitCommaSeparatedValues(trimmed.slice(1)));
-      const existing = projectAlias ? (this.config.projects[projectAlias]?.[field as keyof ProjectConfig] as string[] ?? []) : [];
-      return existing.filter((id) => !toRemove.has(id));
-    }
-
-    // Replace: "oc_xxx,oc_yyy"
-    return splitCommaSeparatedValues(value);
-  }
 
   private resolveProjectDownloadDir(projectAlias: string, project: ProjectConfig): string {
     return getProjectDownloadsDir(this.config.storage.dir, projectAlias, project);
