@@ -7,7 +7,11 @@ export const replyModeSchema = z.enum(['text', 'post', 'card']);
 export const mcpTransportSchema = z.enum(['stdio', 'http']);
 export const memoryPinOverflowStrategySchema = z.enum(['reject', 'age-out']);
 export const memoryPinAgeBasisSchema = z.enum(['updated_at', 'last_accessed_at']);
-export const backendNameSchema = z.enum(['codex', 'claude']);
+// Backend name is a plain string — the set of known backends is open-ended
+// and maintained at runtime via src/backend/registry.ts. Validation against
+// registered backends happens at the factory boundary
+// (requireBackendDefinition) rather than at config parse time.
+export const backendNameSchema = z.string();
 export const embeddingProviderSchema = z.enum(['local', 'ollama']);
 export const claudePermissionModeSchema = z.enum(['acceptEdits', 'bypassPermissions', 'default', 'dontAsk', 'plan', 'auto']);
 
@@ -15,6 +19,7 @@ export const projectSchema = z.object({
   root: z.string(),
   backend: backendNameSchema.optional(),
   failover: z.boolean().optional(),
+  fallback: z.array(backendNameSchema).optional(),
   profile: z.string().optional(),
   sandbox: sandboxSchema.optional(),
   session_scope: sessionScopeSchema.default('chat'),
@@ -218,6 +223,15 @@ export const bridgeConfigSchema = z.object({
     .object({
       default: backendNameSchema.default('codex'),
       failover: z.boolean().default(true),
+      /**
+       * Global fallback chain (v1.5+). When the primary backend probe
+       * fails, the resolver walks this list in order and picks the
+       * first one whose probe succeeds. If unset, the registry's
+       * per-backend `defaultFallback` is used (codex → ['claude'],
+       * claude → ['codex'], qwen → ['claude', 'codex']). Per-project
+       * override via projects.<alias>.fallback.
+       */
+      fallback: z.array(backendNameSchema).optional(),
     })
     .optional()
     .default({ default: 'codex', failover: true }),

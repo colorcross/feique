@@ -14,8 +14,13 @@ import type { BridgeCommand } from './commands.js';
 
 export interface IntentClassifierConfig {
   enabled: boolean;
-  /** Which backend to use: 'claude' | 'codex'. Reads from bridge config. */
-  backend: 'claude' | 'codex';
+  /**
+   * Which backend to use. Known shapes: 'claude', 'codex'. Unknown
+   * backends (e.g. 'qwen') currently fall through to the codex-shaped
+   * spawn args; per-backend classifier branches can be added when
+   * needed.
+   */
+  backend: string;
   /** Backend CLI binary path. */
   backend_bin: string;
   /** Shell for pre_exec. */

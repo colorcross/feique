@@ -4,7 +4,12 @@ import type { Logger } from '../logging.js';
 // Backend name
 // ---------------------------------------------------------------------------
 
-export type BackendName = 'codex' | 'claude';
+/**
+ * Backend identifier. Intentionally typed as `string` (not a literal union)
+ * because backends are registered at runtime via src/backend/registry.ts.
+ * Use requireBackendDefinition() to validate at the boundary.
+ */
+export type BackendName = string;
 
 // ---------------------------------------------------------------------------
 // Unified event emitted by both Codex and Claude CLIs

@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import type { Backend, BackendEvent, BackendRunOptions, BackendRunResult, IndexedSession, SessionMatchKind, SessionSource } from './types.js';
 import type { Logger } from '../logging.js';
+import type { BackendDefinition } from './registry.js';
+import { registerBackend } from './registry.js';
 
 export type ClaudePermissionMode = 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk' | 'plan' | 'auto';
 
@@ -413,3 +415,34 @@ function normalizeProjectName(input: string): string {
   const filtered = tokens.filter(token => !FUZZY_SUFFIX_TOKENS.has(token));
   return (filtered.length > 0 ? filtered : tokens).join('-');
 }
+
+// ---------------------------------------------------------------------------
+// Registry definition
+// ---------------------------------------------------------------------------
+
+export const claudeBackendDefinition: BackendDefinition = {
+  name: 'claude',
+  create(config) {
+    return new ClaudeBackend({
+      bin: config.claude?.bin ?? 'claude',
+      shell: config.claude?.shell ?? config.codex.shell,
+      preExec: config.claude?.pre_exec ?? config.codex.pre_exec,
+      defaultPermissionMode: config.claude?.default_permission_mode ?? 'auto',
+      defaultModel: config.claude?.default_model,
+      maxBudgetUsd: config.claude?.max_budget_usd,
+      allowedTools: config.claude?.allowed_tools,
+      systemPromptAppend: config.claude?.system_prompt_append,
+      runTimeoutMs: config.claude?.run_timeout_ms ?? config.codex.run_timeout_ms,
+    });
+  },
+  probeSpec(config) {
+    return {
+      bin: config.claude?.bin ?? 'claude',
+      shell: config.claude?.shell ?? config.codex.shell,
+      preExec: config.claude?.pre_exec ?? config.codex.pre_exec,
+    };
+  },
+  defaultFallback: ['codex'],
+};
+
+registerBackend(claudeBackendDefinition);

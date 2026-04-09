@@ -1,9 +1,25 @@
 import type { BridgeConfig, ProjectConfig } from '../config/schema.js';
 import type { Backend, BackendName } from './types.js';
-import { CodexBackend } from './codex.js';
-import { ClaudeBackend } from './claude.js';
 import { CodexSessionIndex } from '../codex/session-index.js';
-import { extractProbeSpec, probeBackend, type ProbeResult } from './probe.js';
+import { probeBackend, type ProbeResult } from './probe.js';
+import {
+  getBackendDefinition,
+  requireBackendDefinition,
+  listBackendNames,
+  type BackendDependencies,
+} from './registry.js';
+
+// Side-effect imports: these force the codex and claude backend modules
+// to load and call registerBackend() before the factory is first used.
+// Adding a new backend means adding a matching import line here (and in
+// src/bridge/service.ts for anything that uses BackendName before the
+// factory is touched — rare).
+import './codex.js';
+import './claude.js';
+
+function toDeps(codexSessionIndex?: CodexSessionIndex): BackendDependencies {
+  return codexSessionIndex ? { codexSessionIndex } : {};
+}
 
 export function createBackend(config: BridgeConfig, codexSessionIndex?: CodexSessionIndex): Backend {
   const backendName = resolveDefaultBackend(config);
@@ -11,35 +27,8 @@ export function createBackend(config: BridgeConfig, codexSessionIndex?: CodexSes
 }
 
 export function createBackendByName(name: BackendName, config: BridgeConfig, codexSessionIndex?: CodexSessionIndex): Backend {
-  switch (name) {
-    case 'codex':
-      return new CodexBackend(
-        {
-          bin: config.codex.bin,
-          shell: config.codex.shell,
-          preExec: config.codex.pre_exec,
-          defaultProfile: config.codex.default_profile,
-          defaultSandbox: config.codex.default_sandbox,
-          skipGitRepoCheck: config.codex.skip_git_repo_check,
-          runTimeoutMs: config.codex.run_timeout_ms,
-        },
-        codexSessionIndex ?? new CodexSessionIndex(),
-      );
-    case 'claude':
-      return new ClaudeBackend({
-        bin: config.claude?.bin ?? 'claude',
-        shell: config.claude?.shell ?? config.codex.shell,
-        preExec: config.claude?.pre_exec ?? config.codex.pre_exec,
-        defaultPermissionMode: config.claude?.default_permission_mode ?? 'auto',
-        defaultModel: config.claude?.default_model,
-        maxBudgetUsd: config.claude?.max_budget_usd,
-        allowedTools: config.claude?.allowed_tools,
-        systemPromptAppend: config.claude?.system_prompt_append,
-        runTimeoutMs: config.claude?.run_timeout_ms ?? config.codex.run_timeout_ms,
-      });
-    default:
-      throw new Error(`Unknown backend: ${name}`);
-  }
+  const def = requireBackendDefinition(name);
+  return def.create(config, toDeps(codexSessionIndex));
 }
 
 export function resolveDefaultBackend(config: BridgeConfig): BackendName {
@@ -71,7 +60,7 @@ export function resolveProjectBackendName(config: BridgeConfig, projectAlias: st
 }
 
 // ---------------------------------------------------------------------------
-// Startup-only failover
+// Startup-only failover with configurable fallback chain
 // ---------------------------------------------------------------------------
 
 export interface FailoverInfo {
@@ -86,10 +75,6 @@ export interface FailoverResolution {
   failover?: FailoverInfo;
 }
 
-function otherBackend(name: BackendName): BackendName {
-  return name === 'codex' ? 'claude' : 'codex';
-}
-
 function isFailoverEnabled(config: BridgeConfig, projectAlias: string): boolean {
   const project = config.projects[projectAlias];
   if (project?.failover !== undefined) return project.failover;
@@ -97,20 +82,58 @@ function isFailoverEnabled(config: BridgeConfig, projectAlias: string): boolean 
 }
 
 /**
+ * Resolve the fallback chain for a given primary backend:
+ *   1. project.fallback (per-project override)
+ *   2. config.backend.fallback (global)
+ *   3. registry definition's defaultFallback (e.g. codex → ['claude'])
+ *   4. "all other registered backends in registration order"
+ *
+ * The returned list never contains the primary, is de-duplicated, and
+ * skips any names that are not registered.
+ */
+export function resolveFallbackChain(
+  config: BridgeConfig,
+  projectAlias: string,
+  primary: BackendName,
+): BackendName[] {
+  const project = config.projects[projectAlias];
+  let raw: readonly string[] | undefined =
+    project?.fallback ??
+    config.backend?.fallback ??
+    getBackendDefinition(primary)?.defaultFallback;
+
+  if (!raw) {
+    raw = listBackendNames();
+  }
+
+  const seen = new Set<string>();
+  const chain: BackendName[] = [];
+  for (const candidate of raw) {
+    if (candidate === primary) continue;
+    if (seen.has(candidate)) continue;
+    if (!getBackendDefinition(candidate)) continue; // skip unknown
+    seen.add(candidate);
+    chain.push(candidate);
+  }
+  return chain;
+}
+
+/**
  * Resolve the backend to use for a run, with startup-only failover.
  *
- * Strategy (plan B):
+ * Strategy:
  *  1. Determine primary backend name (session override > project > default).
  *  2. If failover is disabled, return the primary without probing.
  *  3. Probe the primary. If it responds, return it.
- *  4. If the primary probe fails, probe the alternate. If it responds,
- *     return it with a FailoverInfo describing the switch.
- *  5. If both probes fail, return the primary anyway — the real run will
- *     surface the actual error with full context, and we avoid masking
- *     configuration mistakes with silent rewrites.
+ *  4. Walk the fallback chain (see resolveFallbackChain) probing each
+ *     candidate in order; first successful probe wins and the caller
+ *     gets a FailoverInfo describing the switch.
+ *  5. If every candidate fails, return the primary so the real error
+ *     surfaces on the actual run rather than being masked by a silent
+ *     rewrite.
  *
- * Runtime failures during an actual run are NOT retried here. That is the
- * deliberate boundary of plan B: we save users from "binary missing" and
+ * Runtime failures during an actual run are NOT retried here. That is
+ * the deliberate boundary: we save users from "binary missing" and
  * PATH issues, but we never burn tokens on speculative re-runs.
  */
 export async function resolveProjectBackendWithFailover(
@@ -128,31 +151,35 @@ export async function resolveProjectBackendWithFailover(
     };
   }
 
-  const primaryProbe = await probeBackend(primaryName, extractProbeSpec(config, primaryName));
+  const primaryDef = requireBackendDefinition(primaryName);
+  const primaryProbe: ProbeResult = await probeBackend(primaryName, primaryDef.probeSpec(config));
   if (primaryProbe.ok) {
     return {
-      backend: createBackendByName(primaryName, config, codexSessionIndex),
+      backend: primaryDef.create(config, toDeps(codexSessionIndex)),
       name: primaryName,
     };
   }
 
-  const alternateName = otherBackend(primaryName);
-  const alternateProbe: ProbeResult = await probeBackend(alternateName, extractProbeSpec(config, alternateName));
-  if (!alternateProbe.ok) {
-    // Both failed — let the primary run and report the real error.
-    return {
-      backend: createBackendByName(primaryName, config, codexSessionIndex),
-      name: primaryName,
-    };
+  const chain = resolveFallbackChain(config, projectAlias, primaryName);
+  for (const candidate of chain) {
+    const def = requireBackendDefinition(candidate);
+    const probe = await probeBackend(candidate, def.probeSpec(config));
+    if (probe.ok) {
+      return {
+        backend: def.create(config, toDeps(codexSessionIndex)),
+        name: candidate,
+        failover: {
+          from: primaryName,
+          to: candidate,
+          reason: primaryProbe.reason ?? 'unknown',
+        },
+      };
+    }
   }
 
+  // All probes failed — let the primary run and report the real error.
   return {
-    backend: createBackendByName(alternateName, config, codexSessionIndex),
-    name: alternateName,
-    failover: {
-      from: primaryName,
-      to: alternateName,
-      reason: primaryProbe.reason ?? 'unknown',
-    },
+    backend: primaryDef.create(config, toDeps(codexSessionIndex)),
+    name: primaryName,
   };
 }

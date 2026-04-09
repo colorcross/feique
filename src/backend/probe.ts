@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process';
-import type { BridgeConfig } from '../config/schema.js';
 import type { BackendName } from './types.js';
 
 /**
@@ -44,21 +43,6 @@ export interface ProbeSpec {
   bin: string;
   shell?: string | undefined;
   preExec?: string | undefined;
-}
-
-export function extractProbeSpec(config: BridgeConfig, backend: BackendName): ProbeSpec {
-  if (backend === 'claude') {
-    return {
-      bin: config.claude?.bin ?? 'claude',
-      shell: config.claude?.shell ?? config.codex.shell,
-      preExec: config.claude?.pre_exec ?? config.codex.pre_exec,
-    };
-  }
-  return {
-    bin: config.codex.bin,
-    shell: config.codex.shell,
-    preExec: config.codex.pre_exec,
-  };
 }
 
 function buildProbeCommand(spec: ProbeSpec): { command: string; args: string[] } {

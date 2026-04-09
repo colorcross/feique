@@ -2,6 +2,8 @@ import type { Backend, BackendRunOptions, BackendRunResult, BackendEvent, Indexe
 import { runCodexTurn, summarizeCodexEvent } from '../codex/runner.js';
 import { CodexSessionIndex } from '../codex/session-index.js';
 import type { SandboxMode } from '../config/schema.js';
+import type { BackendDefinition } from './registry.js';
+import { registerBackend } from './registry.js';
 
 export interface CodexBackendConfig {
   bin: string;
@@ -136,3 +138,35 @@ export class CodexBackend implements Backend {
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Registry definition
+// ---------------------------------------------------------------------------
+
+export const codexBackendDefinition: BackendDefinition = {
+  name: 'codex',
+  create(config, deps) {
+    return new CodexBackend(
+      {
+        bin: config.codex.bin,
+        shell: config.codex.shell,
+        preExec: config.codex.pre_exec,
+        defaultProfile: config.codex.default_profile,
+        defaultSandbox: config.codex.default_sandbox,
+        skipGitRepoCheck: config.codex.skip_git_repo_check,
+        runTimeoutMs: config.codex.run_timeout_ms,
+      },
+      deps.codexSessionIndex ?? new CodexSessionIndex(),
+    );
+  },
+  probeSpec(config) {
+    return {
+      bin: config.codex.bin,
+      shell: config.codex.shell,
+      preExec: config.codex.pre_exec,
+    };
+  },
+  defaultFallback: ['claude'],
+};
+
+registerBackend(codexBackendDefinition);
