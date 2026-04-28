@@ -10,7 +10,7 @@ import type { MemoryStore } from '../state/memory-store.js';
 import type { RunStateStore } from '../state/run-state-store.js';
 import type { TrustStore } from '../state/trust-store.js';
 import type { MetricsRegistry } from '../observability/metrics.js';
-import type { Backend, BackendEvent, BackendName } from '../backend/types.js';
+import type { Backend, BackendEvent, BackendName, BackendRunResult } from '../backend/types.js';
 import type { CodexSessionIndex } from '../codex/session-index.js';
 import type { FailoverInfo } from '../backend/factory.js';
 import { resolveProjectBackendWithFailover } from '../backend/factory.js';
@@ -220,77 +220,131 @@ export async function executePrompt(host: PipelineHost, input: ExecutePromptInpu
 
   host.metrics?.recordCodexTurnStarted(input.projectAlias, runId);
 
+  const runBackendTurn = async (sessionId?: string): Promise<BackendRunResult> => backend.run({
+    workdir: input.project.root,
+    prompt: bridgePrompt,
+    sessionId,
+    timeoutMs: backend.name === 'claude'
+      ? (host.config.claude?.run_timeout_ms ?? host.config.codex.run_timeout_ms)
+      : backend.name === 'qwen'
+        ? (host.config.qwen?.run_timeout_ms ?? host.config.codex.run_timeout_ms)
+        : host.config.codex.run_timeout_ms,
+    signal: activeRun.controller.signal,
+    logger: host.logger,
+    projectConfig: backend.name === 'codex'
+      ? {
+          profile: input.project.profile ?? host.config.codex.default_profile,
+          model: input.project.codex_model ?? host.config.codex.default_model,
+          sandbox: input.project.codex_sandbox ?? input.project.sandbox ?? host.config.codex.default_sandbox,
+          tempDir: host.resolveProjectTempDir(input.projectAlias, input.project),
+          cacheDir: host.resolveProjectCacheDir(input.projectAlias, input.project),
+        }
+      : backend.name === 'qwen'
+        ? {
+            approvalMode: input.project.qwen_approval_mode ?? host.config.qwen?.default_approval_mode,
+            model: input.project.qwen_model ?? host.config.qwen?.default_model,
+            allowedTools: input.project.qwen_allowed_tools ?? host.config.qwen?.allowed_tools,
+            systemPromptAppend: input.project.qwen_system_prompt_append ?? host.config.qwen?.system_prompt_append,
+          }
+        : {
+            permissionMode: input.project.claude_permission_mode ?? host.config.claude?.default_permission_mode,
+            model: input.project.claude_model ?? host.config.claude?.default_model,
+            maxBudgetUsd: input.project.claude_max_budget_usd ?? host.config.claude?.max_budget_usd,
+            allowedTools: input.project.claude_allowed_tools ?? host.config.claude?.allowed_tools,
+            systemPromptAppend: input.project.claude_system_prompt_append ?? host.config.claude?.system_prompt_append,
+          },
+    onSpawn: async (pid) => {
+      activeRun.pid = pid;
+      await host.runStateStore.upsertRun(runId, {
+        queue_key: input.queueKey,
+        conversation_key: input.sessionKey,
+        project_alias: input.projectAlias,
+        chat_id: input.chatId,
+        actor_id: input.actorId,
+        session_id: sessionId,
+        project_root: projectRoot,
+        prompt_excerpt: truncateExcerpt(input.prompt),
+        status: 'running',
+        status_detail: undefined,
+        pid,
+      });
+    },
+    onEvent: async (event: BackendEvent) => {
+      if (!host.config.service.emit_progress_updates) {
+        return;
+      }
+      const message = backend.summarizeEvent(event);
+      if (!message) {
+        return;
+      }
+      const now = Date.now();
+      if (now - lastProgressUpdate < host.config.service.progress_update_interval_ms) {
+        return;
+      }
+      lastProgressUpdate = now;
+      await host.updateRunProgressReply(input, runId, message, backendLabel);
+    },
+  });
+
   try {
     const outputTokenLimit = backend.name === 'claude'
       ? (host.config.claude?.output_token_limit ?? host.config.codex.output_token_limit)
       : backend.name === 'qwen'
         ? (host.config.qwen?.output_token_limit ?? host.config.codex.output_token_limit)
         : host.config.codex.output_token_limit;
-    const result = await backend.run({
-      workdir: input.project.root,
-      prompt: bridgePrompt,
-      sessionId: currentSession?.thread_id,
-      timeoutMs: backend.name === 'claude'
-        ? (host.config.claude?.run_timeout_ms ?? host.config.codex.run_timeout_ms)
-        : backend.name === 'qwen'
-          ? (host.config.qwen?.run_timeout_ms ?? host.config.codex.run_timeout_ms)
-          : host.config.codex.run_timeout_ms,
-      signal: activeRun.controller.signal,
-      logger: host.logger,
-      projectConfig: backend.name === 'codex'
+    let result: BackendRunResult;
+    try {
+      result = await runBackendTurn(currentSession?.thread_id);
+    } catch (error) {
+      const staleSessionId = currentSession?.thread_id;
+      if (!staleSessionId || !isMissingBackendSessionError(error)) {
+        throw error;
+      }
+
+      await host.sessionStore.dropProjectSession(input.sessionKey, input.projectAlias, staleSessionId);
+      currentSession = currentSession
         ? {
-            profile: input.project.profile ?? host.config.codex.default_profile,
-            model: input.project.codex_model ?? host.config.codex.default_model,
-            sandbox: input.project.codex_sandbox ?? input.project.sandbox ?? host.config.codex.default_sandbox,
-            tempDir: host.resolveProjectTempDir(input.projectAlias, input.project),
-            cacheDir: host.resolveProjectCacheDir(input.projectAlias, input.project),
+            ...currentSession,
+            thread_id: undefined,
+            active_thread_id: undefined,
           }
-        : backend.name === 'qwen'
-          ? {
-              approvalMode: input.project.qwen_approval_mode ?? host.config.qwen?.default_approval_mode,
-              model: input.project.qwen_model ?? host.config.qwen?.default_model,
-              allowedTools: input.project.qwen_allowed_tools ?? host.config.qwen?.allowed_tools,
-              systemPromptAppend: input.project.qwen_system_prompt_append ?? host.config.qwen?.system_prompt_append,
-            }
-          : {
-              permissionMode: input.project.claude_permission_mode ?? host.config.claude?.default_permission_mode,
-              model: input.project.claude_model ?? host.config.claude?.default_model,
-              maxBudgetUsd: input.project.claude_max_budget_usd ?? host.config.claude?.max_budget_usd,
-              allowedTools: input.project.claude_allowed_tools ?? host.config.claude?.allowed_tools,
-              systemPromptAppend: input.project.claude_system_prompt_append ?? host.config.claude?.system_prompt_append,
-            },
-      onSpawn: async (pid) => {
-        activeRun.pid = pid;
-        await host.runStateStore.upsertRun(runId, {
-          queue_key: input.queueKey,
-          conversation_key: input.sessionKey,
-          project_alias: input.projectAlias,
-          chat_id: input.chatId,
-          actor_id: input.actorId,
-          session_id: currentSession?.thread_id,
-          project_root: projectRoot,
-          prompt_excerpt: truncateExcerpt(input.prompt),
-          status: 'running',
-          status_detail: undefined,
-          pid,
-        });
-      },
-      onEvent: async (event: BackendEvent) => {
-        if (!host.config.service.emit_progress_updates) {
-          return;
-        }
-        const message = backend.summarizeEvent(event);
-        if (!message) {
-          return;
-        }
-        const now = Date.now();
-        if (now - lastProgressUpdate < host.config.service.progress_update_interval_ms) {
-          return;
-        }
-        lastProgressUpdate = now;
-        await host.updateRunProgressReply(input, runId, message, backendLabel);
-      },
-    });
+        : undefined;
+      await host.auditLog.append({
+        type: 'codex.run.session_stale',
+        run_id: runId,
+        chat_id: input.chatId,
+        actor_id: input.actorId,
+        project_alias: input.projectAlias,
+        conversation_key: input.sessionKey,
+        session_id: staleSessionId,
+        backend: backend.name,
+      });
+      host.logger.warn(
+        {
+          runId,
+          queueKey: input.queueKey,
+          sessionKey: input.sessionKey,
+          projectAlias: input.projectAlias,
+          sessionId: staleSessionId,
+          backend: backend.name,
+        },
+        'Dropped stale backend session and retrying without resume',
+      );
+      await host.runStateStore.upsertRun(runId, {
+        queue_key: input.queueKey,
+        conversation_key: input.sessionKey,
+        project_alias: input.projectAlias,
+        chat_id: input.chatId,
+        actor_id: input.actorId,
+        session_id: undefined,
+        project_root: projectRoot,
+        pid: activeRun.pid,
+        prompt_excerpt: truncateExcerpt(input.prompt),
+        status: 'running',
+        status_detail: 'stale session dropped; retrying without resume',
+      });
+      result = await runBackendTurn(undefined);
+    }
 
     const excerpt = result.finalMessage.slice(0, outputTokenLimit);
     if (!excerpt.trim()) {
@@ -555,4 +609,14 @@ export async function executePrompt(host: PipelineHost, input: ExecutePromptInpu
     host.activeRuns.delete(input.queueKey);
     host.runReplyTargets.delete(runId);
   }
+}
+
+function isMissingBackendSessionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return [
+    'No conversation found with session ID',
+    'No conversation found',
+    'Session not found',
+    'conversation not found',
+  ].some((needle) => message.includes(needle));
 }

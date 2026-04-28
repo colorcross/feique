@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.5.8 - 2026-04-28
+
+### 修复
+- Feishu post 模式的最终回复不再把正文重复写进标题，避免群聊 @ 回复里同一句结果出现两次。
+- 后端保存的会话 ID 失效时，会自动丢弃陈旧 session 并无 resume 重试一次，减少本地 CLI 清理历史会话后的失败率。
+
+### 验证
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+
 ## v1.5.3 - 2026-04-28
 
 ### 修复

@@ -2535,7 +2535,7 @@ export class FeiqueService {
       return response;
     }
     if (this.config.service.reply_mode === 'post') {
-      const post = buildFeishuPost(title, formattedBodyWithMention);
+      const post = buildFeishuPost('', formattedBodyWithMention);
       if (this.config.service.reply_quote_user_message && replyToMessageId) {
         const response = await this.feishuClient.sendPost(chatId, post, { replyToMessageId });
         await this.auditLog.append({
@@ -2621,7 +2621,7 @@ export class FeiqueService {
     if (lifecycleMode === 'post') {
       const postBody = sanitizeUserVisibleReply(formatQuotedReply(input.body, input.originalText));
       const title = buildReplyTitle(postBody);
-      const post = buildFeishuPost(title, postBody);
+      const post = buildFeishuPost('', postBody);
       const response = lifecycleReplyOptions
         ? await this.feishuClient.sendPost(input.chatId, post, lifecycleReplyOptions)
         : await this.feishuClient.sendPost(input.chatId, post);
@@ -2883,8 +2883,7 @@ export class FeiqueService {
           }),
         );
       } else if (target.mode === 'post') {
-        const title = buildReplyTitle(sanitizedBody);
-        await this.feishuClient.updatePost(target.messageId, buildFeishuPost(title, sanitizedBody));
+        await this.feishuClient.updatePost(target.messageId, buildFeishuPost('', sanitizedBody));
       } else {
         await this.feishuClient.updateText(target.messageId, sanitizedBody);
       }

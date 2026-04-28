@@ -155,8 +155,48 @@ describe('bridge service', () => {
     expect(setup.updateCard).not.toHaveBeenCalled();
     expect(setup.sendPost).toHaveBeenCalledTimes(1);
     expect(setup.updatePost).not.toHaveBeenCalled();
-    expect(JSON.stringify(setup.sendPost.mock.calls[0]?.[1] ?? {})).toContain('最终结果');
-    expect(JSON.stringify(setup.sendPost.mock.calls[0]?.[1] ?? {})).not.toContain('已收到你的消息，正在准备处理。');
+    const post = setup.sendPost.mock.calls[0]?.[1] as { zh_cn?: { title?: string; content?: unknown } };
+    const postJson = JSON.stringify(post ?? {});
+    expect(post.zh_cn?.title).toBe('');
+    expect(postJson).toContain('最终结果');
+    expect(postJson.match(/最终结果/g)?.length).toBe(1);
+    expect(postJson).not.toContain('已收到你的消息，正在准备处理。');
+  });
+
+  it('does not duplicate final post replies in the title for group mentions', async () => {
+    const setup = await createService({
+      service: {
+        reply_mode: 'post',
+      },
+      feishu: {
+        allowed_group_ids: ['oc_group_post'],
+        bot_open_ids: ['ou_bot'],
+      },
+    });
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-post-group',
+      finalMessage: '没看明白「BBB」指的是啥。',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('@源码牛 BBB', {
+      chat_id: 'oc_group_post',
+      chat_type: 'group',
+      actor_id: 'ou_user',
+      actor_name: '用户',
+      message_id: 'm-post-group-mention',
+      mentions: [{ id: 'ou_bot', name: '源码牛' }],
+    }));
+
+    const post = setup.sendPost.mock.calls.at(-1)?.[1] as { zh_cn?: { title?: string; content?: unknown } };
+    const postJson = JSON.stringify(post ?? {});
+    expect(post.zh_cn?.title).toBe('');
+    expect(post.zh_cn?.content).toEqual(expect.arrayContaining([
+      [{ tag: 'text', text: '<at user_id="ou_user">用户</at>' }],
+    ]));
+    expect(postJson.match(/没看明白「BBB」指的是啥。/g)?.length).toBe(1);
   });
 
   it('sends only the final text reply for normal runs', async () => {
@@ -465,6 +505,41 @@ describe('bridge service', () => {
 
     await setup.service.handleIncomingMessage(buildMessage('继续这个会话', { message_id: 'm-follow-up' }));
     expect(runCodexTurnMock.mock.calls.at(-1)?.[0]?.sessionId).toBe('thread-adopted');
+  });
+
+  it('drops a stale saved session and retries once without resume', async () => {
+    const setup = await createService();
+    const sessionKey = buildConversationKey({ tenantKey: 'tenant', chatId: 'chat', actorId: 'user', scope: 'chat' });
+    await setup.sessionStore.ensureConversation(sessionKey, {
+      tenant_key: 'tenant',
+      chat_id: 'chat',
+      actor_id: 'user',
+      scope: 'chat',
+    });
+    await setup.sessionStore.upsertProjectSession(sessionKey, 'default', {
+      thread_id: 'stale-thread',
+    });
+    runCodexTurnMock
+      .mockRejectedValueOnce(new Error('Claude exited with code 1: No conversation found with session ID: stale-thread'))
+      .mockResolvedValueOnce({
+        sessionId: 'fresh-thread',
+        finalMessage: 'done after retry',
+        stderr: '',
+        exitCode: 0,
+        capabilities: { version: 'v', exec: {}, resume: {} },
+      });
+
+    await setup.service.handleIncomingMessage(buildMessage('继续这个会话', { message_id: 'm-stale-session' }));
+
+    expect(runCodexTurnMock).toHaveBeenCalledTimes(2);
+    expect(runCodexTurnMock.mock.calls[0]?.[0]?.sessionId).toBe('stale-thread');
+    expect(runCodexTurnMock.mock.calls[1]?.[0]?.sessionId).toBeUndefined();
+    const conversation = await setup.sessionStore.getConversation(sessionKey);
+    expect(conversation?.projects.default?.thread_id).toBe('fresh-thread');
+    expect(conversation?.projects.default?.sessions?.['stale-thread']).toBeUndefined();
+    const auditEvents = await setup.auditLog.tail(20);
+    expect(auditEvents.some((event) => event.type === 'codex.run.session_stale')).toBe(true);
+    expect(setup.sendText.mock.calls.at(-1)?.[1]).toContain('done after retry');
   });
 
   it('lists adoptable local Codex sessions for the current project', async () => {
@@ -1786,6 +1861,7 @@ async function createService(overrides: TestConfigOverrides = {}) {
     updatePost,
     feishuClient,
     sessionStore,
+    auditLog,
     idempotencyStore,
     runStateStore,
     restart,
