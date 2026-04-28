@@ -243,9 +243,16 @@ config_admin_chat_ids = ["oc_repo_config_admin_1"]
 ```toml
 [security]
 require_group_mentions = true
+
+[feishu]
+# 推荐配置，用于确认群消息 @ 的对象是机器人自己，而不是群里其他成员。
+# 可通过 `feique feishu inspect --json` 查看 bot.open_id。
+bot_open_ids = ["ou_bot_open_id"]
 ```
 
-这样群里只有 `@机器人` 才会触发，能显著减少误触发。
+这样群里只有 `@机器人` 才会触发，`@其他人` 不会触发，能显著减少误触发。
+
+如果没有配置 `bot_open_ids` 或 `bot_name`，Feique 为兼容旧配置只能退化为“群消息里存在任意 @ 就触发”。生产群、管理员群和多人项目群建议显式配置 `bot_open_ids`。
 
 如果要把入口再收紧，补白名单：
 

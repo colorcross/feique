@@ -39,6 +39,8 @@ describe('doctor', () => {
 
     const projectRoot = path.join(workspace, 'repo-a');
     await fs.mkdir(projectRoot, { recursive: true });
+    const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
 
     const config: BridgeConfig = {
       version: 1,
@@ -139,6 +141,11 @@ describe('doctor', () => {
     };
 
     const findings = await runDoctor(config);
+    if (originalOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = originalOpenAiApiKey;
+    }
     const messages = findings.map((finding) => `[${finding.level}] ${finding.message}`);
 
     expect(messages).toContain('[info] Codex detected: codex 0.1.0');

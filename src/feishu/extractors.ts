@@ -76,6 +76,9 @@ export function extractCardAction(raw: unknown): IncomingCardActionContext | nul
 }
 
 export function shouldAllowChat(config: { allowed_chat_ids: string[]; allowed_group_ids: string[] }, chatId: string, chatType: string): boolean {
+  if (config.allowed_group_ids.includes(chatId)) {
+    return true;
+  }
   if (chatType === 'p2p') {
     return config.allowed_chat_ids.length === 0 || config.allowed_chat_ids.includes(chatId);
   }

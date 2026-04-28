@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractIncomingMessage } from '../src/feishu/extractors.js';
+import { extractIncomingMessage, shouldAllowChat } from '../src/feishu/extractors.js';
 
 describe('feishu extractors', () => {
   it('extracts attachment metadata from image messages', () => {
@@ -61,5 +61,16 @@ describe('feishu extractors', () => {
     expect(message?.text).toContain('第一段');
     expect(message?.text).toContain('第二段');
     expect(message?.attachments[0]?.kind).toBe('post');
+  });
+
+  it('allows configured group chat ids even when Feishu reports a non-group chat type', () => {
+    const config = {
+      allowed_chat_ids: ['oc_direct'],
+      allowed_group_ids: ['oc_group'],
+    };
+
+    expect(shouldAllowChat(config, 'oc_group', 'p2p')).toBe(true);
+    expect(shouldAllowChat(config, 'oc_group', 'unknown')).toBe(true);
+    expect(shouldAllowChat(config, 'oc_other', 'p2p')).toBe(false);
   });
 });

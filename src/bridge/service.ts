@@ -288,6 +288,7 @@ export class FeiqueService {
   }
 
   public async handleIncomingMessage(context: IncomingMessageContext): Promise<void> {
+    context = this.normalizeIncomingChatContext(context);
     this.currentMessageContext = context;
     if (!context.text.trim() && context.attachments.length === 0) {
       return;
@@ -781,7 +782,7 @@ export class FeiqueService {
         logger: this.logger,
       },
     );
-    if (context.chat_type === 'group' && this.shouldRequireMention(projectContext.project) && context.mentions.length === 0) {
+    if (context.chat_type === 'group' && this.shouldRequireMention(projectContext.project) && !this.messageMentionsBot(context)) {
       return;
     }
     const rateLimitMessage = this.checkAndConsumeChatRateLimit(projectContext.projectAlias, projectContext.project, context.chat_id);
@@ -2014,6 +2015,27 @@ export class FeiqueService {
 
   private shouldRequireMention(project: ProjectConfig): boolean {
     return project.mention_required || this.config.security.require_group_mentions;
+  }
+
+  private messageMentionsBot(context: IncomingMessageContext): boolean {
+    const botOpenIds = new Set(this.config.feishu.bot_open_ids ?? []);
+    const botName = this.config.feishu.bot_name?.trim();
+    if (botOpenIds.size === 0 && !botName) {
+      return context.mentions.length > 0;
+    }
+    return context.mentions.some((mention) => {
+      if (mention.id && botOpenIds.has(mention.id)) {
+        return true;
+      }
+      return Boolean(botName && mention.name?.trim() === botName);
+    });
+  }
+
+  private normalizeIncomingChatContext(context: IncomingMessageContext): IncomingMessageContext {
+    if (context.chat_type !== 'group' && this.config.feishu.allowed_group_ids.includes(context.chat_id)) {
+      return { ...context, chat_type: 'group' };
+    }
+    return context;
   }
 
 

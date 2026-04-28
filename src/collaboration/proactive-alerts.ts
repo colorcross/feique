@@ -30,6 +30,8 @@ export interface AlertRules {
   /** Alert when same actor retries N times in window_hours. Default: 5 */
   retry_loop_threshold: number;
   retry_loop_window_hours: number;
+  /** Require at least N failures before classifying frequent runs as a retry loop. Default: 2 */
+  retry_loop_min_failures: number;
   /** Alert when daily cost exceeds this % of quota. Default: 80 */
   cost_alert_pct: number;
   /** Alert when a run exceeds N minutes. Default: 30 */
@@ -40,6 +42,7 @@ export const DEFAULT_ALERT_RULES: AlertRules = {
   consecutive_failure_threshold: 3,
   retry_loop_threshold: 5,
   retry_loop_window_hours: 4,
+  retry_loop_min_failures: 2,
   cost_alert_pct: 80,
   long_running_minutes: 30,
 };
@@ -99,8 +102,8 @@ export function checkRunAlerts(
         new Date(r.started_at).getTime() > cutoff,
     );
 
-    if (actorProjectRuns.length >= rules.retry_loop_threshold) {
-      const failures = actorProjectRuns.filter((r) => r.status === 'failure').length;
+    const failures = actorProjectRuns.filter((r) => r.status === 'failure').length;
+    if (actorProjectRuns.length >= rules.retry_loop_threshold && failures >= rules.retry_loop_min_failures) {
       alerts.push({
         kind: 'retry_loop',
         severity: 'warning',

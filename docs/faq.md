@@ -60,7 +60,14 @@ project_switch_auto_adopt_latest = true
 ```toml
 [security]
 require_group_mentions = true
+
+[feishu]
+bot_open_ids = ["ou_bot_open_id"]
 ```
+
+`require_group_mentions = true` 只说明群聊要经过 @ 门禁；`bot_open_ids` 用来判断 @ 的是不是机器人自己。建议用 `feique feishu inspect --json` 读取 `bot.open_id` 后写入配置。配置后，群里 `@其他人` 不会触发 Feique。
+
+如果未配置 `bot_open_ids` 或 `bot_name`，Feique 会为了兼容旧配置退回到“任意 @ 都算触发”。这适合临时测试，不建议用于生产群。
 
 如果你明确接受风险，可以关闭：
 

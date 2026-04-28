@@ -34,7 +34,8 @@ export async function createWebhookBridgeServer(input: {
         input.logger.info({ chatId: message.chat_id, senderType: message.sender_type, messageId: message.message_id }, 'Ignoring non-user message');
         return;
       }
-      if (!shouldAllowChat(input.config.feishu, message.chat_id, message.chat_type)) {
+      const currentFeishuConfig = input.service.config?.feishu ?? input.config.feishu;
+      if (!shouldAllowChat(currentFeishuConfig, message.chat_id, message.chat_type)) {
         input.logger.info({ chatId: message.chat_id }, 'Ignoring message from disallowed chat');
         await input.service.handleRejectedChat(message.chat_id, message.chat_type);
         return;

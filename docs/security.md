@@ -47,6 +47,7 @@
 - 用 `allowed_group_ids` 白名单收敛入口
 - 管理员动态控制入口尽量放在单独的管理员私聊，或极小范围的受信群里
 - 保持 `security.require_group_mentions = true`
+- 配置 `feishu.bot_open_ids`，确保群聊只响应 `@机器人自己`，而不是任意 `@成员`
 - 不要长期把 `allowed_chat_ids` / `allowed_group_ids` 留空；`doctor` 现在会明确告警
 - **v1.4+**: 白名单外的陌生 chat 首次接入时，桥接器会自动提示用户其 `chat_id` 并一次性通知所有 admin_chat_ids。配置 `admin_chat_ids` 才能收到通知；**同一个 chat 在进程生命周期内只通知一次**，避免刷屏。这让「加入白名单」流程从「用户摸黑 → admin 无感知」变成「用户有反馈 → admin 有通知 → 一条 `/admin chat add <id>` 即可授权」
 

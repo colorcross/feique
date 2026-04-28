@@ -214,6 +214,10 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
 async function createService(overrides: TestConfigOverrides = {}) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-collab-e2e-'));
   tempDirs.push(dir);
+  if (process.env.CODEX_HOME === originalCodexHome) {
+    process.env.CODEX_HOME = path.join(dir, 'codex-home');
+    await fs.mkdir(process.env.CODEX_HOME, { recursive: true });
+  }
 
   const config = buildConfig(dir, overrides);
   const configPath = path.join(dir, 'config.toml');

@@ -48,17 +48,33 @@ describe('proactive alerts', () => {
   });
 
   describe('retry loop', () => {
-    it('alerts when same actor has too many runs in window', () => {
+    it('alerts when same actor has too many runs and failures in window', () => {
       const runs = Array.from({ length: 5 }, (_, i) =>
-        buildRun({ actor_id: 'alice', started_at: new Date(Date.now() - i * 60_000).toISOString() }),
+        buildRun({
+          actor_id: 'alice',
+          status: i < 2 ? 'failure' : 'success',
+          started_at: new Date(Date.now() - i * 60_000).toISOString(),
+        }),
       );
       const alerts = checkRunAlerts(runs[0]!, runs);
       expect(alerts.some((a) => a.kind === 'retry_loop')).toBe(true);
     });
 
+    it('does not alert for frequent successful runs', () => {
+      const runs = Array.from({ length: 5 }, (_, i) =>
+        buildRun({
+          actor_id: 'alice',
+          status: 'success',
+          started_at: new Date(Date.now() - i * 60_000).toISOString(),
+        }),
+      );
+      const alerts = checkRunAlerts(runs[0]!, runs);
+      expect(alerts.some((a) => a.kind === 'retry_loop')).toBe(false);
+    });
+
     it('does not alert for different actors', () => {
       const runs = Array.from({ length: 5 }, (_, i) =>
-        buildRun({ actor_id: `user-${i}`, started_at: new Date(Date.now() - i * 60_000).toISOString() }),
+        buildRun({ actor_id: `user-${i}`, status: 'failure', started_at: new Date(Date.now() - i * 60_000).toISOString() }),
       );
       const alerts = checkRunAlerts(runs[0]!, runs);
       expect(alerts.some((a) => a.kind === 'retry_loop')).toBe(false);

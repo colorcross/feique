@@ -95,6 +95,9 @@ app_secret = "env:FEISHU_APP_SECRET"
 transport = "long-connection"
 # encrypt_key = "env:FEISHU_ENCRYPT_KEY"
 # verification_token = "env:FEISHU_VERIFICATION_TOKEN"
+# Optional but recommended for group mention gating. Get it with:
+# feique feishu inspect --json
+# bot_open_ids = ["ou_xxx"]
 host = "0.0.0.0"
 port = 3333
 event_path = "/webhook/event"

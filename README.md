@@ -212,6 +212,8 @@ enabled = true
 app_id = "env:FEISHU_APP_ID"
 app_secret = "env:FEISHU_APP_SECRET"
 transport = "long-connection"
+# 推荐配置，用于群聊 @ 门禁：只响应 @ 机器人自己，不响应 @ 其他成员。
+bot_open_ids = ["ou_bot_open_id"]
 
 [projects.default]
 root = "/srv/repos/repo-a"

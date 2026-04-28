@@ -298,6 +298,7 @@ export const bridgeConfigSchema = z.object({
     encrypt_key: z.string().optional(),
     verification_token: z.string().optional(),
     bot_name: z.string().optional(),
+    bot_open_ids: z.array(z.string()).optional(),
     transport: transportSchema.default('long-connection'),
     host: z.string().default('0.0.0.0'),
     port: z.number().int().positive().default(3333),

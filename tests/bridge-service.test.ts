@@ -1130,6 +1130,75 @@ describe('bridge service', () => {
     expect(setup.sendText.mock.calls.at(-1)?.[1]).toContain('群共享记忆已恢复');
   });
 
+  it('requires mentions for configured group chat ids even when chat_type is reported as p2p', async () => {
+    const setup = await createService({
+      feishu: {
+        allowed_group_ids: ['oc_group_misreported'],
+        bot_open_ids: ['ou_bot'],
+      },
+      security: {
+        require_group_mentions: true,
+      },
+    });
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-misreported-group',
+      finalMessage: 'done',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'v', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('不应该执行', {
+      chat_id: 'oc_group_misreported',
+      chat_type: 'p2p',
+      message_id: 'm-misreported-group-no-mention',
+    }));
+    expect(runCodexTurnMock).not.toHaveBeenCalled();
+
+    await setup.service.handleIncomingMessage(buildMessage('应该执行', {
+      chat_id: 'oc_group_misreported',
+      chat_type: 'p2p',
+      message_id: 'm-misreported-group-with-mention',
+      mentions: [{ id: 'ou_bot' }],
+    }));
+    expect(runCodexTurnMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores configured group messages that mention someone else instead of the bot', async () => {
+    const setup = await createService({
+      feishu: {
+        allowed_group_ids: ['oc_group_mentions'],
+        bot_open_ids: ['ou_bot'],
+      },
+      security: {
+        require_group_mentions: true,
+      },
+    });
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-bot-mention',
+      finalMessage: 'done',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'v', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('不应该执行', {
+      chat_id: 'oc_group_mentions',
+      chat_type: 'group',
+      message_id: 'm-mentions-someone-else',
+      mentions: [{ id: 'ou_someone_else', name: '别人' }],
+    }));
+    expect(runCodexTurnMock).not.toHaveBeenCalled();
+
+    await setup.service.handleIncomingMessage(buildMessage('应该执行', {
+      chat_id: 'oc_group_mentions',
+      chat_type: 'group',
+      message_id: 'm-mentions-bot',
+      mentions: [{ id: 'ou_bot', name: '源码牛' }],
+    }));
+    expect(runCodexTurnMock).toHaveBeenCalledTimes(1);
+  });
+
   it('ages out oldest pinned memory and can forget expired entries', async () => {
     const setup = await createService({
       service: {
@@ -1623,6 +1692,10 @@ interface TestConfigOverrides extends Partial<Omit<BridgeConfig, 'service' | 'co
 async function createService(overrides: TestConfigOverrides = {}) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'feique-service-'));
   tempDirs.push(dir);
+  if (process.env.CODEX_HOME === originalCodexHome) {
+    process.env.CODEX_HOME = path.join(dir, 'codex-home');
+    await fs.mkdir(process.env.CODEX_HOME, { recursive: true });
+  }
 
   const config = buildConfig(dir, overrides);
   const configPath = path.join(dir, 'config.toml');
@@ -1747,6 +1820,7 @@ function buildConfig(dir: string, overrides: TestConfigOverrides): BridgeConfig 
       card_path: '/webhook/card',
       allowed_chat_ids: [],
       allowed_group_ids: [],
+      bot_open_ids: [],
     },
     embedding: {
       provider: 'local' as const,
