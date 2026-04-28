@@ -48,9 +48,6 @@ export function supportsInteractiveCardActions(config: BridgeConfig): boolean {
 }
 
 export function resolveRunLifecycleReplyMode(config: BridgeConfig): BridgeConfig['service']['reply_mode'] {
-  if (config.service.reply_mode === 'post') {
-    return 'card';
-  }
   return config.service.reply_mode;
 }
 

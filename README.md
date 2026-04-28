@@ -230,6 +230,8 @@ log_dir = "/srv/feique/projects/repo-a/logs"
 # backend = "claude"  # 项目级后端覆盖
 ```
 
+`reply_mode` 同时控制普通回复和任务运行中/完成回复：`text` 是纯文本气泡，`post` 是飞书富文本消息，`card` 是卡片消息。
+
 权限说明：
 
 - `viewer`：可见项目、查看 `/projects`、`/status`、`/session list`

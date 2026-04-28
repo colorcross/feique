@@ -113,8 +113,10 @@ feique audit tail --limit 20
 
 补充：
 
+- 普通回答和运行中/完成这类任务生命周期回复都会遵守同一个 `reply_mode`
 - 普通回答在 `card` 模式下会带标题、分段、状态/阶段元信息，更适合长答案和结构化结果
-- `post` 仍适合想保留轻量富文本、但不需要卡片外观的场景
+- `text` 适合只想要聊天气泡文本、不需要卡片外观的场景
+- `post` 适合想保留 Markdown 转换后的轻量富文本、但不需要卡片外观的场景
 - 变更类自然语言命令会直接执行，不再追加确认消息
 
 如果你希望回复更接近 `openclaw-lark` 这种工作台风格，推荐优先用：
@@ -122,6 +124,13 @@ feique audit tail --limit 20
 ```toml
 [service]
 reply_mode = "card"
+```
+
+如果你希望群里只出现文本消息，可以切到：
+
+```toml
+[service]
+reply_mode = "text"
 ```
 
 ## 8. `security.allowed_project_roots` 应该怎么配？

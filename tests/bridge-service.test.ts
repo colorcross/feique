@@ -135,7 +135,7 @@ describe('bridge service', () => {
     expect(setup.sendText).not.toHaveBeenCalled();
   });
 
-  it('sends and updates a runtime card when reply_mode=post', async () => {
+  it('sends and updates runtime post messages when reply_mode=post', async () => {
     const setup = await createService({
       service: {
         reply_mode: 'post',
@@ -151,13 +151,13 @@ describe('bridge service', () => {
 
     await setup.service.handleIncomingMessage(buildMessage('执行一次', { message_id: 'm-post-lifecycle' }));
 
-    expect(setup.sendPost).not.toHaveBeenCalled();
-    expect(setup.updatePost).not.toHaveBeenCalled();
-    expect(setup.sendCard).toHaveBeenCalledTimes(1);
-    expect(setup.updateCard).toHaveBeenCalledTimes(2);
-    expect(JSON.stringify(setup.sendCard.mock.calls[0]?.[1] ?? {})).toContain('已接收请求');
-    expect(JSON.stringify(setup.updateCard.mock.calls[0]?.[1] ?? {})).toContain('处理中');
-    expect(JSON.stringify(setup.updateCard.mock.calls.at(-1)?.[1] ?? {})).toContain('最终结果');
+    expect(setup.sendCard).not.toHaveBeenCalled();
+    expect(setup.updateCard).not.toHaveBeenCalled();
+    expect(setup.sendPost).toHaveBeenCalledTimes(1);
+    expect(setup.updatePost).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(setup.sendPost.mock.calls[0]?.[1] ?? {})).toContain('已收到你的消息，正在准备处理。');
+    expect(JSON.stringify(setup.updatePost.mock.calls[0]?.[1] ?? {})).toContain('桥接器已开始处理你的请求。');
+    expect(JSON.stringify(setup.updatePost.mock.calls.at(-1)?.[1] ?? {})).toContain('最终结果');
   });
 
   it('sends an initial text status reply and updates it through completion', async () => {
@@ -196,8 +196,9 @@ describe('bridge service', () => {
 
     await setup.service.handleIncomingMessage(buildMessage('执行一次', { message_id: 'm-empty-result' }));
 
-    expect(setup.sendCard).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(setup.updateCard.mock.calls.at(-1)?.[1] ?? {})).toContain('Codex 已完成，但没有返回可显示文本。');
+    expect(setup.sendPost).toHaveBeenCalledTimes(1);
+    expect(setup.sendCard).not.toHaveBeenCalled();
+    expect(JSON.stringify(setup.updatePost.mock.calls.at(-1)?.[1] ?? {})).toContain('Codex 已完成，但没有返回可显示文本。');
   });
 
   it('executes natural language admin mutations immediately', async () => {

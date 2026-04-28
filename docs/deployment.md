@@ -87,7 +87,7 @@ npm run demo:down
 - 将配置和状态目录挂载到持久卷
 - 把项目根目录映射为只允许访问的工作区
 - 配置 `security.allowed_project_roots`
-- 如果你希望回复更接近飞书插件式工作台体验，默认把 `reply_mode = "card"` 作为共享服务起点；只有在你明确想保留更轻量的富文本消息时再退回 `reply_mode = "post"`
+- 如果你希望回复更接近飞书插件式工作台体验，默认把 `reply_mode = "card"` 作为共享服务起点；如果只想保留更轻量的富文本消息，切到 `reply_mode = "post"`；如果群里只想出现文本气泡，切到 `reply_mode = "text"`
 - 对不同项目使用不同的后端或 Codex profile（通过 `projects.<alias>.backend` 指定）
 - 保持单实例运行；如果做主备切换，先释放旧实例锁再拉起新实例
 - 在共享部署中显式配置 `service.metrics_port`，接入 Prometheus 或探针系统
@@ -97,7 +97,9 @@ npm run demo:down
 
 补充：
 
+- 普通回复和任务生命周期回复都会遵守同一个 `reply_mode`
 - `reply_mode = "card"` 在 long-connection 模式下也能展示卡片，普通回答会带更清晰的标题、分段和状态元信息，但按钮回调仍需要 webhook
+- `reply_mode = "text"` 会使用纯文本消息；`reply_mode = "post"` 会使用飞书富文本消息，不显示卡片外观
 - 当前默认体验是只返回单条最终结果，不再先推送一条 `处理中`
 - 最终回复会默认隐藏 `引用 / 项目 / 耗时` 这类工程化头部信息，前台更接近插件式工作台体验
 - 自然语言命令和斜杠命令会直接执行，不再追加确认消息
