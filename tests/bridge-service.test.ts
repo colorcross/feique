@@ -135,7 +135,7 @@ describe('bridge service', () => {
     expect(setup.sendText).not.toHaveBeenCalled();
   });
 
-  it('sends and updates runtime post messages when reply_mode=post', async () => {
+  it('sends only the final runtime post when reply_mode=post', async () => {
     const setup = await createService({
       service: {
         reply_mode: 'post',
@@ -154,10 +154,9 @@ describe('bridge service', () => {
     expect(setup.sendCard).not.toHaveBeenCalled();
     expect(setup.updateCard).not.toHaveBeenCalled();
     expect(setup.sendPost).toHaveBeenCalledTimes(1);
-    expect(setup.updatePost).toHaveBeenCalledTimes(2);
-    expect(JSON.stringify(setup.sendPost.mock.calls[0]?.[1] ?? {})).toContain('已收到你的消息，正在准备处理。');
-    expect(JSON.stringify(setup.updatePost.mock.calls[0]?.[1] ?? {})).toContain('桥接器已开始处理你的请求。');
-    expect(JSON.stringify(setup.updatePost.mock.calls.at(-1)?.[1] ?? {})).toContain('最终结果');
+    expect(setup.updatePost).not.toHaveBeenCalled();
+    expect(JSON.stringify(setup.sendPost.mock.calls[0]?.[1] ?? {})).toContain('最终结果');
+    expect(JSON.stringify(setup.sendPost.mock.calls[0]?.[1] ?? {})).not.toContain('已收到你的消息，正在准备处理。');
   });
 
   it('sends an initial text status reply and updates it through completion', async () => {
@@ -178,6 +177,25 @@ describe('bridge service', () => {
     expect(setup.updateText).toHaveBeenCalledTimes(2);
     expect(setup.updateText.mock.calls[0]?.[1]).toContain('状态: 处理中');
     expect(setup.updateText.mock.calls.at(-1)?.[1]).toContain('最终结果');
+  });
+
+  it('continues the backend run when an in-place lifecycle update fails', async () => {
+    const setup = await createService();
+    setup.updateText.mockRejectedValueOnce(new Error('Feishu update failed'));
+    runCodexTurnMock.mockResolvedValue({
+      sessionId: 'thread-1',
+      finalMessage: '最终结果',
+      stderr: '',
+      exitCode: 0,
+      capabilities: { version: 'codex-cli 0.98.0', exec: {}, resume: {} },
+    });
+
+    await setup.service.handleIncomingMessage(buildMessage('执行一次', { message_id: 'm-update-fallback' }));
+
+    expect(runCodexTurnMock).toHaveBeenCalledTimes(1);
+    expect(setup.sendText).toHaveBeenCalledTimes(2);
+    expect(setup.sendText.mock.calls.at(-1)?.[1]).toContain('最终结果');
+    expect(setup.sendText.mock.calls.at(-1)?.[1]).not.toContain('处理失败');
   });
 
   it('uses the global Codex default model when a project does not override it', async () => {
@@ -217,7 +235,8 @@ describe('bridge service', () => {
 
     expect(setup.sendPost).toHaveBeenCalledTimes(1);
     expect(setup.sendCard).not.toHaveBeenCalled();
-    expect(JSON.stringify(setup.updatePost.mock.calls.at(-1)?.[1] ?? {})).toContain('Codex 已完成，但没有返回可显示文本。');
+    expect(setup.updatePost).not.toHaveBeenCalled();
+    expect(JSON.stringify(setup.sendPost.mock.calls.at(-1)?.[1] ?? {})).toContain('Codex 已完成，但没有返回可显示文本。');
   });
 
   it('executes natural language admin mutations immediately', async () => {

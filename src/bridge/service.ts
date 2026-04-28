@@ -2684,6 +2684,12 @@ export class FeiqueService {
     originalText?: string;
   }): Promise<void> {
     const lifecycleMode = resolveRunLifecycleReplyMode(this.config);
+    // Feishu rejects PATCH updates for post messages in long-connection mode.
+    // For post mode, keep the user-facing surface to a single final rich-text
+    // reply instead of sending an initial message that cannot be updated.
+    if (lifecycleMode === 'post') {
+      return;
+    }
     const draft = this.buildInitialRunLifecycleReply(input.projectAlias, input.queued, lifecycleMode);
     try {
       const response = await this.sendRunLifecycleReply({
@@ -2838,49 +2844,64 @@ export class FeiqueService {
     }
 
     const sanitizedBody = sanitizeUserVisibleReply(input.body);
-    if (target.mode === 'card') {
-      const includeActions = input.runStatus === 'success' && supportsInteractiveCardActions(this.config) && input.sessionKey !== undefined;
-      await this.feishuClient.updateCard(
-        target.messageId,
-        buildRunLifecycleCard({
-          title: input.title,
-          body: input.body,
+    try {
+      if (target.mode === 'card') {
+        const includeActions = input.runStatus === 'success' && supportsInteractiveCardActions(this.config) && input.sessionKey !== undefined;
+        await this.feishuClient.updateCard(
+          target.messageId,
+          buildRunLifecycleCard({
+            title: input.title,
+            body: input.body,
+            projectAlias: input.projectAlias,
+            runStatus: input.runStatus,
+            runPhase: input.runPhase,
+            cardSummary: input.cardSummary,
+            includeActions,
+            rerunPayload: includeActions && input.sessionKey
+              ? {
+                  action: 'rerun',
+                  conversation_key: input.sessionKey,
+                  project_alias: input.projectAlias,
+                  chat_id: input.chatId,
+                }
+              : undefined,
+            newSessionPayload: includeActions && input.sessionKey
+              ? {
+                  action: 'new',
+                  conversation_key: input.sessionKey,
+                  project_alias: input.projectAlias,
+                  chat_id: input.chatId,
+                }
+              : undefined,
+            statusPayload: includeActions && input.sessionKey
+              ? {
+                  action: 'status',
+                  conversation_key: input.sessionKey,
+                  project_alias: input.projectAlias,
+                  chat_id: input.chatId,
+                }
+              : undefined,
+          }),
+        );
+      } else if (target.mode === 'post') {
+        const title = buildReplyTitle(sanitizedBody);
+        await this.feishuClient.updatePost(target.messageId, buildFeishuPost(title, sanitizedBody));
+      } else {
+        await this.feishuClient.updateText(target.messageId, sanitizedBody);
+      }
+    } catch (error) {
+      this.runReplyTargets.delete(input.runId);
+      this.logger.warn(
+        {
+          error,
+          chatId: input.chatId,
           projectAlias: input.projectAlias,
-          runStatus: input.runStatus,
-          runPhase: input.runPhase,
-          cardSummary: input.cardSummary,
-          includeActions,
-          rerunPayload: includeActions && input.sessionKey
-            ? {
-                action: 'rerun',
-                conversation_key: input.sessionKey,
-                project_alias: input.projectAlias,
-                chat_id: input.chatId,
-              }
-            : undefined,
-          newSessionPayload: includeActions && input.sessionKey
-            ? {
-                action: 'new',
-                conversation_key: input.sessionKey,
-                project_alias: input.projectAlias,
-                chat_id: input.chatId,
-              }
-            : undefined,
-          statusPayload: includeActions && input.sessionKey
-            ? {
-                action: 'status',
-                conversation_key: input.sessionKey,
-                project_alias: input.projectAlias,
-                chat_id: input.chatId,
-              }
-            : undefined,
-        }),
+          runId: input.runId,
+          replyMode: target.mode,
+        },
+        'Failed to update run lifecycle reply; will fall back to a new reply',
       );
-    } else if (target.mode === 'post') {
-      const title = buildReplyTitle(sanitizedBody);
-      await this.feishuClient.updatePost(target.messageId, buildFeishuPost(title, sanitizedBody));
-    } else {
-      await this.feishuClient.updateText(target.messageId, sanitizedBody);
+      return false;
     }
 
     await this.auditLog.append({
